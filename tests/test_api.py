@@ -11,6 +11,14 @@ from app.main import app
 client = TestClient(app)
 
 
+def test_root_serves_hmi_html():
+    response = client.get("/")
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/html")
+    assert "Solar Calc Engine" in response.text
+    assert "syncWithBackend" in response.text
+
+
 def test_cors_allows_cross_origin_calls():
     response = client.post(
         "/calculate",

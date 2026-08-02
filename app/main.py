@@ -9,8 +9,11 @@ use persistence, for the AutoCAD sync loop.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 
 from app import (
     ampacity_calc,
@@ -45,9 +48,22 @@ app.include_router(changeset_router)
 create_db_and_tables()
 
 
+_STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
+
+
 @app.get("/health")
 def health() -> dict:
     return {"status": "ok"}
+
+
+@app.get("/")
+def serve_hmi() -> FileResponse:
+    """The HMI itself, served same-origin — the published claude.ai artifact
+    copy can't call this API at all (its sandbox blocks external fetch/XHR,
+    confirmed via the artifact-capabilities skill: only downloads/mcp
+    capabilities exist, neither fits an arbitrary REST backend). This route
+    is what actually makes "Sync with Backend" work."""
+    return FileResponse(_STATIC_DIR / "index.html")
 
 
 @app.post("/calculate")
