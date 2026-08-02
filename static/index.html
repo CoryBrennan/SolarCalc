@@ -1236,6 +1236,13 @@
   // ---- site config live computation ----
   function parseNum(v) { return parseFloat(String(v).replace(/,/g, '')) || 0; }
   function fmt(n) { return Math.round(n).toLocaleString('en-US'); }
+  function debounce(fn, waitMs) {
+    let timer;
+    return function (...args) {
+      clearTimeout(timer);
+      timer = setTimeout(() => fn.apply(this, args), waitMs);
+    };
+  }
 
   const targetAc = document.getElementById('targetAc');
   const invRating = document.getElementById('invRating');
@@ -1258,7 +1265,13 @@
     if (typeof etapRecompute === 'function') etapRecompute();
     if (typeof switchboardRecompute === 'function') switchboardRecompute();
   }
-  [targetAc, invRating, dcAcRatio].forEach(el => el.addEventListener('input', recompute));
+  // Debounced: recompute() cascades into etapRecompute(), which rebuilds one DOM row
+  // per inverter (ceil(targetAC / rating)). Mid-keystroke the rating can pass through
+  // tiny transient values (e.g. typing "4" over "350000"), spiking that row count into
+  // the hundreds of thousands for a single frame — debouncing avoids running the
+  // cascade on those throwaway intermediate values.
+  const debouncedRecompute = debounce(recompute, 250);
+  [targetAc, invRating, dcAcRatio].forEach(el => el.addEventListener('input', debouncedRecompute));
   // NOTE: initial recompute() call is deferred to the end of this script, after every
   // panel below has defined its own const bindings — recompute() reaches forward into
   // ETAP/switchboard code, and calling it this early would hit those before they exist.
@@ -1438,8 +1451,13 @@
   const INVERTER_KV = 0.8; // CPS SCH350KTL-DO/US-800 rated output voltage
   let ETAP_ROWS = [];
 
+  const MAX_ETAP_ROWS = 500; // guards against a near-zero inverter rating producing a runaway row count
+
   function etapRecompute() {
-    const numInv = Math.ceil(parseNum(targetAc.value) / (parseNum(invRating.value) || 1));
+    const numInv = Math.min(
+      Math.ceil(parseNum(targetAc.value) / (parseNum(invRating.value) || 1)),
+      MAX_ETAP_ROWS
+    );
     const invMva = Math.round((parseNum(invRating.value) / 1e6) * 10000) / 10000;
     const conductor = etapConductor.value;
     const length = parseNum(etapLength.value);
