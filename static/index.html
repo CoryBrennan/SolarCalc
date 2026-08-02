@@ -2363,13 +2363,36 @@
     recompute();
   }
 
-  document.getElementById('saveProjectBtn').addEventListener('click', () => {
+  document.getElementById('saveProjectBtn').addEventListener('click', async () => {
     const project = serializeProject();
-    const blob = new Blob([JSON.stringify(project, null, 2)], { type: 'application/json' });
+    const json = JSON.stringify(project, null, 2);
+    const suggestedName = (document.getElementById('projectName').value || 'project').replace(/[^\w.-]+/g, '_') + '.solarcalc.json';
+
+    // File System Access API (Chrome/Edge): opens the real OS "Save As" dialog
+    // so the user picks the folder/filename, same as Load's native file picker.
+    if (window.showSaveFilePicker) {
+      try {
+        const handle = await window.showSaveFilePicker({
+          suggestedName,
+          types: [{ description: 'Solar Calc project', accept: { 'application/json': ['.json'] } }],
+        });
+        const writable = await handle.createWritable();
+        await writable.write(json);
+        await writable.close();
+        return;
+      } catch (e) {
+        if (e.name === 'AbortError') return; // user cancelled the dialog
+        // fall through to the download fallback below on any other failure
+      }
+    }
+
+    // Fallback for browsers without the File System Access API (Firefox, Safari):
+    // triggers a normal browser download to the default downloads folder.
+    const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = (document.getElementById('projectName').value || 'project').replace(/[^\w.-]+/g, '_') + '.solarcalc.json';
+    a.download = suggestedName;
     document.body.appendChild(a);
     a.click();
     a.remove();
