@@ -20,6 +20,16 @@ def validate_module_skus(project: ProjectInput) -> None:
             raise HTTPException(status_code=422, detail=f"Unknown module SKU on combiner row: {row.module_sku!r}")
 
 
+def compute_actual_capacity(project: ProjectInput) -> tuple[float, float]:
+    """Actual DC/AC capacity — nameplate rating x quantity actually on site,
+    as distinct from SiteConfig's target_dc/ac_capacity_w (design goals that
+    guide but never override ModuleSpec.quantity / InverterSpec.quantity)."""
+    module_pmax_w = MODULE_SKUS[project.module.sku].pmax
+    actual_dc_w = module_pmax_w * project.module.quantity
+    actual_ac_w = project.inverter.ac_rating_w * project.inverter.quantity
+    return actual_dc_w, actual_ac_w
+
+
 def resolve_ocpd_continuous_current(project: ProjectInput, combiner_result: dict) -> float:
     """Mirrors the HMI's ocpdSyncDefault(): what continuous current feeds OCPD
     Sizing depends on which circuit reference is selected."""

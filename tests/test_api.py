@@ -72,7 +72,15 @@ def test_calculate_default_project_matches_browser_verified_numbers():
     assert body["iv_curve"]["expected"]["voc"] == 1326.77
 
     assert body["document_header"]["header"]["project_name"] == "REE ESTL Landfill"
-    assert "e911_address" in body["document_header"]["missing_fields"]
+    assert body["document_header"]["header"]["site_address"] == "IL"
+    assert "business_name" in body["document_header"]["missing_fields"]
+
+    assert body["site"]["num_modules"] == 9465
+    assert body["site"]["target_ac_capacity_w"] == 5_000_000
+    assert body["site"]["target_dc_capacity_w"] == 6_500_000
+    assert body["site"]["calculated_dc_ac_ratio"] == 1.3
+    assert body["site"]["actual_dc_capacity_w"] == 6_814_800
+    assert body["site"]["actual_ac_capacity_w"] == 5_250_000
 
 
 def test_calculate_rejects_unknown_module_sku():

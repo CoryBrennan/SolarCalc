@@ -374,7 +374,7 @@
           </div>
           <span class="chip chip-warn">Target capacity is placeholder — confirm plant size</span>
         </div>
-        <p class="desc">Top-level project targets. Downstream sections (module count, DC capacity per inverter) recompute live from these three numbers, mirroring the <span class="mono">@property</span> logic in <span class="mono">SiteConfig</span>.</p>
+        <p class="desc">Target AC/DC capacity are the design goals — they guide (but don't force) equipment selection on Module Spec (04) and Inverter Spec (05). Actual DC/AC capacity, below, is the real number: nameplate rating × quantity actually installed, sourced live from those two panels.</p>
 
         <div class="card">
           <p class="card-title">Project targets</p>
@@ -384,38 +384,81 @@
               <input class="prose" type="text" id="projectName" value="REE ESTL Landfill">
             </div>
             <div class="field wide">
-              <label for="e911Address">E911 address <span class="unit">emergency dispatch location</span></label>
-              <input class="prose" type="text" id="e911Address" placeholder="e.g. 1601 Depot Ave, East St. Louis, IL 62201 (E911-assigned)">
+              <label for="utilityName">Utility</label>
+              <input class="prose" type="text" id="utilityName" placeholder="e.g. Ameren Illinois">
             </div>
             <div class="field">
               <label for="targetAc">Target AC capacity <span class="unit">W</span></label>
               <input type="text" id="targetAc" value="5,000,000" data-calc>
             </div>
             <div class="field">
-              <label for="invRating">Inverter AC rating <span class="unit">W</span></label>
-              <input type="text" id="invRating" value="350,000" data-calc>
-            </div>
-            <div class="field">
-              <label for="dcAcRatio">DC:AC ratio target</label>
-              <input type="text" id="dcAcRatio" value="1.30" data-calc>
+              <label for="targetDc">Target DC capacity <span class="unit">W</span></label>
+              <input type="text" id="targetDc" value="6,500,000" data-calc>
             </div>
           </div>
+        </div>
+
+        <div class="card">
+          <p class="card-title">Site address</p>
+          <div class="field-grid">
+            <div class="field wide">
+              <label for="siteStreet">Street address</label>
+              <input class="prose" type="text" id="siteStreet" placeholder="e.g. 1601 Depot Ave">
+            </div>
+            <div class="field">
+              <label for="siteCity">City</label>
+              <input class="prose" type="text" id="siteCity" placeholder="e.g. East St. Louis">
+            </div>
+            <div class="field">
+              <label for="siteState">State</label>
+              <select id="siteState">
+                <option value="IL" selected>IL (not in table)</option>
+                <option value="TX">TX</option>
+                <option value="CA">CA</option>
+                <option value="AZ">AZ</option>
+                <option value="NV">NV</option>
+                <option value="GA">GA (not in table)</option>
+                <option value="OH">OH (not in table)</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="siteZip">ZIP</label>
+              <input class="prose" type="text" id="siteZip" placeholder="e.g. 62201">
+            </div>
+            <div class="field">
+              <label for="siteCounty">County <span class="unit">optional</span></label>
+              <input class="prose" type="text" id="siteCounty" value="St. Clair">
+            </div>
+            <div class="field">
+              <label for="siteAhjOverride">AHJ name override <span class="unit">optional</span></label>
+              <input class="prose" type="text" id="siteAhjOverride" placeholder="e.g. City of East St. Louis">
+            </div>
+          </div>
+          <p class="desc" style="margin-top:12px;">Single source of truth for the site's jurisdiction — the Jurisdiction panel (13) resolves NEC edition/AHJ from these same fields rather than keeping its own copies.</p>
         </div>
 
         <div class="card">
           <p class="card-title">Computed (read-only)</p>
           <div class="computed-row">
             <div class="computed">
-              <div class="k">num_inverters</div>
-              <div class="v" id="calcNumInv">15</div>
+              <div class="k">calculated_dc_ac_ratio <span class="unit">target ÷ target</span></div>
+              <div class="v" id="calcTargetDcAcRatio">1.30</div>
             </div>
             <div class="computed">
-              <div class="k">dc_capacity_per_inverter</div>
-              <div class="v" id="calcDcCap">455,000<small> W</small></div>
+              <div class="k">actual_num_modules <span class="unit">from Module Spec</span></div>
+              <div class="v" id="calcActualNumModules">9,465</div>
             </div>
             <div class="computed">
-              <div class="k">modules_per_inverter</div>
-              <div class="v" id="calcModPerInv">631</div>
+              <div class="k">actual_num_inverters <span class="unit">from Inverter Spec</span></div>
+              <div class="v" id="calcActualNumInverters">15</div>
+            </div>
+            <div class="computed">
+              <div class="k">actual_dc_capacity <span class="unit">nameplate × quantity</span></div>
+              <div class="v" id="calcActualDcCapacity">6,814,800<small> W</small></div>
+            </div>
+            <div class="computed">
+              <div class="k">actual_ac_capacity <span class="unit">rating × quantity</span></div>
+              <div class="v" id="calcActualAcCapacity">5,250,000<small> W</small></div>
             </div>
           </div>
         </div>
@@ -569,6 +612,17 @@
         </div>
 
         <div class="card">
+          <p class="card-title">Quantity on site</p>
+          <div class="field-grid">
+            <div class="field">
+              <label for="modQuantity">Quantity of modules on site</label>
+              <input type="text" id="modQuantity" value="9,465" data-calc>
+            </div>
+          </div>
+          <p class="desc" style="margin-top:12px;" id="modQtyHint">Target DC capacity ÷ P<sub>max</sub> ≈ — modules (Site Config's target is a guide, not a lock — the quantity above is what actually drives Actual DC capacity).</p>
+        </div>
+
+        <div class="card">
           <p class="card-title">Mechanical (reference only — not in ModuleSpec)</p>
           <div class="field-grid">
             <div class="field"><label>Cell type</label><input class="prose" type="text" value="Mono N-Type, 132 (6×22) half-cut" readonly></div>
@@ -611,7 +665,7 @@
               <label for="invModel">Model</label>
               <input class="prose" type="text" id="invModel" value="Chint Power Systems CPS SCH350KTL-DO/US-800">
             </div>
-            <div class="field"><label>AC power rating <span class="unit">VA</span></label><input type="text" value="350,000"></div>
+            <div class="field"><label for="invAcRating">AC power rating (or derated) <span class="unit">VA</span></label><input type="text" id="invAcRating" value="350,000" data-calc></div>
             <div class="field"><label>Nominal AC voltage <span class="unit">V</span></label><input type="text" id="invNominalVoltage" value="800.0"></div>
             <div class="field"><label>Phases</label><input type="text" value="3"></div>
             <div class="field"><label>Max output current <span class="unit">A</span></label><input type="text" id="invMaxOutputCurrent" value="253"></div>
@@ -621,6 +675,17 @@
             <div class="field"><label>Manufacturer max OCPD (AC) <span class="unit">A</span></label><input type="text" id="invMaxOcpd" value="400"></div>
             <div class="field"><label>Terminal wire range (AC) <span class="unit">AWG/kcmil</span></label><input type="text" value="4/0 – 750 kcmil"></div>
           </div>
+        </div>
+
+        <div class="card">
+          <p class="card-title">Quantity on site</p>
+          <div class="field-grid">
+            <div class="field">
+              <label for="invQuantity">Quantity of inverters on site</label>
+              <input type="text" id="invQuantity" value="15" data-calc>
+            </div>
+          </div>
+          <p class="desc" style="margin-top:12px;" id="invQtyHint">Target AC capacity ÷ AC power rating ≈ — inverters (Site Config's target is a guide, not a lock — the quantity above is what actually drives Actual AC capacity, ETAP export, and the switchboard 120% check).</p>
         </div>
 
         <div class="card">
@@ -859,7 +924,7 @@
           </div>
           <span class="chip chip-pass">Live — reads Site Config + OCPD Sizing</span>
         </div>
-        <p class="desc">NEC 705.12(B)(3)(2): the sum of a switchboard/panelboard's main OCPD and all backfed (inverter) OCPDs must not exceed 120% of the busbar rating. Backfed total is <span class="mono">num_inverters</span> (Site Config) × the standard OCPD size from the panel above.</p>
+        <p class="desc">NEC 705.12(B)(3)(2): the sum of a switchboard/panelboard's main OCPD and all backfed (inverter) OCPDs must not exceed 120% of the busbar rating. Backfed total is quantity of inverters (Inverter Spec) × the standard OCPD size from the panel above.</p>
 
         <div class="card">
           <p class="card-title">Switchboard</p>
@@ -931,22 +996,20 @@
         <p class="desc">Resolves NEC edition from state (+ optional county). The underlying table is a placeholder — anything outside CA / TX / AZ / NV falls back to "confirm with AHJ," which is exactly what happens for this Illinois site.</p>
 
         <div class="card">
-          <p class="card-title">Site address</p>
-          <div class="field-grid">
-            <div class="field">
-              <label for="stateSelect">State</label>
-              <select id="stateSelect">
-                <option value="IL" selected>IL (not in table)</option>
-                <option value="TX">TX</option>
-                <option value="CA">CA</option>
-                <option value="AZ">AZ</option>
-                <option value="NV">NV</option>
-                <option value="GA">GA (not in table)</option>
-                <option value="OH">OH (not in table)</option>
-              </select>
+          <p class="card-title">Site address <span class="unit">sourced from Site Config, Panel 01 — edit there</span></p>
+          <div class="computed-row">
+            <div class="computed">
+              <div class="k">state</div>
+              <div class="v" id="jurisStateDisplay" style="font-size:15px;">IL</div>
             </div>
-            <div class="field"><label>County <span class="unit">optional</span></label><input class="prose" type="text" id="countyInput" value="St. Clair"></div>
-            <div class="field"><label>AHJ name override <span class="unit">optional</span></label><input class="prose" type="text" id="ahjInput" placeholder="e.g. City of East St. Louis"></div>
+            <div class="computed">
+              <div class="k">county</div>
+              <div class="v" id="jurisCountyDisplay" style="font-size:15px;">St. Clair</div>
+            </div>
+            <div class="computed">
+              <div class="k">ahj_override</div>
+              <div class="v" id="jurisAhjDisplay" style="font-size:15px;">—</div>
+            </div>
           </div>
         </div>
 
@@ -1031,7 +1094,7 @@
           </div>
           <span class="chip chip-pass">7 line items, mapped to PVLabels.com</span>
         </div>
-        <p class="desc">Every marking this design needs under NEC 690/705, sized to the 15 CPS inverters above and matched to a specific PVLabels.com SKU — the same list a PE would check off in the engineering calculation report. Quantities recompute from <span class="mono">num_inverters</span>, so they stay correct if Site Config changes.</p>
+        <p class="desc">Every marking this design needs under NEC 690/705, sized to the 15 CPS inverters above and matched to a specific PVLabels.com SKU — the same list a PE would check off in the engineering calculation report. Quantities recompute from the inverter quantity on Inverter Spec, so they stay correct if that changes.</p>
 
         <div class="card">
           <p class="card-title">Requirements — ground-mount, no O&M building in the DC path</p>
@@ -1247,23 +1310,64 @@
   }
 
   const targetAc = document.getElementById('targetAc');
-  const invRating = document.getElementById('invRating');
-  const dcAcRatio = document.getElementById('dcAcRatio');
+  const targetDc = document.getElementById('targetDc');
+  const modQuantity = document.getElementById('modQuantity');
+  const invAcRating = document.getElementById('invAcRating');
+  const invQuantity = document.getElementById('invQuantity');
   let MODULE_W = 720.0;
 
+  // Composes the site address from Site Config's separate fields — used by the
+  // topbar (city/state, compact) and the document header (full mailing address).
+  function formatCityState() {
+    const city = document.getElementById('siteCity').value.trim();
+    const state = document.getElementById('siteState').value.trim();
+    if (city && state) return city + ', ' + state;
+    return city || state || '';
+  }
+  function formatFullSiteAddress() {
+    const street = document.getElementById('siteStreet').value.trim();
+    const city = document.getElementById('siteCity').value.trim();
+    const state = document.getElementById('siteState').value.trim();
+    const zip = document.getElementById('siteZip').value.trim();
+    const cityStateZip = [city, [state, zip].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+    return [street, cityStateZip].filter(Boolean).join(', ');
+  }
+
+  // Non-binding hints on Module/Inverter Spec — "guide, don't override": Target
+  // DC/AC on Site Config suggests a starting quantity, but the quantity fields
+  // on those panels are the real inputs and are never auto-set from this.
+  function updateModuleQtyHint() {
+    const pmax = parseNum(document.getElementById('modPmax').value) || MODULE_W;
+    const suggested = pmax > 0 ? Math.round(parseNum(targetDc.value) / pmax) : 0;
+    document.getElementById('modQtyHint').textContent =
+      'Target DC capacity ÷ Pₘₐₓ ≈ ' + fmt(suggested) + ' modules (Site Config’s target is a guide, not a lock — the quantity above is what actually drives Actual DC capacity).';
+  }
+  function updateInverterQtyHint() {
+    const rating = parseNum(invAcRating.value);
+    const suggested = rating > 0 ? Math.round(parseNum(targetAc.value) / rating) : 0;
+    document.getElementById('invQtyHint').textContent =
+      'Target AC capacity ÷ AC power rating ≈ ' + fmt(suggested) + ' inverters (Site Config’s target is a guide, not a lock — the quantity above is what actually drives Actual AC capacity, ETAP export, and the switchboard 120% check).';
+  }
+
   function recompute() {
-    const target = parseNum(targetAc.value);
-    const rating = parseNum(invRating.value) || 1;
-    const ratio = parseNum(dcAcRatio.value) || 1;
+    const targetAcW = parseNum(targetAc.value);
+    const targetDcW = parseNum(targetDc.value);
+    const numModules = parseNum(modQuantity.value);
+    const numInverters = parseNum(invQuantity.value);
+    const invRatingW = parseNum(invAcRating.value);
 
-    const numInv = Math.ceil(target / rating);
-    const dcCap = rating * ratio;
-    const modPerInv = Math.floor(dcCap / MODULE_W);
+    const targetRatio = targetAcW > 0 ? targetDcW / targetAcW : 0;
+    const actualDcW = MODULE_W * numModules;
+    const actualAcW = invRatingW * numInverters;
 
-    document.getElementById('calcNumInv').textContent = fmt(numInv);
-    document.getElementById('calcDcCap').innerHTML = fmt(dcCap) + '<small> W</small>';
-    document.getElementById('calcModPerInv').textContent = fmt(modPerInv);
-    document.getElementById('topInvCount').textContent = fmt(numInv);
+    document.getElementById('calcTargetDcAcRatio').textContent = targetRatio.toFixed(2);
+    document.getElementById('calcActualNumModules').textContent = fmt(numModules);
+    document.getElementById('calcActualNumInverters').textContent = fmt(numInverters);
+    document.getElementById('calcActualDcCapacity').innerHTML = fmt(actualDcW) + '<small> W</small>';
+    document.getElementById('calcActualAcCapacity').innerHTML = fmt(actualAcW) + '<small> W</small>';
+    document.getElementById('topInvCount').textContent = fmt(numInverters);
+    updateModuleQtyHint();
+    updateInverterQtyHint();
     updateTopbar();
     if (typeof etapRecompute === 'function') etapRecompute();
     if (typeof switchboardRecompute === 'function') switchboardRecompute();
@@ -1274,20 +1378,22 @@
   // never actually wired to the fields.
   function updateTopbar() {
     document.getElementById('topProjectName').textContent = document.getElementById('projectName').value.trim() || 'Untitled project';
-    document.getElementById('topSiteAddress').textContent = document.getElementById('e911Address').value.trim() || 'No E911 address set';
-    document.getElementById('topDcAcRatio').textContent = (parseNum(dcAcRatio.value) || 0).toFixed(2);
-    document.getElementById('topInvRatingKw').textContent = fmt(parseNum(invRating.value) / 1000);
+    document.getElementById('topSiteAddress').textContent = formatCityState() || 'No site address set';
+    const targetAcW = parseNum(targetAc.value);
+    const targetDcW = parseNum(targetDc.value);
+    document.getElementById('topDcAcRatio').textContent = (targetAcW > 0 ? targetDcW / targetAcW : 0).toFixed(2);
+    document.getElementById('topInvRatingKw').textContent = fmt(parseNum(invAcRating.value) / 1000);
   }
   document.getElementById('projectName').addEventListener('input', updateTopbar);
-  document.getElementById('e911Address').addEventListener('input', updateTopbar);
+  document.getElementById('siteCity').addEventListener('input', updateTopbar);
+  document.getElementById('siteState').addEventListener('input', updateTopbar);
 
   // Debounced: recompute() cascades into etapRecompute(), which rebuilds one DOM row
-  // per inverter (ceil(targetAC / rating)). Mid-keystroke the rating can pass through
-  // tiny transient values (e.g. typing "4" over "350000"), spiking that row count into
-  // the hundreds of thousands for a single frame — debouncing avoids running the
-  // cascade on those throwaway intermediate values.
+  // per inverter. Mid-keystroke a quantity field can pass through large transient
+  // values, spiking that row count for a single frame — debouncing avoids running
+  // the cascade on those throwaway intermediate values.
   const debouncedRecompute = debounce(recompute, 250);
-  [targetAc, invRating, dcAcRatio].forEach(el => el.addEventListener('input', debouncedRecompute));
+  [targetAc, targetDc, modQuantity, invAcRating, invQuantity].forEach(el => el.addEventListener('input', debouncedRecompute));
   // NOTE: initial recompute() call is deferred to the end of this script, after every
   // panel below has defined its own const bindings — recompute() reaches forward into
   // ETAP/switchboard code, and calling it this early would hit those before they exist.
@@ -1325,16 +1431,22 @@
     AZ: 'NEC 2020',
     NV: 'NEC 2023',
   };
-  const stateSelect = document.getElementById('stateSelect');
-  const countyInput = document.getElementById('countyInput');
-  const ahjInput = document.getElementById('ahjInput');
+  // State/county/AHJ live on Site Config (Panel 01) — single source of truth,
+  // this panel just resolves against them and displays a read-only mirror.
+  const siteState = document.getElementById('siteState');
+  const siteCounty = document.getElementById('siteCounty');
+  const siteAhjOverride = document.getElementById('siteAhjOverride');
   const jurisdictionPill = document.getElementById('jurisdictionPill');
 
   function resolveJurisdiction() {
-    const state = stateSelect.value;
-    const county = countyInput.value.trim();
-    const ahjOverride = ahjInput.value.trim();
+    const state = siteState.value;
+    const county = siteCounty.value.trim();
+    const ahjOverride = siteAhjOverride.value.trim();
     const edition = NEC_TABLE[state];
+
+    document.getElementById('jurisStateDisplay').textContent = state;
+    document.getElementById('jurisCountyDisplay').textContent = county || '—';
+    document.getElementById('jurisAhjDisplay').textContent = ahjOverride || '—';
 
     const editionEl = document.getElementById('resolvedEdition');
     const ahjEl = document.getElementById('resolvedAhj');
@@ -1353,7 +1465,7 @@
       jurisdictionPill.className = 'pill pill-warn';
     }
   }
-  [stateSelect, countyInput, ahjInput].forEach(el => el.addEventListener('input', resolveJurisdiction));
+  [siteState, siteCounty, siteAhjOverride].forEach(el => el.addEventListener('input', resolveJurisdiction));
   resolveJurisdiction();
 
   // ---- document intake simulation ----
@@ -1470,11 +1582,8 @@
   const MAX_ETAP_ROWS = 500; // guards against a near-zero inverter rating producing a runaway row count
 
   function etapRecompute() {
-    const numInv = Math.min(
-      Math.ceil(parseNum(targetAc.value) / (parseNum(invRating.value) || 1)),
-      MAX_ETAP_ROWS
-    );
-    const invMva = Math.round((parseNum(invRating.value) / 1e6) * 10000) / 10000;
+    const numInv = Math.min(parseNum(invQuantity.value) || 0, MAX_ETAP_ROWS);
+    const invMva = Math.round((parseNum(invAcRating.value) / 1e6) * 10000) / 10000;
     const conductor = etapConductor.value;
     const length = parseNum(etapLength.value);
     const ocpd = parseNum(etapOcpd.value);
@@ -1692,7 +1801,8 @@
 
     return {
       project_name: document.getElementById('projectName').value,
-      e911_address: document.getElementById('e911Address').value,
+      utility_name: document.getElementById('utilityName').value,
+      site_address: formatFullSiteAddress(),
       ahj_name: document.getElementById('resolvedAhj').textContent,
       nec_edition: document.getElementById('resolvedEdition').textContent,
       business_name: document.getElementById('clientBusinessName').value,
@@ -1703,7 +1813,7 @@
     };
   }
 
-  const REQUIRED_HEADER_FIELDS = ['project_name', 'e911_address', 'business_name', 'business_address'];
+  const REQUIRED_HEADER_FIELDS = ['project_name', 'site_address', 'business_name', 'business_address'];
   function missingHeaderFields(header) {
     const missing = REQUIRED_HEADER_FIELDS.filter(f => !header[f]);
     if (!header.contacts.length) missing.push('contacts');
@@ -1724,7 +1834,7 @@
     }
   }
   [
-    'projectName', 'e911Address', 'clientBusinessName', 'clientAddress', 'clientWebsite',
+    'projectName', 'siteStreet', 'siteCity', 'siteState', 'siteZip', 'clientBusinessName', 'clientAddress', 'clientWebsite',
   ].forEach(id => document.getElementById(id).addEventListener('input', recomputeHeaderGaps));
   contactList.addEventListener('input', recomputeHeaderGaps);
   recomputeHeaderGaps();
@@ -2012,7 +2122,7 @@
   function switchboardRecompute() {
     const busbar = parseNum(sbBusbarRating.value);
     const main = parseNum(sbMainRating.value);
-    const numInv = Math.ceil(parseNum(targetAc.value) / (parseNum(invRating.value) || 1));
+    const numInv = parseNum(invQuantity.value) || 0;
     const backfedSum = ocpdStandardSizeValue * numInv;
 
     const allowance = busbar * 1.2;
@@ -2282,16 +2392,16 @@
 
   // ---- save / load project state ----
   const PROJECT_FIELD_IDS = [
-    'projectName', 'e911Address', 'targetAc', 'invRating', 'dcAcRatio',
+    'projectName', 'utilityName', 'targetAc', 'targetDc',
+    'siteStreet', 'siteCity', 'siteState', 'siteZip', 'siteCounty', 'siteAhjOverride',
     'clientBusinessName', 'clientAddress', 'clientWebsite',
-    'modSku', 'modMaxFuse', 'invModel', 'invDcTopology',
+    'modSku', 'modMaxFuse', 'modQuantity', 'invModel', 'invDcTopology', 'invAcRating', 'invQuantity',
     'xfmrKva', 'xfmrPrimaryV', 'xfmrSecondaryV', 'xfmrPrimaryWinding', 'xfmrSecondaryWinding',
     'ashraeStationId', 'ashraeMinTemp', 'ashraeMaxTemp',
     'ampCircuitType', 'ampParallelStrings', 'ampInsulationRating', 'ampConductorCount',
     'ocpdCircuit', 'ocpdContinuousCurrent',
     'sbBusbarRating', 'sbMainRating',
     'vdStringCombiner', 'vdCombinerInverter', 'vdInverterSwitchboard', 'vdTotalDc', 'vdTotalAc',
-    'stateSelect', 'countyInput', 'ahjInput',
     'etapConductor', 'etapLength', 'etapOcpd', 'etapOcpdType',
     'ivIrradiance', 'ivCellTemp', 'ivModulesPerString', 'ivTolerance',
     'ivStringId', 'ivMeasVoc', 'ivMeasIsc', 'ivMeasVmp', 'ivMeasImp',
@@ -2454,17 +2564,25 @@
     return {
       site: {
         project_name: document.getElementById('projectName').value,
-        e911_address: document.getElementById('e911Address').value,
+        utility_name: document.getElementById('utilityName').value,
+        address: {
+          street: document.getElementById('siteStreet').value,
+          city: document.getElementById('siteCity').value,
+          state: document.getElementById('siteState').value,
+          zip: document.getElementById('siteZip').value,
+        },
         target_ac_capacity_w: parseNum(targetAc.value),
-        inverter_ac_rating_w: parseNum(invRating.value),
-        dc_ac_ratio_target: parseNum(dcAcRatio.value),
+        target_dc_capacity_w: parseNum(targetDc.value),
       },
       module: {
         sku: modSku.value,
         max_series_fuse_rating_a: parseNum(modMaxFuse.value),
+        quantity: parseNum(modQuantity.value),
       },
       inverter: {
         model: document.getElementById('invModel').value,
+        ac_rating_w: parseNum(invAcRating.value),
+        quantity: parseNum(invQuantity.value),
         nominal_ac_voltage_v: parseNum(document.getElementById('invNominalVoltage').value),
         phases: 3,
         max_output_current_a: parseNum(document.getElementById('invMaxOutputCurrent').value),
@@ -2517,9 +2635,9 @@
         ocpd_type: etapOcpdType.value,
       },
       jurisdiction: {
-        state: stateSelect.value,
-        county: countyInput.value,
-        ahj_override: ahjInput.value,
+        state: siteState.value,
+        county: siteCounty.value,
+        ahj_override: siteAhjOverride.value,
       },
       iv_curve_conditions: {
         irradiance_w_m2: parseNum(ivIrradiance.value),
@@ -2569,7 +2687,8 @@
 
   function renderBackendComparison(data) {
     const rows = [
-      ['Site Config', 'num_inverters', document.getElementById('calcNumInv').textContent, data.site.num_inverters],
+      ['Site Config', 'Actual DC capacity (W)', document.getElementById('calcActualDcCapacity').textContent, data.site.actual_dc_capacity_w],
+      ['Site Config', 'Actual AC capacity (W)', document.getElementById('calcActualAcCapacity').textContent, data.site.actual_ac_capacity_w],
       ['Ampacity', 'Selected conductor', document.getElementById('ampSelectedConductor').textContent, data.ampacity.selected_conductor],
       ['Ampacity', 'Required ampacity (A)', document.getElementById('ampRequiredAmpacity').textContent, data.ampacity.required_ampacity_a],
       ['DC Combiner Sizing', 'Largest output ampacity (A)', document.getElementById('combinerMaxOutput').textContent, data.combiners.max_output_ampacity_a],

@@ -12,34 +12,47 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 
+class SiteAddress(BaseModel):
+    street: str = ""
+    city: str = ""
+    state: str = "IL"
+    zip: str = ""
+
+    def full_address(self) -> str:
+        city_state = " ".join(p for p in [self.state, self.zip] if p)
+        city_state_zip = ", ".join(p for p in [self.city, city_state] if p)
+        return ", ".join(p for p in [self.street, city_state_zip] if p)
+
+
 class SiteConfig(BaseModel):
     project_name: str = "REE ESTL Landfill"
-    e911_address: str = ""
+    utility_name: str = ""
+    address: SiteAddress = Field(default_factory=SiteAddress)
+    # Design goals, not as-built — they guide equipment selection on
+    # ModuleSpec/InverterSpec but never override those quantities. See
+    # ModuleSpec.quantity / InverterSpec.quantity for the actual counts that
+    # actual_dc_capacity_w / actual_ac_capacity_w (computed in project_calc.py)
+    # are derived from.
     target_ac_capacity_w: float = 5_000_000
-    inverter_ac_rating_w: float = 350_000
-    dc_ac_ratio_target: float = 1.30
+    target_dc_capacity_w: float = 6_500_000
 
     @property
-    def num_inverters(self) -> int:
-        import math
-
-        return math.ceil(self.target_ac_capacity_w / self.inverter_ac_rating_w)
-
-    @property
-    def dc_capacity_per_inverter_w(self) -> float:
-        return self.inverter_ac_rating_w * self.dc_ac_ratio_target
-
-    def modules_per_inverter(self, module_pmax_w: float) -> int:
-        return int(self.dc_capacity_per_inverter_w // module_pmax_w)
+    def calculated_dc_ac_ratio(self) -> float:
+        if self.target_ac_capacity_w <= 0:
+            return 0.0
+        return self.target_dc_capacity_w / self.target_ac_capacity_w
 
 
 class ModuleSpec(BaseModel):
     sku: str = "720"
     max_series_fuse_rating_a: float = 35
+    quantity: int = 9465
 
 
 class InverterSpec(BaseModel):
     model: str = "Chint Power Systems CPS SCH350KTL-DO/US-800"
+    ac_rating_w: float = 350_000
+    quantity: int = 15
     nominal_ac_voltage_v: float = 800.0
     phases: int = 3
     max_output_current_a: float = 253

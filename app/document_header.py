@@ -6,13 +6,14 @@ from __future__ import annotations
 
 from app.models import ClientInfo, SiteConfig
 
-_REQUIRED_FIELDS = ["project_name", "e911_address", "business_name", "business_address"]
+_REQUIRED_FIELDS = ["project_name", "site_address", "business_name", "business_address"]
 
 
 def build_document_header(site: SiteConfig, client_info: ClientInfo, ahj_name: str, nec_edition: str) -> dict:
     return {
         "project_name": site.project_name,
-        "e911_address": site.e911_address,
+        "utility_name": site.utility_name,
+        "site_address": site.address.full_address(),
         "ahj_name": ahj_name,
         "nec_edition": nec_edition,
         "business_name": client_info.business_name,

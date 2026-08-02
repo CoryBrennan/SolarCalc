@@ -76,7 +76,7 @@ def refresh_switchboard_changeset(project_id: str = "default", session: Session 
     project = _load_project(session, project_id)
     validate_module_skus(project)
 
-    num_inverters = project.site.num_inverters
+    num_inverters = project.inverter.quantity
     _combiner_result, ocpd_result, switchboard_result = compute_combiner_ocpd_switchboard(project, num_inverters)
 
     config = switchboard_block.build_switchboard_config(

@@ -29,8 +29,7 @@ from app import (
 from app.changeset_routes import router as changeset_router
 from app.db import create_db_and_tables
 from app.models import ProjectInput
-from app.module_catalog import MODULE_SKUS
-from app.project_calc import compute_combiner_ocpd_switchboard, validate_module_skus
+from app.project_calc import compute_actual_capacity, compute_combiner_ocpd_switchboard, validate_module_skus
 
 app = FastAPI(title="Solar Calc Engine", version="0.1.0")
 
@@ -71,8 +70,7 @@ def calculate(project: ProjectInput) -> dict:
     validate_module_skus(project)
 
     site = project.site
-    num_inverters = site.num_inverters
-    module = MODULE_SKUS[project.module.sku]
+    num_inverters = project.inverter.quantity
 
     jurisdiction_result = jurisdiction_lookup.resolve_nec_edition(
         state=project.jurisdiction.state,
@@ -103,7 +101,7 @@ def calculate(project: ProjectInput) -> dict:
 
     etap_result = etap_export.build_etap_export(
         num_inverters=num_inverters,
-        inverter_ac_rating_w=site.inverter_ac_rating_w,
+        inverter_ac_rating_w=project.inverter.ac_rating_w,
         assumptions=project.etap,
     )
 
@@ -131,11 +129,17 @@ def calculate(project: ProjectInput) -> dict:
         nec_edition=jurisdiction_result["nec_edition"],
     )
 
+    actual_dc_w, actual_ac_w = compute_actual_capacity(project)
+
     return {
         "site": {
             "num_inverters": num_inverters,
-            "dc_capacity_per_inverter_w": round(site.dc_capacity_per_inverter_w, 2),
-            "modules_per_inverter": site.modules_per_inverter(module.pmax),
+            "num_modules": project.module.quantity,
+            "target_ac_capacity_w": site.target_ac_capacity_w,
+            "target_dc_capacity_w": site.target_dc_capacity_w,
+            "calculated_dc_ac_ratio": round(site.calculated_dc_ac_ratio, 4),
+            "actual_dc_capacity_w": round(actual_dc_w, 2),
+            "actual_ac_capacity_w": round(actual_ac_w, 2),
         },
         "jurisdiction": jurisdiction_result,
         "combiners": combiner_result,
@@ -158,7 +162,7 @@ def generate_switchboard_config(project: ProjectInput) -> dict:
     C# SwitchboardConfig class field-for-field."""
     validate_module_skus(project)
 
-    num_inverters = project.site.num_inverters
+    num_inverters = project.inverter.quantity
     _combiner_result, ocpd_result, switchboard_result = compute_combiner_ocpd_switchboard(project, num_inverters)
 
     return switchboard_block.build_switchboard_config(
