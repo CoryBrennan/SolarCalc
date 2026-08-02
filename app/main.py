@@ -14,6 +14,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from app import (
     ampacity_calc,
@@ -48,6 +49,10 @@ create_db_and_tables()
 
 
 _STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
+
+# Reference screenshots for the I-V Curve Field Prep panel's PVA setup
+# walkthrough (Part 1) -- static assets, not per-project generated content.
+app.mount("/img", StaticFiles(directory=_STATIC_DIR / "img"), name="img")
 
 
 @app.get("/health")

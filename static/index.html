@@ -287,6 +287,32 @@
   .status-fail { background: var(--fail-soft); color: var(--fail); }
   .status-fail .p { background: var(--fail); }
 
+  /* ---------- I-V Curve Field Prep / PVA setup ----------
+     Navy/maroon are this document's own established color scheme (see
+     IV_Curve_Packet_and_PVA_Setup_Guide.docx), independent of the app's
+     accent/rail palette -- deliberately kept literal, not theme-mapped. */
+  .pva-step { padding-bottom: 22px; margin-bottom: 22px; border-bottom: 1px solid var(--border); }
+  .pva-step:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+  .pva-step-title { font-family: var(--font-display); font-size: 15px; margin: 0 0 4px; }
+  .pva-step-sub { font-family: var(--font-display); font-size: 13px; color: var(--ink-muted); margin: 14px 0 8px; }
+  .pva-shots { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; margin-top: 10px; }
+  .pva-shot img { width: 100%; border-radius: 6px; border: 1px solid var(--border); display: block; background: var(--surface-2); }
+  .pva-shot .cap { font-size: 11.5px; color: var(--ink-muted); margin-top: 5px; line-height: 1.4; }
+  table.pva { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 12px; }
+  table.pva th { text-align: left; padding: 8px 10px; color: #fff; background: #1F3B57; font-weight: 500; white-space: nowrap; }
+  table.pva td { padding: 7px 10px; font-family: var(--font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  table.pva tbody tr:nth-child(odd) td { background: #F2F5F8; }
+  table.pva.harness th { background: #6A1B1B; }
+  table.pva.harness tbody tr:nth-child(odd) td { background: #FBF1F1; }
+  table.pva td.flag { color: var(--warn); font-family: var(--font-body); white-space: normal; }
+  .pva-combiner-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin: 18px 0 4px; }
+  .pva-combiner-head b { font-family: var(--font-display); font-size: 14px; }
+  .pva-combiner-head span { font-size: 12px; color: var(--ink-muted); }
+  .pva-example-tag {
+    display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-family: var(--font-mono);
+    padding: 3px 8px; border-radius: 5px; background: var(--warn-soft); color: var(--warn); margin-bottom: 12px;
+  }
+
   /* ---------- Client inputs ---------- */
   .field textarea {
     font-family: var(--font-mono); font-size: 13.5px; padding: 8px 10px; border-radius: 6px;
@@ -341,7 +367,7 @@
       <li><button class="rail-btn" data-target="sec-upload"><span><span class="rail-num">15</span> Document Intake</span><span class="rail-dot dot-warn" id="uploadDot"></span></button></li>
       <li><button class="rail-btn" data-target="sec-placards"><span><span class="rail-num">16</span> Placarding</span><span class="rail-dot dot-pass"></span></button></li>
       <li><button class="rail-btn" data-target="sec-etap"><span><span class="rail-num">17</span> ETAP Export</span><span class="rail-dot dot-pass"></span></button></li>
-      <li><button class="rail-btn" data-target="sec-fluke"><span><span class="rail-num">18</span> Fluke IV Curve</span><span class="rail-dot dot-warn"></span></button></li>
+      <li><button class="rail-btn" data-target="sec-fluke"><span><span class="rail-num">18</span> I-V Curve Field Prep</span><span class="rail-dot dot-warn"></span></button></li>
       <li><button class="rail-btn" data-target="sec-backend"><span><span class="rail-num">19</span> Backend Verification</span><span class="rail-dot dot-neutral" id="backendDot"></span></button></li>
     </ul>
     <div class="rail-foot">
@@ -1318,19 +1344,20 @@
         </div>
       </section>
 
-      <!-- 18 FLUKE IV CURVE -->
+      <!-- 18 I-V CURVE FIELD PREP -->
       <section class="panel" id="sec-fluke">
         <div class="panel-head">
           <div>
             <p class="eyebrow">iv_curve_calc.py → expected_iv_point() / validate_reading()</p>
-            <h2>Fluke IV Curve</h2>
+            <h2>I-V Curve Field Prep &amp; PVA Setup</h2>
           </div>
-          <span class="chip chip-warn">CSV import schema unverified</span>
+          <span class="chip chip-warn">Field prep packet — UI scaffold, not wired to live generation yet</span>
         </div>
-        <p class="desc">Translates the module's STC datasheet numbers to whatever irradiance and cell temperature exist on test day, then checks a field-tracer reading against <i>that</i> expected point — not against the raw STC nameplate. Reacts to the SKU selected in Module Spec.</p>
+        <p class="desc">Phase 1 of 2 (see <span class="mono">IV_Curve_Panel_Handoff_Spec.md</span>): generates a field-ready document so a technician knows what a string <i>should</i> read and can correctly set up a Fluke/Solmetric PVA project before testing — wrong or default PVA setup data causes false-positive deviation flags later. Phase 2 (parsing PVA's post-test Excel export and flagging deviations) is a separate, not-yet-built module.</p>
 
         <div class="card">
-          <p class="card-title">Test-day conditions</p>
+          <p class="card-title">Quick field spot-check (single string) — existing tool, unaffected by the packet below</p>
+          <p class="desc" style="margin-bottom:14px;">Translates the module's STC datasheet numbers to whatever irradiance and cell temperature exist on test day, then checks one field-tracer reading against <i>that</i> expected point — not against the raw STC nameplate. Reacts to the SKU selected in Module Spec.</p>
           <div class="field-grid">
             <div class="field"><label>Irradiance <span class="unit">W/m²</span></label><input type="text" id="ivIrradiance" value="850"></div>
             <div class="field"><label>Cell temperature <span class="unit">°C</span></label><input type="text" id="ivCellTemp" value="42"></div>
@@ -1375,6 +1402,33 @@
         <div class="note">
           <span>ⓘ</span>
           <span><b>CSV import schema is an unverified placeholder.</b> No real Fluke/Solmetric/HT export file was available to build against — the manual entry above mirrors <span class="mono">validate_reading()</span> exactly, but <span class="mono">parse_fluke_export()</span>'s column names are a best guess pending a real sample file. The translation is also a simplified single-point scaling, not a full IEC 60891 curve-shape translation.</span>
+        </div>
+
+        <div class="card">
+          <p class="card-title">Field prep packet — generate</p>
+          <p class="desc" style="margin-bottom:14px;">One combined document per project: Part 1 is the one-time PVA software setup tutorial (static, same every project); Part 2 is this project's actual per-combiner data to key into that same tutorial. Preview the planned layout below.</p>
+          <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+            <button class="btn" id="generatePvaPacketBtn" type="button" disabled style="opacity:0.5; cursor:not-allowed;">Generate field prep packet (.docx) →</button>
+            <span class="chip chip-muted">Not built yet — docx export pipeline is a separate task</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <p class="card-title">Part 1 — One-Time PVA Software Setup</p>
+          <p class="desc" style="margin-bottom:14px;">These steps only need to be done once at the start of the job (or once per new PVA project file). Screenshots are the same regardless of which switchboard or combiner is being tested — Part 2 below has the actual data to type into each screen.</p>
+          <div id="pvaPart1Steps"></div>
+        </div>
+
+        <div class="card">
+          <p class="card-title">Part 2 — Project Data by Switchboard &amp; Combiner</p>
+          <span class="pva-example-tag">Example layout — Encore Brighton Solar reference data, not this project's live data yet</span>
+          <p class="desc" style="margin-bottom:14px;">Use these tables for the data to key into the Part 1 screens above. Repeat Part 1 Steps 3–5 for each combiner using the values shown here.</p>
+          <div id="pvaPart2Body"></div>
+        </div>
+
+        <div class="note">
+          <span>ⓘ</span>
+          <span><b>Open question (per spec):</b> module type is frequently identical across combiners while homerun wire length/gauge typically varies. Right now every combiner section would repeat the full Custom Module Data table, even when identical to an earlier one (with a note suggesting the tech reuse the existing PVA custom module via Recent/Custom instead of re-entering it) — full repetition avoids flipping back to an earlier page in the field, but collapsing repeats is worth revisiting.</span>
         </div>
       </section>
 
@@ -2075,6 +2129,243 @@
     });
     document.getElementById('ivResultsCard').style.display = 'block';
   });
+
+  // ---- I-V Curve Field Prep — Part 1: PVA setup tutorial (static reference screenshots) ----
+  // Screenshots + captions transcribed in document order from
+  // IV_Curve_Packet_and_PVA_Setup_Guide.docx (the reference implementation);
+  // image files extracted from that same docx into static/img/pva-setup/.
+  const PVA_STEPS = [
+    {
+      title: 'Step 1 — Launch PVA and Start a New Project',
+      shots: [
+        ['01-pva-main-window.png', 'PVA 5.1 main window before a project is loaded.'],
+        ['02-new-project-wizard.png', 'File > New Project… starts the New Project Wizard.'],
+      ],
+    },
+    {
+      title: 'Step 2 — Site Info',
+      intro: 'Type latitude/longitude directly, or use Lookup City for faster, more reliable entry (recommended).',
+      shots: [
+        ['03-site-info-screen.png', 'Site Info screen.'],
+        ['04-city-selection-region.png', 'City Selection — pick the country/region first.'],
+        ['05-city-selection-state-city.png', 'Then narrow by state/province and city.'],
+        ['06-latlong-confirm.png', 'Confirms latitude/longitude automatically — click OK.'],
+      ],
+    },
+    {
+      title: 'Step 3 — Select the PV Module',
+      subsections: [
+        {
+          sub: 'Option A — Module Is in the Database',
+          shots: [['07-pv-module-database.png', 'PV Module screen — searchable database of manufacturers/models.']],
+          note: 'If your module appears here, select it and skip ahead to Step 4 — no custom entry needed.',
+        },
+        {
+          sub: 'Option B — Custom Module Entry (most common)',
+          intro: 'Click Import if you have a saved .modulex file from a previous project, or New Custom… to start fresh.',
+          shots: [
+            ['08-custom-module-import.png', 'Browsing for a previously-saved custom module file (.modulex), if one exists.'],
+            ['09-create-new-custom-module.png', 'Create New Custom Module — enter Manufacturer Name and Model Name.'],
+            ['10-params-page1.png', 'Parameters, page 1: Nominal Power, Vmp, Imp, Voc, Isc, Temp. Coeff. of Voc.'],
+            ['11-params-page2.png', 'Parameters, page 2: remaining temperature coefficients and Cell Technology.'],
+            ['12-params-page3.png', 'Parameters, page 3: Cell Technology, NOCT, low-irradiance Vmp/Imp, Ideality Factor.'],
+            ['13-params-page4.png', 'Parameters, page 4: Ideality Factor, Front Glass AR Coating, Front Glass Texture.'],
+          ],
+        },
+      ],
+      fieldTable: true,
+    },
+    {
+      title: 'Step 4 — Array Navigator: System Defaults (Wire Length & Gauge)',
+      shots: [['14-array-navigator-system-props.png', 'System Properties: # Modules per String, Wire Length (per string, one way), and Wire Gauge.']],
+      intro2: 'See Part 2 for this project’s actual Series Count, Homerun Length, and Homerun Gauge per combiner.',
+    },
+    {
+      title: 'Step 5 — Symmetrical Tree Builder',
+      shots: [['15-symmetrical-tree-builder.png', 'Symmetrical Tree Builder — set layer counts and naming style for Inverters, Combiners, and Strings.']],
+      callout: 'Set every layer’s naming toggle to numerical (123), not alphabetical (ABC) — this project’s tags use the numerical scheme (e.g. Inv-1-1, DCC-1-1, STR1). Set counts to match each switchboard section in Part 2, then rename branches to the exact tags shown there.',
+    },
+  ];
+
+  const PVA_FIELD_REFERENCE = [
+    ['Manufacturer Name / Model Name', 'Module Catalog'],
+    ['Nominal Power (Wp), Vmp, Imp, Voc, Isc', 'Module Catalog — STC values'],
+    ['Temp. Coefficients (Voc, Pmax, Vmp, Imp, Isc)', 'Module Catalog'],
+    ['Cell Technology, NOCT, Vmp/Imp @ 200 W/m², Ideality Factor, AR Coating, Texture', 'Module Catalog, if extracted — else leave PVA default'],
+  ];
+
+  function renderPvaShots(shots) {
+    return '<div class="pva-shots">' + shots.map(([file, caption]) =>
+      '<div class="pva-shot"><img src="/img/pva-setup/' + file + '" alt="' + escapeAttr(caption) + '"><div class="cap">' + caption + '</div></div>'
+    ).join('') + '</div>';
+  }
+
+  function renderPvaFieldTable() {
+    return '<table class="pva"><thead><tr><th style="white-space:normal;">PVA Field</th><th style="white-space:normal;">Source in the App</th></tr></thead><tbody>' +
+      PVA_FIELD_REFERENCE.map(([field, source]) =>
+        '<tr><td style="white-space:normal;">' + field + '</td><td style="white-space:normal;">' + source + '</td></tr>'
+      ).join('') + '</tbody></table>';
+  }
+
+  function renderPvaPart1() {
+    document.getElementById('pvaPart1Steps').innerHTML = PVA_STEPS.map(step => {
+      let html = '<div class="pva-step"><p class="pva-step-title">' + step.title + '</p>';
+      if (step.intro) html += '<p class="desc" style="margin-bottom:10px;">' + step.intro + '</p>';
+      if (step.shots) html += renderPvaShots(step.shots);
+      if (step.subsections) {
+        step.subsections.forEach(sub => {
+          html += '<p class="pva-step-sub">' + sub.sub + '</p>';
+          if (sub.intro) html += '<p class="desc" style="margin-bottom:10px;">' + sub.intro + '</p>';
+          html += renderPvaShots(sub.shots);
+          if (sub.note) html += '<p class="desc" style="margin-top:8px;">➤ ' + sub.note + '</p>';
+        });
+      }
+      if (step.fieldTable) {
+        html += '<p class="desc" style="margin-top:14px; margin-bottom:0;">Fields to enter for each module type are listed generically below — see Part 2 for this project’s actual values, one table per combiner:</p>';
+        html += renderPvaFieldTable();
+      }
+      if (step.intro2) html += '<p class="desc" style="margin-top:10px;">' + step.intro2 + '</p>';
+      if (step.callout) html += '<p class="desc" style="margin-top:10px;">➤ ' + step.callout + '</p>';
+      html += '</div>';
+      return html;
+    }).join('');
+  }
+  renderPvaPart1();
+
+  // ---- I-V Curve Field Prep — Part 2: example per-combiner data ----
+  // Reference/example data (Encore Brighton Solar project), transcribed
+  // from the same guide docx — demonstrates the exact table layout Part 2
+  // will generate once wired to live project data. Not derived from the
+  // current Site Config project.
+  const PVA_EXAMPLE_MODULE = {
+    manufacturer: 'ZXM7 Solar', model: 'UHLDD144', nominalPower: '400 Wp', vmp: '32.0 V', imp: '12.51 A',
+    voc: '39.3 V', isc: '13.30 A', tcVoc: '-0.25 %/K', tcPmax: '-0.34 %/K', tcVmp: '-0.27 %/K', tcImp: '0.04 %/K',
+    tcIsc: '0.04 %/K', cellTech: 'Mono-PERC', noct: '45 °C', vmpImp200: '—', ideality: '1.7 V', arCoating: 'False', texture: 'Light',
+  };
+
+  // [tag, seriesCount, homerunLength, homerunGauge, expIsc, expVoc, expImp, expVmp, expPmax, fieldFlag]
+  const PVA_EXAMPLE_COMBINERS = [
+    {
+      switchboard: 'SWBD1', tag: 'Inv-1-1 / DCC-1-1', moduleLabel: 'ZXM7-UHLDD144', strings: 12, seriesCount: 32,
+      stringRows: [
+        ['STR1', 32, 180, '10 AWG', 13.30, 1258, 12.51, 1025, '12,895', ''],
+        ['STR2', 32, 180, '10 AWG', 13.32, 1264, 12.53, 1033, '12,939', ''],
+        ['STR3', 32, 180, '10 AWG', 13.36, 1258, 12.54, 1026, '12,870', ''],
+        ['STR4', 32, 180, '10 AWG', 13.47, 1258, 12.66, 1027, '12,998', ''],
+        ['STR5', 32, 180, '10 AWG', 13.23, 1257, 12.44, 1024, '12,742', ''],
+        ['STR6', 32, 180, '10 AWG', 13.40, 1256, 12.57, 1025, '12,880', ''],
+        ['STR7', 32, '—', '—', 13.39, 1255, 12.61, 1021, '12,870', 'Need to verify in field (homerun length)'],
+        ['STR8', 32, '—', '—', 13.37, 1254, 12.57, 1022, '12,856', 'Need to verify in field (homerun length)'],
+        ['STR9', 32, 180, '10 AWG', 13.17, 1255, 12.41, 1021, '12,670', ''],
+        ['STR10', 32, 180, '10 AWG', 13.18, 1257, 12.40, 1025, '12,709', ''],
+        ['STR11', 32, 180, '10 AWG', 13.00, 1255, 12.16, 1025, '12,463', ''],
+        ['STR12', 32, 180, '10 AWG', 12.96, 1256, 12.21, 1024, '12,499', ''],
+      ],
+      harness: null,
+      module: PVA_EXAMPLE_MODULE,
+      sameModuleAs: null,
+      system: { modulesPerString: 32, wireLength: '180 ft', wireGauge: '10 AWG', note: 'STR7/STR8: verify in field' },
+    },
+    {
+      switchboard: 'SWBD1', tag: 'Inv-1-2 / DCC-1-2', moduleLabel: 'ZXM7-UHLDD144', strings: 12, seriesCount: 32,
+      stringRows: [
+        ['STR1', 32, 165, '10 AWG', 13.25, 1251, 12.41, 1018, '12,641', ''],
+        ['STR2', 32, 165, '10 AWG', 13.14, 1250, 12.39, 1018, '12,607', ''],
+        ['STR3', 32, 165, '10 AWG', 13.06, 1252, 12.25, 1020, '12,491', ''],
+        ['STR4', 32, 165, '10 AWG', 13.03, 1252, 12.26, 1021, '12,514', ''],
+        ['STR5', 32, 165, '10 AWG', 12.75, 1254, 11.97, 1023, '12,238', ''],
+        ['STR6', 32, 165, '10 AWG', 12.74, 1252, 12.00, 1022, '12,256', ''],
+        ['STR7', 32, 165, '10 AWG', 13.09, 1252, 12.29, 1018, '12,501', ''],
+        ['STR8', 32, 165, '10 AWG', 13.06, 1251, 12.30, 1016, '12,498', ''],
+        ['STR9', 32, 165, '10 AWG', 12.89, 1256, 12.11, 1023, '12,391', ''],
+        ['STR10', 32, 165, '10 AWG', 12.92, 1252, 12.14, 1020, '12,373', ''],
+        ['STR11', 32, 165, '10 AWG', 13.24, 1254, 12.38, 1021, '12,637', ''],
+        ['STR12', 32, 165, '10 AWG', 13.22, 1252, 12.42, 1017, '12,635', ''],
+      ],
+      harness: {
+        rows: [
+          ['H-1', 'STR1 + STR2', 26.4],
+          ['H-2', 'STR3 + STR4', 26.1],
+          ['H-3', 'STR5 + STR6', 25.5],
+          ['H-4', 'STR7 + STR8', 26.2],
+          ['H-5', 'STR9 + STR10', 25.8],
+          ['H-6', 'STR11 + STR12', 26.5],
+        ],
+      },
+      module: PVA_EXAMPLE_MODULE,
+      sameModuleAs: 'Inv-1-1 / DCC-1-1',
+      system: { modulesPerString: 32, wireLength: '165 ft', wireGauge: '10 AWG', note: '' },
+    },
+  ];
+
+  function renderModuleDataTable(m) {
+    const rows = [
+      ['Manufacturer Name', m.manufacturer, ''],
+      ['Model Name', m.model, ''],
+      ['Nominal Power (Wp)', m.nominalPower, ''],
+      ['Max Power Voltage (Vmp)', m.vmp, ''],
+      ['Max Power Current (Imp)', m.imp, ''],
+      ['Open Circuit Voltage (Voc)', m.voc, ''],
+      ['Short Circuit Current (Isc)', m.isc, ''],
+      ['Temp. Coeff. of Voc', m.tcVoc, ''],
+      ['Temp. Coeff. of Nominal Power', m.tcPmax, ''],
+      ['Temp. Coeff. of Vmp', m.tcVmp, ''],
+      ['Temp. Coeff. of Imp', m.tcImp, ''],
+      ['Temp. Coeff. of Isc', m.tcIsc, ''],
+      ['Cell Technology', m.cellTech, ''],
+      ['NOCT', m.noct, 'PVA default — not in catalog'],
+      ['Vmp / Imp at 200 W/m²', m.vmpImp200, 'PVA default — not in catalog'],
+      ['Ideality Factor (Aref)', m.ideality, 'PVA default — not in catalog'],
+      ['Front Glass AR Coating', m.arCoating, 'PVA default — not in catalog'],
+      ['Front Glass Texture', m.texture, 'PVA default — not in catalog'],
+    ];
+    return '<table class="pva"><thead><tr><th style="white-space:normal;">PVA Field</th><th>Value</th><th style="white-space:normal;">Notes</th></tr></thead><tbody>' +
+      rows.map(([f, v, n]) => '<tr><td style="white-space:normal;">' + f + '</td><td>' + v + '</td><td style="white-space:normal;">' + n + '</td></tr>').join('') +
+      '</tbody></table>';
+  }
+
+  function renderPvaPart2() {
+    let html = '';
+    let lastSwbd = null;
+    PVA_EXAMPLE_COMBINERS.forEach(c => {
+      if (c.switchboard !== lastSwbd) {
+        html += '<p class="pva-step-title" style="margin-top:18px;">' + c.switchboard + '</p>';
+        lastSwbd = c.switchboard;
+      }
+      html += '<div class="pva-combiner-head"><b>' + c.tag + '</b><span>Module: ' + c.moduleLabel + ' &nbsp;|&nbsp; Strings: ' + c.strings +
+        (c.harness ? ' (harnessed in pairs, ' + c.harness.rows.length + ' wire harnesses)' : '') +
+        ' &nbsp;|&nbsp; Series Count: ' + c.seriesCount + ' modules/string</span></div>';
+
+      html += '<table class="pva"><thead><tr><th>Tag</th><th>SeriesCount</th><th>Homerun Length (ft)</th><th>Homerun Gauge</th>' +
+        '<th>Exp. Isc (A)</th><th>Exp. Voc (V)</th><th>Exp. Imp (A)</th><th>Exp. Vmp (V)</th><th>Exp. Pmax (W)</th><th style="white-space:normal;">Field Flag</th><th>Notes</th></tr></thead><tbody>' +
+        c.stringRows.map(r =>
+          '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td><td>' + r[2] + '</td><td>' + r[3] + '</td><td>' + r[4] + '</td><td>' + r[5] + '</td><td>' + r[6] + '</td><td>' + r[7] + '</td><td>' + r[8] + '</td>' +
+          '<td class="flag" style="white-space:normal;">' + r[9] + '</td><td></td></tr>'
+        ).join('') + '</tbody></table>';
+
+      if (c.harness) {
+        html += '<p class="pva-step-sub">Wire Harness Groupings for ' + c.tag.split(' / ')[1] + ' — tracer must be rated for combined Isc</p>';
+        html += '<table class="pva harness"><thead><tr><th>Harness Tag</th><th>Source Circuits Combined</th><th>Combined Exp. Isc (A)</th><th>Notes</th></tr></thead><tbody>' +
+          c.harness.rows.map(h => '<tr><td>' + h[0] + '</td><td>' + h[1] + '</td><td>' + h[2] + '</td><td></td></tr>').join('') +
+          '</tbody></table>';
+      }
+
+      html += '<p class="pva-step-sub">Custom Module Data (this combiner\'s module)</p>';
+      if (c.sameModuleAs) {
+        html += '<p class="desc" style="margin-bottom:8px;">Same module as ' + c.sameModuleAs + ' — if already created in this PVA project file, select it from Recent/Custom instead of re-entering:</p>';
+      }
+      html += renderModuleDataTable(c.module);
+
+      html += '<p class="pva-step-sub">System Input Data (this combiner)</p>';
+      html += '<table class="pva"><thead><tr><th style="white-space:normal;">PVA Field</th><th>Value</th><th style="white-space:normal;">Notes</th></tr></thead><tbody>' +
+        '<tr><td style="white-space:normal;"># Modules per String</td><td>' + c.system.modulesPerString + '</td><td></td></tr>' +
+        '<tr><td style="white-space:normal;">Wire Length (per string, one way)</td><td>' + c.system.wireLength + '</td><td class="flag" style="white-space:normal;">' + c.system.note + '</td></tr>' +
+        '<tr><td style="white-space:normal;">Wire Gauge</td><td>' + c.system.wireGauge + '</td><td class="flag" style="white-space:normal;">' + c.system.note + '</td></tr>' +
+        '</tbody></table>';
+    });
+    document.getElementById('pvaPart2Body').innerHTML = html;
+  }
+  renderPvaPart2();
 
   // ---- client inputs: contacts ----
   const contactList = document.getElementById('contactList');
@@ -3261,7 +3552,7 @@
       ['Jurisdiction', 'NEC edition', document.getElementById('resolvedEdition').textContent, data.jurisdiction.nec_edition],
       ['Placarding', 'Estimated total ($)', document.getElementById('placardTotal').textContent, data.placarding.estimated_total],
       ['ETAP Export', 'Total source MVA', document.getElementById('etapTotalMva').textContent, data.etap.total_source_mva_at_poi],
-      ['Fluke IV Curve', 'Expected Voc (V)', document.getElementById('ivExpVoc').textContent, data.iv_curve.expected.voc],
+      ['I-V Curve Field Prep', 'Expected Voc (V)', document.getElementById('ivExpVoc').textContent, data.iv_curve.expected.voc],
     ];
 
     const body = document.getElementById('backendCompareBody');
