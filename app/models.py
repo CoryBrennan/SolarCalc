@@ -142,6 +142,7 @@ class IvCurveReading(BaseModel):
 
 class ContactEntry(BaseModel):
     name: str = ""
+    role: str = ""
     title: str = ""
     email: str = ""
     phone: str = ""
@@ -167,6 +168,7 @@ class DirectoryContact(BaseModel):
     name: str = ""
     email: str = ""
     phone: str = ""
+    certifications: str = ""
 
 
 class AuxLoadCircuit(BaseModel):
@@ -233,7 +235,7 @@ class ProjectInput(BaseModel):
     iv_curve_conditions: IvCurveConditions = Field(default_factory=IvCurveConditions)
     iv_curve_reading: IvCurveReading = Field(default_factory=IvCurveReading)
     client_info: ClientInfo = Field(default_factory=ClientInfo)
-    directory_contacts: dict[str, DirectoryContact] = Field(default_factory=dict)
+    directory_contacts: dict[str, list[DirectoryContact]] = Field(default_factory=dict)
     aux_panelboard: AuxPanelboardConfig = Field(default_factory=AuxPanelboardConfig)
     mv_recloser: MvRecloserConfig = Field(default_factory=MvRecloserConfig)
     mv_goab: MvGoabConfig = Field(default_factory=MvGoabConfig)
