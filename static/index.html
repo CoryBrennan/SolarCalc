@@ -201,12 +201,29 @@
   .bulk-btns { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
   .inv-expand { background: none; border: none; cursor: pointer; color: var(--accent); font-size: 13px; padding: 2px 6px; }
   .inv-strings-row > td { background: var(--accent-soft); padding: 12px 16px; }
-  /* Multi-column so STR-1, STR-2, STR-3 read top-to-bottom down each column
-     rather than left-to-right across the row. */
-  .inv-strings-grid { columns: 200px; column-gap: 18px; }
-  .inv-string-cell { display: flex; align-items: center; gap: 6px; font-size: 12px; break-inside: avoid; margin-bottom: 8px; }
-  .inv-string-cell span { font-family: var(--font-mono); color: var(--ink-muted); white-space: nowrap; }
-  .inv-string-cell input { width: 100%; }
+  /* One row per string, in numerical order down the page — each carries its own
+     OCPD, conductor and voltage-drop result. */
+  table.strings { width: 100%; border-collapse: collapse; font-size: 12px; }
+  table.strings th {
+    text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.07em;
+    color: var(--ink-muted); padding: 0 7px 6px; font-weight: 500; white-space: nowrap;
+  }
+  table.strings td {
+    padding: 5px 7px; border-top: 1px solid var(--border); font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+  table.strings input[type="text"] {
+    font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 12px;
+    padding: 3px 5px; border-radius: 4px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--ink); width: 58px; text-align: right;
+  }
+  table.strings select {
+    font-family: var(--font-mono); font-size: 12px; padding: 3px 5px; border-radius: 4px;
+    border: 1px solid var(--border); background: var(--surface); color: var(--ink);
+  }
+  table.strings .auto { color: var(--ink-muted); }
+  table.strings .vd-fail { color: var(--fail); }
+  table.strings .vd-pass { color: var(--pass); }
   .inv-name-dupe { border-color: var(--fail) !important; color: var(--fail); }
   .summary-block { margin-bottom: 14px; }
   .summary-block .h { font-size: 12.5px; font-weight: 600; color: var(--ink); margin-bottom: 4px; }
@@ -296,6 +313,54 @@
   /* Coordinate readouts run long — they can't take the 20px .computed .v size. */
   .computed .v.readout { font-size: 14px; line-height: 1.5; word-break: break-word; }
 
+  /* Coordinates are derived, never typed — so they read as a stamped value,
+     and both formats sit on the same grid so the digits line up when the
+     radio flips between them. */
+  .coord-readout { background: var(--accent-soft); border-radius: 8px; padding: 14px 16px; }
+  .coord-line { display: grid; grid-template-columns: max-content 1fr max-content 1fr; gap: 6px 14px; align-items: baseline; }
+  .coord-k { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent); opacity: 0.85; }
+  .coord-v { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 16px; color: var(--ink); white-space: nowrap; }
+  @media (max-width: 640px) { .coord-line { grid-template-columns: max-content 1fr; } }
+
+  /* ---------- Slippy map (hand-rolled: OSM raster tiles, no map library) ---------- */
+  .map {
+    position: relative; height: 420px; border: 1px solid var(--border); border-radius: 10px;
+    overflow: hidden; background: var(--surface-2); cursor: grab; touch-action: none;
+    user-select: none;
+  }
+  .map.dragging { cursor: grabbing; }
+  .map-tiles { position: absolute; inset: 0; }
+  .map-tiles img { position: absolute; width: 256px; height: 256px; pointer-events: none; }
+  /* A teardrop pin whose point — not its centre — sits on the coordinate. */
+  .map-pin {
+    position: absolute; width: 18px; height: 18px; margin: -22px 0 0 -9px; pointer-events: none;
+    border-radius: 50% 50% 50% 0; transform: rotate(-45deg);
+    background: var(--accent); border: 2px solid var(--accent-ink);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+  }
+  .map-zoom { position: absolute; top: 10px; right: 10px; display: flex; flex-direction: column; gap: 4px; }
+  .map-zoom button {
+    width: 30px; height: 30px; border-radius: 6px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--ink); font-size: 17px; line-height: 1; cursor: pointer;
+  }
+  .map-zoom button:hover { background: var(--surface-2); }
+  .map-attrib {
+    position: absolute; bottom: 0; right: 0; background: var(--surface); color: var(--ink-muted);
+    font-size: 10.5px; padding: 2px 6px; border-top-left-radius: 6px;
+  }
+  .map-attrib a { color: var(--ink-muted); }
+  .map-results {
+    border: 1px solid var(--border); border-radius: 8px; background: var(--surface);
+    max-height: 190px; overflow-y: auto; margin-bottom: 10px;
+  }
+  .map-results button {
+    display: block; width: 100%; text-align: left; background: none; border: none;
+    border-bottom: 1px solid var(--border); padding: 9px 12px; font-family: var(--font-body);
+    font-size: 12.5px; color: var(--ink); cursor: pointer;
+  }
+  .map-results button:last-child { border-bottom: none; }
+  .map-results button:hover { background: var(--surface-2); }
+
   /* ---------- ETAP export ---------- */
   table.etap { width: 100%; border-collapse: collapse; font-size: 12.5px; }
   table.etap th {
@@ -318,6 +383,7 @@
     padding: 4px 6px; border-radius: 4px; border: 1px solid var(--border); background: var(--surface-2);
     color: var(--ink);
   }
+  table.etap td.wrap { white-space: normal; font-family: var(--font-body); }
   table.etap input.wide {
     font-family: var(--font-body); font-variant-numeric: normal; width: 100%; min-width: 120px;
     text-align: left; white-space: normal;
@@ -425,7 +491,7 @@
       <li><button class="rail-btn" data-target="sec-system-design"><span><span class="rail-num">07</span> System Architecture</span><span class="rail-dot dot-pass" id="systemDesignDot"></span></button></li>
       <li><button class="rail-btn" data-target="sec-pv-string-design"><span><span class="rail-num">08</span> PV String Design</span><span class="rail-dot dot-pass" id="pvStringDesignDot"></span></button></li>
       <li><button class="rail-btn" data-target="sec-inverter-design"><span><span class="rail-num">09</span> Inverter Design</span><span class="rail-dot dot-pass" id="inverterDesignDot"></span></button></li>
-      <li id="navCombiner"><button class="rail-btn" data-target="sec-combiner"><span><span class="rail-num">10</span> DC Combiner Spec</span><span class="rail-dot dot-pass" id="combinerDot"></span></button></li>
+      <li id="navCombiner"><button class="rail-btn" data-target="sec-combiner"><span><span class="rail-num">10</span> DC Combiner Design</span><span class="rail-dot dot-pass" id="combinerDot"></span></button></li>
       <li><button class="rail-btn" data-target="sec-ampacity"><span><span class="rail-num">11</span> Ampacity &amp; Conductors</span><span class="rail-dot dot-pass" id="ampacityDot"></span></button></li>
       <li><button class="rail-btn" data-target="sec-ocpd"><span><span class="rail-num">12</span> OCPD Sizing</span><span class="rail-dot dot-pass" id="ocpdDot"></span></button></li>
       <li><button class="rail-btn" data-target="sec-switchboard"><span><span class="rail-num">13</span> Switchboard 120%</span><span class="rail-dot dot-pass" id="switchboardDot"></span></button></li>
@@ -516,7 +582,31 @@
             <button class="btn" id="siteMapInsertBtn" type="button">Insert →</button>
             <button class="btn btn-quiet" id="openMapBtn" type="button">Open in Google Maps →</button>
           </div>
-          <p class="desc" id="siteMapPasteStatus" style="margin:8px 0 16px;">Paste whatever Google Maps gives you — the share link, the right-click coordinate readout (either format), or the address line — and it fills the fields below. Typing them in directly still works.</p>
+          <p class="desc" id="siteMapPasteStatus" style="margin:8px 0 16px;">Paste whatever Google Maps gives you — the share link, the right-click coordinate readout (either format), or the address line — and it fills the fields below.</p>
+
+          <div class="insert-bar" style="margin-bottom:10px;">
+            <div class="field" style="flex:1; min-width:260px;">
+              <label for="siteMapSearch">Search the map <span class="unit">address or coordinates</span></label>
+              <input class="prose" type="text" id="siteMapSearch" placeholder="e.g. 1601 Depot Ave, East St. Louis IL — or 38.6270, -90.1994">
+            </div>
+            <button class="btn" id="siteMapSearchBtn" type="button">Search</button>
+            <button class="btn btn-quiet" id="siteMapCentreBtn" type="button">Centre on site</button>
+          </div>
+          <div class="map-results" id="siteMapResults" style="display:none;"></div>
+
+          <div class="map" id="siteMap">
+            <div class="map-tiles" id="siteMapTiles">
+              <div id="siteMapTileLayer"></div>
+              <div class="map-pin" id="siteMapPin" style="display:none;"></div>
+            </div>
+            <div class="map-zoom">
+              <button type="button" id="siteMapZoomIn" aria-label="Zoom in">+</button>
+              <button type="button" id="siteMapZoomOut" aria-label="Zoom out">&minus;</button>
+            </div>
+            <div class="map-attrib">&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors</div>
+          </div>
+          <p class="desc" id="siteMapStatus" style="margin:8px 0 16px;">Drag to pan, scroll or use +/&minus; to zoom, then click the site to drop a pin. Clicking sets the coordinates and looks the address up; the address fields stay editable afterwards.</p>
+
           <div class="field-grid">
             <div class="field wide">
               <label for="siteStreet">Street address</label>
@@ -548,75 +638,26 @@
             </div>
           </div>
 
-          <p class="card-title" style="margin-top:22px;">GPS coordinates</p>
+          <p class="card-title" style="margin-top:22px;">GPS coordinates <span class="unit">read-only — set from the map or the insert box</span></p>
           <div class="radio-row">
             <label><input type="radio" name="gpsFormat" value="dd" checked> Decimal degrees</label>
             <label><input type="radio" name="gpsFormat" value="dms"> Degrees, minutes, seconds</label>
           </div>
-
-          <div class="field-grid" id="gpsDdBlock">
-            <div class="field">
-              <label for="gpsDdLat">Latitude <span class="unit">decimal °</span></label>
-              <input type="text" id="gpsDdLat" placeholder="e.g. 38.6270">
+          <div class="coord-readout" id="gpsReadoutBlock">
+            <div class="coord-line" id="gpsReadoutDdLine">
+              <span class="coord-k">Latitude</span><span class="coord-v" id="gpsReadoutDdLat">—</span>
+              <span class="coord-k">Longitude</span><span class="coord-v" id="gpsReadoutDdLng">—</span>
             </div>
-            <div class="field">
-              <label for="gpsDdLatHem">Direction <span class="unit">N / S</span></label>
-              <select id="gpsDdLatHem"><option value="N">N — north</option><option value="S">S — south</option></select>
+            <div class="coord-line" id="gpsReadoutDmsLine" style="display:none;">
+              <span class="coord-k">Latitude</span><span class="coord-v" id="gpsReadoutDmsLat">—</span>
+              <span class="coord-k">Longitude</span><span class="coord-v" id="gpsReadoutDmsLng">—</span>
             </div>
-            <div class="field">
-              <label for="gpsDdLng">Longitude <span class="unit">decimal °</span></label>
-              <input type="text" id="gpsDdLng" placeholder="e.g. 90.1994">
-            </div>
-            <div class="field">
-              <label for="gpsDdLngHem">Direction <span class="unit">E / W</span></label>
-              <select id="gpsDdLngHem"><option value="E">E — east</option><option value="W" selected>W — west</option></select>
-            </div>
-          </div>
-
-          <div class="field-grid" id="gpsDmsBlock" style="display:none;">
-            <div class="field">
-              <label for="gpsDmsLatD">Latitude <span class="unit">°</span></label>
-              <input type="text" id="gpsDmsLatD" placeholder="38">
-            </div>
-            <div class="field">
-              <label for="gpsDmsLatM">Latitude <span class="unit">′ minutes</span></label>
-              <input type="text" id="gpsDmsLatM" placeholder="37">
-            </div>
-            <div class="field">
-              <label for="gpsDmsLatS">Latitude <span class="unit">″ seconds</span></label>
-              <input type="text" id="gpsDmsLatS" placeholder="37.20">
-            </div>
-            <div class="field">
-              <label for="gpsDmsLatHem">Direction <span class="unit">N / S</span></label>
-              <select id="gpsDmsLatHem"><option value="N">N — north</option><option value="S">S — south</option></select>
-            </div>
-            <div class="field">
-              <label for="gpsDmsLngD">Longitude <span class="unit">°</span></label>
-              <input type="text" id="gpsDmsLngD" placeholder="90">
-            </div>
-            <div class="field">
-              <label for="gpsDmsLngM">Longitude <span class="unit">′ minutes</span></label>
-              <input type="text" id="gpsDmsLngM" placeholder="11">
-            </div>
-            <div class="field">
-              <label for="gpsDmsLngS">Longitude <span class="unit">″ seconds</span></label>
-              <input type="text" id="gpsDmsLngS" placeholder="57.80">
-            </div>
-            <div class="field">
-              <label for="gpsDmsLngHem">Direction <span class="unit">E / W</span></label>
-              <select id="gpsDmsLngHem"><option value="E">E — east</option><option value="W" selected>W — west</option></select>
-            </div>
-          </div>
-
-          <div class="computed-row" style="margin-top:16px;">
-            <div class="computed"><div class="k">Decimal degrees</div><div class="v readout" id="gpsReadoutDd">—</div></div>
-            <div class="computed"><div class="k">Degrees, minutes, seconds</div><div class="v readout" id="gpsReadoutDms">—</div></div>
           </div>
           <input type="hidden" id="siteLatitude">
           <input type="hidden" id="siteLongitude">
 
-          <p class="desc" style="margin-top:12px;">Both formats edit the same coordinate — switching the radio re-renders what you already entered, it doesn't clear it. Signed decimals paste in fine: a leading minus flips the direction selector for you. Everything downstream (Google Maps link, ASHRAE station search (04), backend payload) reads the decimal value.</p>
-          <p class="desc" style="margin-top:8px;">Single source of truth for the site's jurisdiction — the Jurisdiction panel resolves NEC edition/AHJ from these same fields rather than keeping its own copies. For sites without a formal address yet (raw land, no assigned E911), use the GPS fields and Google Maps link to pin the location instead.</p>
+          <p class="desc" style="margin-top:12px;">One coordinate, shown two ways — the radio only changes the presentation. Set it by clicking the map above, searching an address, or pasting into the insert box; everything downstream (Google Maps link, ASHRAE station search (04), backend payload) reads the same decimal value.</p>
+          <p class="desc" style="margin-top:8px;">Single source of truth for the site's jurisdiction — the Jurisdiction panel resolves NEC edition/AHJ from these same fields rather than keeping its own copies. For sites without a formal address yet (raw land, no assigned E911), pin the location on the map instead.</p>
         </div>
 
         <div class="card">
@@ -1034,7 +1075,7 @@
               </select>
             </div>
           </div>
-          <p class="desc" style="margin-top:12px;">This large a central inverter almost always takes recombined DC output circuits rather than raw strings, so <b>combiner</b> is the realistic default here — but the toggle exists because the same engine needs to model string inverters with integrated fused string inputs too. Drives whether DC Combiner Spec (below) applies.</p>
+          <p class="desc" style="margin-top:12px;">This large a central inverter almost always takes recombined DC output circuits rather than raw strings, so <b>combiner</b> is the realistic default here — but the toggle exists because the same engine needs to model string inverters with integrated fused string inputs too. Drives whether DC Combiner Design (below) applies.</p>
         </div>
 
         <div class="card">
@@ -1282,6 +1323,26 @@
 
           <div class="bulk-group">
             <div class="field-grid">
+              <div class="field">
+                <label for="invBulkStringWire">String conductor <span class="unit">Auto = sized here</span></label>
+                <select id="invBulkStringWire"></select>
+              </div>
+              <div class="field">
+                <label for="invBulkStringRun">String run length <span class="unit">ft</span></label>
+                <input type="text" id="invBulkStringRun" placeholder="e.g. 150">
+              </div>
+            </div>
+            <div class="bulk-btns">
+              <button class="btn btn-primary" data-bulk-apply="stringWire" type="button">Apply conductor to selected</button>
+              <button class="btn btn-primary" data-bulk-apply="stringRun" type="button">Apply run length to selected</button>
+              <button class="btn" data-bulk-selectall type="button">Select all</button>
+              <button class="btn" data-bulk-selectnone type="button">Clear selection</button>
+            </div>
+            <p class="desc" style="margin-top:10px;">Conductor sizing uses Ampacity &amp; Conductors (11) for the insulation rating and ASHRAE (04) for ambient temperature; the run length is what the per-string voltage drop is measured over, against the string→combiner limit on Voltage Drop (15).</p>
+          </div>
+
+          <div class="bulk-group">
+            <div class="field-grid">
               <div class="field wide">
                 <label for="invBulkModel">Model</label>
                 <select id="invBulkModel"></select>
@@ -1398,12 +1459,12 @@
         </div>
       </section>
 
-      <!-- 10 DC COMBINER SPEC -->
+      <!-- 10 DC COMBINER DESIGN -->
       <section class="panel" id="sec-combiner">
         <div class="panel-head">
           <div>
             <p class="eyebrow">combiner_calc.py → size_combiner()</p>
-            <h2>DC Combiner Spec</h2>
+            <h2>DC Combiner Design</h2>
           </div>
           <span class="chip chip-pass" id="combinerApplicabilityChip">Active — this inverter requires a DC combiner</span>
         </div>
@@ -1434,29 +1495,116 @@
             <div class="field"><label for="combVdcRating">VDC rating <span class="unit">V</span></label><input type="text" id="combVdcRating" value="1500"></div>
             <div class="field"><label for="combStringInputs">Standard qty. of string inputs</label><input type="text" id="combStringInputs" value="12"></div>
             <div class="field"><label for="combStandardFuse">Standard fuse sizing <span class="unit">A</span></label><input type="text" id="combStandardFuse" value="15"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <p class="card-title">Surge suppression (TVSS) &amp; main disconnect</p>
+          <p class="desc" style="margin-bottom:14px;">What goes inside the enclosure alongside the fused inputs. Both are optional on paper and both are usually specified — the surge device because a combiner sits at the far end of a long exposed DC run, the disconnect because someone has to be able to open the output circuit to work on it.</p>
+
+          <p class="card-title">Surge suppression</p>
+          <div class="field-grid">
             <div class="field">
-              <label for="combDisconnect">Disconnect</label>
-              <select id="combDisconnect">
-                <option value="no" selected>No</option>
-                <option value="yes">Yes</option>
-              </select>
-            </div>
-            <div class="field" id="combDisconnectAmpField" style="display:none;">
-              <label for="combDisconnectAmpRating">Disconnect amp rating <span class="unit">A</span></label>
-              <input type="text" id="combDisconnectAmpRating" value="200">
-            </div>
-            <div class="field">
-              <label for="combSurgeSuppression">Surge suppression</label>
+              <label for="combSurgeSuppression">Surge suppression fitted</label>
               <select id="combSurgeSuppression">
                 <option value="no" selected>No</option>
                 <option value="yes">Yes</option>
               </select>
             </div>
-            <div class="field" id="combSurgeSuppressionSizeField" style="display:none;">
-              <label for="combSurgeSuppressionSize">Surge suppression size <span class="unit">kA</span></label>
-              <input type="text" id="combSurgeSuppressionSize" value="40">
+            <div class="field surge-field" id="combSurgeTypeField" style="display:none;">
+              <label for="combSurgeType">SPD type <span class="unit">UL 1449</span></label>
+              <select id="combSurgeType">
+                <option value="type1">Type 1 — line side of service disconnect</option>
+                <option value="type2" selected>Type 2 — load side of service disconnect</option>
+                <option value="type1_2">Type 1 + 2 combination</option>
+                <option value="type3">Type 3 — point of utilisation</option>
+              </select>
+            </div>
+            <div class="field surge-field" id="combSurgeSuppressionSizeField" style="display:none;">
+              <label for="combSurgeSuppressionSize">Nominal discharge I<sub>n</sub> <span class="unit">kA</span></label>
+              <input type="text" id="combSurgeSuppressionSize" value="20">
+            </div>
+            <div class="field surge-field" id="combSurgeImaxField" style="display:none;">
+              <label for="combSurgeImax">Max discharge I<sub>max</sub> <span class="unit">kA</span></label>
+              <input type="text" id="combSurgeImax" value="40">
+            </div>
+            <div class="field surge-field" id="combSurgeUocField" style="display:none;">
+              <label for="combSurgeUoc">MCOV / U<sub>cpv</sub> <span class="unit">VDC</span></label>
+              <input type="text" id="combSurgeUoc" value="1500">
+            </div>
+            <div class="field surge-field" id="combSurgeMonitoringField" style="display:none;">
+              <label for="combSurgeMonitoring">Status monitoring</label>
+              <select id="combSurgeMonitoring">
+                <option value="none">None</option>
+                <option value="visual" selected>Visual indicator</option>
+                <option value="contact">Remote dry contact</option>
+              </select>
             </div>
           </div>
+          <p class="desc" id="combSurgeCheck" style="margin-top:12px;"></p>
+
+          <p class="card-title" style="margin-top:22px;">Main disconnect</p>
+          <div class="field-grid">
+            <div class="field">
+              <label for="combDisconnect">Main disconnect fitted</label>
+              <select id="combDisconnect">
+                <option value="no" selected>No</option>
+                <option value="yes">Yes</option>
+              </select>
+            </div>
+            <div class="field disc-field" id="combDisconnectTypeField" style="display:none;">
+              <label for="combDisconnectType">Disconnect type</label>
+              <select id="combDisconnectType">
+                <option value="load_break" selected>Load-break rotary switch</option>
+                <option value="non_load_break">Non-load-break (touch-safe) switch</option>
+                <option value="breaker">Molded-case DC breaker</option>
+                <option value="motorized">Motorised / remotely operated</option>
+              </select>
+            </div>
+            <div class="field disc-field" id="combDisconnectAmpField" style="display:none;">
+              <label for="combDisconnectAmpRating">Disconnect amp rating <span class="unit">A</span></label>
+              <input type="text" id="combDisconnectAmpRating" value="200">
+            </div>
+            <div class="field disc-field" id="combDisconnectVdcField" style="display:none;">
+              <label for="combDisconnectVdcRating">Disconnect VDC rating <span class="unit">V</span></label>
+              <input type="text" id="combDisconnectVdcRating" value="1500">
+            </div>
+          </div>
+          <p class="desc" id="combDisconnectCheck" style="margin-top:12px;"></p>
+        </div>
+
+        <div class="card">
+          <p class="card-title">Output conductor sizing</p>
+          <p class="desc" style="margin-bottom:14px;">Sizes the conductor leaving the combiner, from the largest output ampacity in the schedule below. Ambient comes from ASHRAE (04); temperature and fill correction follow 310.15(B)(1) and 310.15(C)(1), the same tables Ampacity &amp; Conductors (11) uses.</p>
+          <div class="field-grid">
+            <div class="field">
+              <label for="combOutputInsulation">Insulation rating <span class="unit">°C</span></label>
+              <select id="combOutputInsulation">
+                <option value="90" selected>90 °C (PV wire / USE-2)</option>
+                <option value="75">75 °C (terminal-limited)</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="combOutputConductorCount">Current-carrying conductors in raceway</label>
+              <input type="text" id="combOutputConductorCount" value="2">
+            </div>
+            <div class="field readonly">
+              <label for="combOutputAmbient">Ambient <span class="unit">°C, from ASHRAE</span></label>
+              <input type="text" id="combOutputAmbient" readonly>
+            </div>
+            <div class="field">
+              <label for="combOutputConductorOverride">Conductor override</label>
+              <select id="combOutputConductorOverride"></select>
+            </div>
+          </div>
+          <div class="computed-row" style="margin-top:16px;">
+            <div class="computed"><div class="k">Output ampacity</div><div class="v" id="combOutputBase">—<small> A</small></div></div>
+            <div class="computed"><div class="k">Temp correction</div><div class="v" id="combOutputTempFactor">—</div></div>
+            <div class="computed"><div class="k">Fill adjustment</div><div class="v" id="combOutputFillFactor">—</div></div>
+            <div class="computed"><div class="k">Required ampacity</div><div class="v" id="combOutputRequired">—<small> A</small></div></div>
+            <div class="computed"><div class="k">Output conductor</div><div class="v" id="combOutputConductor" style="font-size:16px;">—</div></div>
+          </div>
+          <p class="desc" id="combOutputNote" style="margin-top:12px;"></p>
         </div>
 
         <div class="card">
@@ -1490,6 +1638,23 @@
             <div class="computed"><div class="k">Combiners on this inverter</div><div class="v" id="combinerCount">—</div></div>
             <div class="computed"><div class="k">Total strings</div><div class="v" id="combinerTotalStrings">—</div></div>
             <div class="computed"><div class="k">Largest output ampacity</div><div class="v" id="combinerMaxOutput">—<small> A</small></div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <p class="card-title">Vendor specification</p>
+          <p class="desc" style="margin-bottom:14px;">Everything a combiner vendor needs to quote, assembled from Module Spec (05), PV String Design (08), Inverter Design (09) and this panel — nothing here is typed twice. Regenerate after changing any of those, then copy or download it to send out.</p>
+          <div class="bulk-btns" style="margin-top:0; margin-bottom:14px;">
+            <button class="btn" id="combSpecBuildBtn" type="button">Build specification →</button>
+            <button class="btn btn-quiet" id="combSpecCopyBtn" type="button">Copy as text</button>
+            <button class="btn btn-quiet" id="combSpecCsvBtn" type="button">Download CSV</button>
+            <span class="desc" id="combSpecStatus" style="margin:0;"></span>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="etap">
+              <thead><tr><th>Item</th><th>Value</th><th>Source</th></tr></thead>
+              <tbody id="combSpecBody"><tr class="empty"><td colspan="3">Click "Build specification" to assemble it from the design</td></tr></tbody>
+            </table>
           </div>
         </div>
 
@@ -2065,6 +2230,9 @@
       btn.classList.add('active');
       document.getElementById(btn.dataset.target).classList.add('active');
       document.querySelector('.content').classList.toggle('wide', WIDE_PANELS.includes(btn.dataset.target));
+      // The map can't lay itself out while Site Config is hidden, so anything
+      // that moved the pin in the meantime gets drawn on the way back in.
+      if (btn.dataset.target === 'sec-site' && mapNeedsRender) renderMap();
     });
   });
 
@@ -2150,6 +2318,7 @@
   // Hoisted-undefined rather than temporal-dead-zone: the GPS editors run at
   // init, before the ASHRAE block further down has built its own state.
   var ashraeCoordMirrorReady = false;
+  var siteMapReady = false;
 
   function dmsToDecimal(d, m, s) {
     return Math.abs(Number(d) || 0) + Math.abs(Number(m) || 0) / 60 + Math.abs(Number(s) || 0) / 3600;
@@ -2186,93 +2355,36 @@
     siteLongitude.value = (lng === null || !Number.isFinite(lng)) ? '' : String(Number(lng.toFixed(7)));
   }
 
-  // A leading minus in a magnitude box means the designer pasted a signed
-  // decimal — trust the sign and move the direction selector to match rather
-  // than silently flipping the hemisphere.
-  function signedFromMagnitude(raw, hemEl, negValue) {
-    if (raw.trim() === '') return null;
-    const v = parseFloat(raw.replace(/,/g, ''));
-    if (!Number.isFinite(v)) return null;
-    if (v < 0) hemEl.value = negValue;
-    return Math.abs(v) * (hemEl.value === negValue ? -1 : 1);
+  // Coordinates are derived — from the map, a search, or the insert box — never
+  // typed digit by digit, so both formats are read-only stamps of the same
+  // stored value rather than editable component boxes.
+  function formatDdAxis(v, posDir, negDir) {
+    if (v === null) return '—';
+    return Math.abs(v).toFixed(6) + ' ' + (v < 0 ? negDir : posDir);
   }
-
-  function commitDdEditor() {
-    setSiteCoords(
-      signedFromMagnitude(document.getElementById('gpsDdLat').value, document.getElementById('gpsDdLatHem'), 'S'),
-      signedFromMagnitude(document.getElementById('gpsDdLng').value, document.getElementById('gpsDdLngHem'), 'W')
-    );
+  function formatDmsAxis(v, posDir, negDir) {
+    if (v === null) return '—';
+    const a = decimalToDms(v);
+    return a.d + '° ' + a.m + '′ ' + a.s.toFixed(2) + '″ ' + (v < 0 ? negDir : posDir);
   }
-  function commitDmsEditor() {
-    function axis(dId, mId, sId, hemId, negValue) {
-      const d = document.getElementById(dId).value.trim();
-      const m = document.getElementById(mId).value.trim();
-      const s = document.getElementById(sId).value.trim();
-      if (d === '' && m === '' && s === '') return null;
-      const hemEl = document.getElementById(hemId);
-      if (parseFloat(d) < 0) hemEl.value = negValue;
-      const mag = dmsToDecimal(d, m, s);
-      return mag * (hemEl.value === negValue ? -1 : 1);
-    }
-    setSiteCoords(
-      axis('gpsDmsLatD', 'gpsDmsLatM', 'gpsDmsLatS', 'gpsDmsLatHem', 'S'),
-      axis('gpsDmsLngD', 'gpsDmsLngM', 'gpsDmsLngS', 'gpsDmsLngHem', 'W')
-    );
-  }
-
-  // `skip` names the editor currently being typed into, so rewriting its boxes
-  // mid-keystroke doesn't fight the cursor.
-  function renderGpsEditors(skip) {
+  function renderGpsEditors() {
     const c = siteCoords();
-    if (skip !== 'dd') {
-      document.getElementById('gpsDdLat').value = c.lat === null ? '' : String(Number(Math.abs(c.lat).toFixed(6)));
-      document.getElementById('gpsDdLng').value = c.lng === null ? '' : String(Number(Math.abs(c.lng).toFixed(6)));
-      if (c.lat !== null) document.getElementById('gpsDdLatHem').value = c.lat < 0 ? 'S' : 'N';
-      if (c.lng !== null) document.getElementById('gpsDdLngHem').value = c.lng < 0 ? 'W' : 'E';
-    }
-    if (skip !== 'dms') {
-      const a = c.lat === null ? null : decimalToDms(c.lat);
-      const b = c.lng === null ? null : decimalToDms(c.lng);
-      document.getElementById('gpsDmsLatD').value = a ? String(a.d) : '';
-      document.getElementById('gpsDmsLatM').value = a ? String(a.m) : '';
-      document.getElementById('gpsDmsLatS').value = a ? a.s.toFixed(2) : '';
-      document.getElementById('gpsDmsLngD').value = b ? String(b.d) : '';
-      document.getElementById('gpsDmsLngM').value = b ? String(b.m) : '';
-      document.getElementById('gpsDmsLngS').value = b ? b.s.toFixed(2) : '';
-      if (c.lat !== null) document.getElementById('gpsDmsLatHem').value = c.lat < 0 ? 'S' : 'N';
-      if (c.lng !== null) document.getElementById('gpsDmsLngHem').value = c.lng < 0 ? 'W' : 'E';
-    }
-    document.getElementById('gpsReadoutDd').textContent =
-      (c.lat === null || c.lng === null) ? '—' : c.lat.toFixed(6) + ', ' + c.lng.toFixed(6);
-    document.getElementById('gpsReadoutDms').textContent = formatDmsPair(c.lat, c.lng);
+    document.getElementById('gpsReadoutDdLat').textContent = formatDdAxis(c.lat, 'N', 'S');
+    document.getElementById('gpsReadoutDdLng').textContent = formatDdAxis(c.lng, 'E', 'W');
+    document.getElementById('gpsReadoutDmsLat').textContent = formatDmsAxis(c.lat, 'N', 'S');
+    document.getElementById('gpsReadoutDmsLng').textContent = formatDmsAxis(c.lng, 'E', 'W');
     if (ashraeCoordMirrorReady) updateAshraeCoordMirror();
+    if (siteMapReady) renderMapPinOnly();
   }
 
   function applyGpsFormatVisibility() {
     const checked = document.querySelector('input[name="gpsFormat"]:checked');
     const mode = checked ? checked.value : 'dd';
-    document.getElementById('gpsDdBlock').style.display = mode === 'dd' ? 'grid' : 'none';
-    document.getElementById('gpsDmsBlock').style.display = mode === 'dms' ? 'grid' : 'none';
+    document.getElementById('gpsReadoutDdLine').style.display = mode === 'dd' ? 'grid' : 'none';
+    document.getElementById('gpsReadoutDmsLine').style.display = mode === 'dms' ? 'grid' : 'none';
   }
   document.querySelectorAll('input[name="gpsFormat"]').forEach(el => {
     el.addEventListener('change', () => { applyGpsFormatVisibility(); renderGpsEditors(); });
-  });
-
-  ['gpsDdLat', 'gpsDdLng'].forEach(id => {
-    const el = document.getElementById(id);
-    el.addEventListener('input', () => { commitDdEditor(); renderGpsEditors('dd'); });
-    el.addEventListener('change', () => { commitDdEditor(); renderGpsEditors(); });
-  });
-  ['gpsDdLatHem', 'gpsDdLngHem'].forEach(id => {
-    document.getElementById(id).addEventListener('change', () => { commitDdEditor(); renderGpsEditors(); });
-  });
-  ['gpsDmsLatD', 'gpsDmsLatM', 'gpsDmsLatS', 'gpsDmsLngD', 'gpsDmsLngM', 'gpsDmsLngS'].forEach(id => {
-    const el = document.getElementById(id);
-    el.addEventListener('input', () => { commitDmsEditor(); renderGpsEditors('dms'); });
-    el.addEventListener('change', () => { commitDmsEditor(); renderGpsEditors(); });
-  });
-  ['gpsDmsLatHem', 'gpsDmsLngHem'].forEach(id => {
-    document.getElementById(id).addEventListener('change', () => { commitDmsEditor(); renderGpsEditors(); });
   });
   applyGpsFormatVisibility();
   renderGpsEditors();
@@ -2359,6 +2471,7 @@
     if (coords) {
       setSiteCoords(coords.lat, coords.lng);
       renderGpsEditors();
+      if (siteMapReady) centreMapOnSite(16);
       filled.push('coordinates ' + coords.lat.toFixed(6) + ', ' + coords.lng.toFixed(6));
     }
     // A Maps URL can carry a readable place name in its /place/ segment.
@@ -2392,6 +2505,260 @@
     }
     window.open('https://www.google.com/maps?q=' + encodeURIComponent(query), '_blank', 'noopener');
   });
+
+  // ---- interactive site map ----
+  // Hand-rolled slippy map rather than a mapping library: a grid of OpenStreetMap
+  // raster tiles positioned by Web Mercator maths. Keeps the page dependency-free
+  // (no CDN script), so the only outbound calls are tile images and — when
+  // searching or reverse-geocoding — Nominatim.
+  const TILE_PX = 256;
+  const MAP_MIN_ZOOM = 2;
+  const MAP_MAX_ZOOM = 19;
+  const NOMINATIM = 'https://nominatim.openstreetmap.org';
+  const mapEl = document.getElementById('siteMap');
+  const mapTilesEl = document.getElementById('siteMapTiles');
+  const mapTileLayerEl = document.getElementById('siteMapTileLayer');
+  const mapPinEl = document.getElementById('siteMapPin');
+  const mapStatusEl = document.getElementById('siteMapStatus');
+  const mapResultsEl = document.getElementById('siteMapResults');
+  let mapZoom = 4;
+  // Continental US until a site is set — a world view at this size is unusable.
+  let mapCentre = { lat: 39.5, lng: -98.35 };
+  let mapNeedsRender = false;
+
+  function lngToWorldX(lng, z) { return ((lng + 180) / 360) * TILE_PX * Math.pow(2, z); }
+  function latToWorldY(lat, z) {
+    const s = Math.max(-0.9999, Math.min(0.9999, Math.sin(lat * Math.PI / 180)));
+    return (0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI)) * TILE_PX * Math.pow(2, z);
+  }
+  function worldXToLng(x, z) { return (x / (TILE_PX * Math.pow(2, z))) * 360 - 180; }
+  function worldYToLat(y, z) {
+    const n = Math.PI - (2 * Math.PI * y) / (TILE_PX * Math.pow(2, z));
+    return (180 / Math.PI) * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
+  }
+  function mapOrigin() {
+    return {
+      x: lngToWorldX(mapCentre.lng, mapZoom) - mapEl.clientWidth / 2,
+      y: latToWorldY(mapCentre.lat, mapZoom) - mapEl.clientHeight / 2,
+    };
+  }
+  function mapLatLngAt(px, py) {
+    const o = mapOrigin();
+    return { lat: worldYToLat(o.y + py, mapZoom), lng: worldXToLng(o.x + px, mapZoom) };
+  }
+
+  function renderMapPinOnly() {
+    const c = siteCoords();
+    if (c.lat === null || c.lng === null || !mapEl.clientWidth) { mapPinEl.style.display = 'none'; return; }
+    const o = mapOrigin();
+    mapPinEl.style.display = '';
+    mapPinEl.style.left = (lngToWorldX(c.lng, mapZoom) - o.x) + 'px';
+    mapPinEl.style.top = (latToWorldY(c.lat, mapZoom) - o.y) + 'px';
+  }
+
+  function renderMap() {
+    const w = mapEl.clientWidth;
+    const h = mapEl.clientHeight;
+    // Zero size means Site Config isn't the visible panel, so there is nothing
+    // to tile against. Retrying on a frame would spin at 60fps for as long as
+    // the designer stays on another panel — flag it and re-render on return.
+    if (!w || !h) { mapNeedsRender = true; return; }
+    mapNeedsRender = false;
+    const o = mapOrigin();
+    const tiles = Math.pow(2, mapZoom);
+    const frag = document.createDocumentFragment();
+    for (let ty = Math.floor(o.y / TILE_PX); ty <= Math.floor((o.y + h) / TILE_PX); ty++) {
+      if (ty < 0 || ty >= tiles) continue;
+      for (let tx = Math.floor(o.x / TILE_PX); tx <= Math.floor((o.x + w) / TILE_PX); tx++) {
+        const img = document.createElement('img');
+        // Wrap east-west so panning past the date line keeps showing map.
+        img.src = 'https://tile.openstreetmap.org/' + mapZoom + '/' + (((tx % tiles) + tiles) % tiles) + '/' + ty + '.png';
+        img.alt = '';
+        img.style.left = (tx * TILE_PX - o.x) + 'px';
+        img.style.top = (ty * TILE_PX - o.y) + 'px';
+        frag.appendChild(img);
+      }
+    }
+    mapTileLayerEl.innerHTML = '';
+    mapTileLayerEl.appendChild(frag);
+    renderMapPinOnly();
+  }
+
+  function zoomMap(delta, px, py) {
+    const nz = Math.max(MAP_MIN_ZOOM, Math.min(MAP_MAX_ZOOM, mapZoom + delta));
+    if (nz === mapZoom) return;
+    const w = mapEl.clientWidth;
+    const h = mapEl.clientHeight;
+    // Zoom about the cursor: the point under it has to stay under it.
+    const anchor = (px === undefined) ? null : mapLatLngAt(px, py);
+    mapZoom = nz;
+    if (anchor) {
+      mapCentre = {
+        lat: worldYToLat(latToWorldY(anchor.lat, nz) - (py - h / 2), nz),
+        lng: worldXToLng(lngToWorldX(anchor.lng, nz) - (px - w / 2), nz),
+      };
+    }
+    renderMap();
+  }
+
+  function centreMapOnSite(zoom) {
+    const c = siteCoords();
+    if (c.lat === null || c.lng === null) return false;
+    mapCentre = { lat: c.lat, lng: c.lng };
+    if (zoom) mapZoom = zoom;
+    renderMap();
+    return true;
+  }
+
+  // Drag pans by translating the whole tile layer, then commits the new centre
+  // and re-tiles once — re-tiling on every pointermove would flicker.
+  let mapDrag = null;
+  mapEl.addEventListener('pointerdown', e => {
+    if (e.target.closest('.map-zoom') || e.target.closest('.map-attrib')) return;
+    mapDrag = { x: e.clientX, y: e.clientY, dx: 0, dy: 0, moved: false };
+    mapEl.classList.add('dragging');
+    // Capture keeps the drag alive when the cursor leaves the map; not every
+    // pointer id is capturable, and failing to capture shouldn't kill the pan.
+    try { mapEl.setPointerCapture(e.pointerId); } catch (err) { /* pan still works uncaptured */ }
+  });
+  mapEl.addEventListener('pointermove', e => {
+    if (!mapDrag) return;
+    mapDrag.dx = e.clientX - mapDrag.x;
+    mapDrag.dy = e.clientY - mapDrag.y;
+    if (Math.abs(mapDrag.dx) > 3 || Math.abs(mapDrag.dy) > 3) mapDrag.moved = true;
+    mapTilesEl.style.transform = 'translate(' + mapDrag.dx + 'px,' + mapDrag.dy + 'px)';
+  });
+  function endMapDrag(e, cancelled) {
+    if (!mapDrag) return;
+    const st = mapDrag;
+    mapDrag = null;
+    mapEl.classList.remove('dragging');
+    mapTilesEl.style.transform = '';
+    if (cancelled) { renderMap(); return; }
+    if (st.moved) {
+      mapCentre = {
+        lat: worldYToLat(latToWorldY(mapCentre.lat, mapZoom) - st.dy, mapZoom),
+        lng: worldXToLng(lngToWorldX(mapCentre.lng, mapZoom) - st.dx, mapZoom),
+      };
+      renderMap();
+    } else {
+      const r = mapEl.getBoundingClientRect();
+      setSiteFromMapPoint(mapLatLngAt(e.clientX - r.left, e.clientY - r.top));
+    }
+  }
+  mapEl.addEventListener('pointerup', e => endMapDrag(e, false));
+  mapEl.addEventListener('pointercancel', e => endMapDrag(e, true));
+  mapEl.addEventListener('wheel', e => {
+    e.preventDefault();
+    const r = mapEl.getBoundingClientRect();
+    zoomMap(e.deltaY < 0 ? 1 : -1, e.clientX - r.left, e.clientY - r.top);
+  }, { passive: false });
+  document.getElementById('siteMapZoomIn').addEventListener('click', () => zoomMap(1));
+  document.getElementById('siteMapZoomOut').addEventListener('click', () => zoomMap(-1));
+  document.getElementById('siteMapCentreBtn').addEventListener('click', () => {
+    if (!centreMapOnSite(16)) mapStatusEl.textContent = 'No coordinates set yet — click the map or search an address first.';
+  });
+  window.addEventListener('resize', debounce(renderMap, 150));
+
+  // ---- geocoding (Nominatim) ----
+  // Nominatim is the only address service OpenStreetMap offers for free, and it
+  // asks for light use — so it is called on explicit search and on a map click,
+  // never on keystrokes.
+  async function nominatim(path) {
+    const res = await fetch(NOMINATIM + path, { headers: { Accept: 'application/json' } });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return res.json();
+  }
+  function applyNominatimAddress(a) {
+    if (!a) return [];
+    const filled = [];
+    const street = [a.house_number, a.road].filter(Boolean).join(' ');
+    const city = a.city || a.town || a.village || a.hamlet || a.municipality || '';
+    // ISO3166-2-lvl4 is "US-IL" — the only reliably two-letter state code
+    // Nominatim returns; a.state is the full name.
+    const iso = a['ISO3166-2-lvl4'] || '';
+    const state = iso.indexOf('-') >= 0 ? iso.split('-')[1] : '';
+    const county = (a.county || '').replace(/\s+County$/i, '');
+    if (street) { document.getElementById('siteStreet').value = street; filled.push('street'); }
+    if (city) { document.getElementById('siteCity').value = city; filled.push('city'); }
+    if (state && US_STATES.some(([code]) => code === state)) {
+      document.getElementById('siteState').value = state;
+      filled.push('state');
+    }
+    if (a.postcode) { document.getElementById('siteZip').value = String(a.postcode).slice(0, 5); filled.push('ZIP'); }
+    if (county) { document.getElementById('siteCounty').value = county; filled.push('county'); }
+    if (filled.length) { resolveJurisdiction(); updateTopbar(); }
+    return filled;
+  }
+
+  async function setSiteFromMapPoint(pt) {
+    setSiteCoords(pt.lat, pt.lng);
+    renderGpsEditors();
+    renderMapPinOnly();
+    const where = pt.lat.toFixed(6) + ', ' + pt.lng.toFixed(6);
+    mapStatusEl.textContent = 'Pin set at ' + where + ' — looking up the address…';
+    try {
+      const data = await nominatim('/reverse?format=jsonv2&addressdetails=1&zoom=18&lat=' + pt.lat + '&lon=' + pt.lng);
+      const filled = applyNominatimAddress(data && data.address);
+      mapStatusEl.textContent = filled.length
+        ? 'Pin set at ' + where + ' — filled ' + filled.join(', ') + '. Check them against the E911 record before relying on them.'
+        : 'Pin set at ' + where + ' — no address at this point, which is normal on raw land. The coordinates are set; fill the address in by hand.';
+    } catch (err) {
+      mapStatusEl.textContent = 'Pin set at ' + where + ' — address lookup unavailable (' + err.message + '). The coordinates are set; fill the address in by hand.';
+    }
+  }
+
+  function clearMapResults() {
+    mapResultsEl.style.display = 'none';
+    mapResultsEl.innerHTML = '';
+  }
+  async function runMapSearch() {
+    const q = document.getElementById('siteMapSearch').value.trim();
+    clearMapResults();
+    if (!q) { mapStatusEl.textContent = 'Type an address or a coordinate pair to search.'; return; }
+    // A coordinate pair needs no geocoder — jump straight there.
+    const coords = parseCoordinateText(q);
+    if (coords) {
+      await setSiteFromMapPoint(coords);
+      centreMapOnSite(16);
+      return;
+    }
+    mapStatusEl.textContent = 'Searching “' + q + '”…';
+    let results;
+    try {
+      results = await nominatim('/search?format=jsonv2&addressdetails=1&limit=6&q=' + encodeURIComponent(q));
+    } catch (err) {
+      mapStatusEl.textContent = 'Address search unavailable (' + err.message + '). Pan and click the map, or paste coordinates into the insert box above.';
+      return;
+    }
+    if (!results.length) {
+      mapStatusEl.textContent = 'No match for “' + q + '”. Try a broader search, or pan and click the map.';
+      return;
+    }
+    mapStatusEl.textContent = results.length + ' match' + (results.length === 1 ? '' : 'es') + ' — pick one to drop the pin.';
+    mapResultsEl.innerHTML = results.map((r, i) =>
+      '<button type="button" data-map-result="' + i + '">' + escapeText(r.display_name) + '</button>').join('');
+    mapResultsEl.style.display = 'block';
+    mapResultsEl.querySelectorAll('[data-map-result]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const r = results[Number(btn.dataset.mapResult)];
+        setSiteCoords(Number(r.lat), Number(r.lon));
+        renderGpsEditors();
+        const filled = applyNominatimAddress(r.address);
+        centreMapOnSite(16);
+        clearMapResults();
+        mapStatusEl.textContent = 'Pin set at ' + Number(r.lat).toFixed(6) + ', ' + Number(r.lon).toFixed(6) +
+          (filled.length ? ' — filled ' + filled.join(', ') + '.' : ' — no street address in that result; fill it in by hand.');
+      });
+    });
+  }
+  document.getElementById('siteMapSearchBtn').addEventListener('click', runMapSearch);
+  document.getElementById('siteMapSearch').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); runMapSearch(); }
+  });
+
+  siteMapReady = true;
+  renderMap();
 
   // Non-binding hints on Module/Inverter Spec — "guide, don't override": Target
   // DC/AC on Site Config suggests a starting quantity, but the quantity fields
@@ -2701,7 +3068,7 @@
   [siteState, siteCounty, siteAhjOverride].forEach(el => el.addEventListener('input', resolveJurisdiction));
   resolveJurisdiction();
 
-  // ---- reusable per-panel document tracker (Module/Inverter/DC Combiner spec ingest) ----
+  // ---- reusable per-panel document tracker (Module/Inverter/DC Combiner ingest) ----
   // Same simulated classify → queued → parsing → extracted flow as Document
   // Intake below, scoped to one panel's own expected document types instead
   // of the whole-project manifest.
@@ -3169,8 +3536,16 @@
   const invNamingConventionEl = document.getElementById('invNamingConvention');
   const invDesignBody = document.getElementById('invDesignBody');
 
+  // stringModules / stringWires / stringLengths are parallel arrays, one entry
+  // per string on the inverter. A blank wire means "whatever the ampacity calc
+  // picks"; the length is what the per-string voltage drop is measured over.
+  const DEFAULT_STRING_RUN_FT = 150;
   function defaultInverterDesignRow() {
-    return { model: invModel.value, powerMode: 'full', deratedKw: '', switchboard: 'SWBD-1', stringModules: [], name: '', expanded: false, selected: false };
+    return {
+      model: invModel.value, powerMode: 'full', deratedKw: '', switchboard: 'SWBD-1',
+      stringModules: [], stringWires: [], stringLengths: [],
+      name: '', expanded: false, selected: false,
+    };
   }
   let inverterDesignRows = [];
 
@@ -3237,11 +3612,25 @@
     if (row.stringModules.length) return row.stringModules[row.stringModules.length - 1];
     return primaryStringLength() || 0;
   }
+  // New strings inherit the last string's conductor and run length so a row
+  // stays internally consistent when it grows.
+  function normalizeStringArrays(row) {
+    if (!Array.isArray(row.stringWires)) row.stringWires = [];
+    if (!Array.isArray(row.stringLengths)) row.stringLengths = [];
+    const n = row.stringModules.length;
+    const lastWire = row.stringWires.length ? row.stringWires[row.stringWires.length - 1] : '';
+    const lastRun = row.stringLengths.length ? row.stringLengths[row.stringLengths.length - 1] : DEFAULT_STRING_RUN_FT;
+    while (row.stringWires.length < n) row.stringWires.push(lastWire);
+    while (row.stringLengths.length < n) row.stringLengths.push(lastRun);
+    row.stringWires.length = n;
+    row.stringLengths.length = n;
+  }
   function resizeStringModules(row, count) {
     const want = Math.max(0, Math.min(2000, count));
     const fill = rowDefaultStringLength(row);
     while (row.stringModules.length < want) row.stringModules.push(fill);
     if (row.stringModules.length > want) row.stringModules.length = want;
+    normalizeStringArrays(row);
   }
 
   // Rows are only ever appended to or truncated from the bottom, so editing the
@@ -3294,16 +3683,96 @@
       '</tr>';
 
       if (row.expanded) {
-        const cells = row.stringModules.map((n, s) =>
-          '<div class="inv-string-cell"><span>' + names[i] + '-STR-' + (s + 1) + '</span>' +
-          '<input type="text" data-inv-row="' + i + '" data-inv-string="' + s + '" value="' + n + '"></div>').join('');
-        html += '<tr class="inv-strings-row"><td colspan="9">' +
-          (cells ? '<div class="inv-strings-grid">' + cells + '</div>'
-                 : '<span class="desc">No strings assigned to this inverter yet.</span>') +
-          '</td></tr>';
+        html += '<tr class="inv-strings-row"><td colspan="9">' + stringTableHtml(row, i, names[i]) + '</td></tr>';
       }
       return html;
     }).join('');
+  }
+
+  // ---- per-string electrical calc ----
+  // Lives here rather than on Ampacity/OCPD/Voltage Drop because a string's
+  // OCPD, conductor and voltage drop are all functions of the same three
+  // numbers this panel owns: module count, conductor, and run length. The
+  // shared NEC tables it leans on are declared further down the file, so this
+  // stays inert until they exist rather than throwing during init.
+  var stringCalcReady = false;
+  function stringElectrical(moduleCount, wireOverride, runFt) {
+    if (!stringCalcReady) return null;
+    const d = MODULE_SKUS[modSku.value];
+    if (!d) return null;
+    const modules = Number(moduleCount) || 0;
+    const vmpString = d.vmp * modules;
+    // 690.8(A)(1): PV source circuit max current is Isc × 1.25.
+    const designCurrent = d.isc * 1.25;
+    // 690.8(B)(1): the OCPD carries at least 125% of that.
+    const ocpdMin = designCurrent * 1.25;
+    const maxSeriesFuse = parseNum(modMaxFuse.value) || 0;
+    let ocpd = nextStandardSize(ocpdMin);
+    // The module datasheet's max series fuse is a hard ceiling — if the
+    // standard size lands above it, the datasheet wins and the cell flags it.
+    const fuseCapped = maxSeriesFuse > 0 && ocpd > maxSeriesFuse;
+    if (fuseCapped) ocpd = maxSeriesFuse;
+
+    const rating = parseInt(ampInsulationRating.value, 10) || 90;
+    const ambient = parseNum(ashraeMaxTempEl.value);
+    const tempFactor = tempCorrectionFactor(ambient, rating);
+    // A string is two current-carrying conductors, so no fill derate applies.
+    const requiredAmpacity = designCurrent / tempFactor;
+    const autoWire = selectConductor(requiredAmpacity, rating);
+    const wire = wireOverride || autoWire;
+    const cm = CIRCULAR_MILS[wire] || 0;
+    // Two-wire DC run — the current goes out and comes back.
+    const run = Number(runFt) || 0;
+    const vdVolts = cm ? (2 * K_COPPER * d.imp * run) / cm : 0;
+    const vdPct = vmpString > 0 ? (vdVolts / vmpString) * 100 : 0;
+    const limit = parseNum(document.getElementById('vdStringCombiner').value) || 0;
+    return {
+      vmpString, designCurrent, ocpdMin, ocpd, fuseCapped, maxSeriesFuse,
+      requiredAmpacity, autoWire, wire, vdVolts, vdPct, limit,
+      vdPass: limit > 0 ? vdPct <= limit : true,
+    };
+  }
+
+  function conductorOptionsHtml(selected) {
+    return '<option value=""' + (selected ? '' : ' selected') + '>Auto</option>' +
+      Object.keys(CIRCULAR_MILS).map(k =>
+        '<option value="' + k + '"' + (selected === k ? ' selected' : '') + '>' + k + '</option>').join('');
+  }
+
+  function stringTableHtml(row, i, invName) {
+    if (!row.stringModules.length) return '<span class="desc">No strings assigned to this inverter yet.</span>';
+    normalizeStringArrays(row);
+    const rows = row.stringModules.map((n, s) => {
+      const e = stringElectrical(n, row.stringWires[s], row.stringLengths[s]);
+      const ocpdCell = !e ? '—'
+        : e.ocpd + (e.fuseCapped ? ' <span class="vd-fail">(capped at module max ' + e.maxSeriesFuse + ' A)</span>' : '');
+      const wireCell = '<select data-inv-row="' + i + '" data-inv-wire="' + s + '">' +
+        conductorOptionsHtml(row.stringWires[s]) + '</select>' +
+        (e && !row.stringWires[s] ? ' <span class="auto">' + (e.autoWire || 'over 750 kcmil') + '</span>' : '');
+      return '<tr>' +
+        '<td>' + invName + '-STR-' + (s + 1) + '</td>' +
+        '<td style="text-align:right;"><input type="text" data-inv-row="' + i + '" data-inv-string="' + s + '" value="' + n + '"></td>' +
+        '<td style="text-align:right;">' + (e ? e.vmpString.toFixed(1) : '—') + '</td>' +
+        '<td style="text-align:right;">' + (e ? e.designCurrent.toFixed(2) : '—') + '</td>' +
+        '<td style="text-align:right;">' + ocpdCell + '</td>' +
+        '<td>' + wireCell + '</td>' +
+        '<td style="text-align:right;"><input type="text" data-inv-row="' + i + '" data-inv-run="' + s + '" value="' + escapeAttr(row.stringLengths[s]) + '"></td>' +
+        '<td style="text-align:right;">' + (e ? e.vdVolts.toFixed(2) : '—') + '</td>' +
+        '<td style="text-align:right;" class="' + (e && e.limit ? (e.vdPass ? 'vd-pass' : 'vd-fail') : '') + '">' +
+          (e ? e.vdPct.toFixed(2) + ' %' : '—') + '</td>' +
+      '</tr>';
+    }).join('');
+    return '<table class="strings" data-strings-for="' + i + '"><thead><tr>' +
+      '<th>String</th>' +
+      '<th style="text-align:right;">Modules</th>' +
+      '<th style="text-align:right;">V<sub>mp</sub> (V)</th>' +
+      '<th style="text-align:right;">Design current (A)</th>' +
+      '<th style="text-align:right;">OCPD (A)</th>' +
+      '<th>Conductor</th>' +
+      '<th style="text-align:right;">Run (ft)</th>' +
+      '<th style="text-align:right;">V<sub>drop</sub> (V)</th>' +
+      '<th style="text-align:right;">V<sub>drop</sub> (%)</th>' +
+      '</tr></thead><tbody>' + rows + '</tbody></table>';
   }
 
   // "100 strings - 90 of 26 modules, 10 of 24 modules" style rollups.
@@ -3421,6 +3890,15 @@
     sbSel.innerHTML = switchboardTags().map(t => '<option value="' + t + '">' + t + '</option>').join('');
     if (switchboardTags().includes(keepSb)) sbSel.value = keepSb;
 
+    // The conductor list comes from the shared NEC ampacity table, which is
+    // declared further down the file — populate it once that exists.
+    if (stringCalcReady) {
+      const wireSel = document.getElementById('invBulkStringWire');
+      const keepWire = wireSel.value;
+      wireSel.innerHTML = conductorOptionsHtml('');
+      wireSel.value = keepWire;
+    }
+
     // Only the lengths the designer ticked as "used" on PV String Design.
     const mpsSel = document.getElementById('invBulkModulesPerString');
     const keepMps = mpsSel.value;
@@ -3439,8 +3917,15 @@
     const strIdx = e.target.dataset.invString;
     if (strIdx !== undefined) {
       row.stringModules[Number(strIdx)] = parseInt(parseNum(e.target.value), 10) || 0;
+      refreshStringRowCells(Number(idx), Number(strIdx));
       renderInverterSummary();
       recomputeInverterDesignTotalsOnly();
+      return;
+    }
+    const runIdx = e.target.dataset.invRun;
+    if (runIdx !== undefined) {
+      row.stringLengths[Number(runIdx)] = e.target.value;
+      refreshStringRowCells(Number(idx), Number(runIdx));
       return;
     }
     const field = e.target.dataset.invField;
@@ -3459,6 +3944,43 @@
     row[field] = e.target.value;
     recomputeInverterDesign();
   });
+
+  // Picking an explicit conductor removes the "auto" annotation next to it, so
+  // that one table gets rebuilt — safe here because the trigger is a select,
+  // not a text field someone is mid-word in.
+  invDesignBody.addEventListener('change', e => {
+    const idx = e.target.dataset.invRow;
+    const wireIdx = e.target.dataset.invWire;
+    if (idx === undefined || wireIdx === undefined) return;
+    inverterDesignRows[Number(idx)].stringWires[Number(wireIdx)] = e.target.value;
+    rerenderStringTable(Number(idx));
+  });
+
+  function rerenderStringTable(i) {
+    const table = invDesignBody.querySelector('[data-strings-for="' + i + '"]');
+    if (!table) return;
+    table.parentElement.innerHTML = stringTableHtml(inverterDesignRows[i], i, effectiveInverterNames()[i]);
+  }
+
+  // Typing a module count or a run length must not rebuild the input being
+  // typed into, so only the derived cells beside it are rewritten.
+  function refreshStringRowCells(i, s) {
+    const table = invDesignBody.querySelector('[data-strings-for="' + i + '"]');
+    if (!table) return;
+    const tr = table.tBodies[0].rows[s];
+    const row = inverterDesignRows[i];
+    if (!tr || !row) return;
+    const e = stringElectrical(row.stringModules[s], row.stringWires[s], row.stringLengths[s]);
+    if (!e) return;
+    tr.cells[2].textContent = e.vmpString.toFixed(1);
+    tr.cells[3].textContent = e.designCurrent.toFixed(2);
+    tr.cells[4].innerHTML = e.ocpd + (e.fuseCapped ? ' <span class="vd-fail">(capped at module max ' + e.maxSeriesFuse + ' A)</span>' : '');
+    const autoSpan = tr.cells[5].querySelector('.auto');
+    if (autoSpan) autoSpan.textContent = e.autoWire || 'over 750 kcmil';
+    tr.cells[7].textContent = e.vdVolts.toFixed(2);
+    tr.cells[8].textContent = e.vdPct.toFixed(2) + ' %';
+    tr.cells[8].className = e.limit ? (e.vdPass ? 'vd-pass' : 'vd-fail') : '';
+  }
 
   function refreshNameDupeState() {
     const names = effectiveInverterNames();
@@ -3513,6 +4035,14 @@
         const v = parseInt(document.getElementById('invBulkModulesPerString').value, 10);
         if (!Number.isFinite(v)) return;
         rows.forEach(r => { r.stringModules = r.stringModules.map(() => v); });
+      } else if (what === 'stringWire') {
+        // Blank is a real choice here — it hands the string back to the calc.
+        const v = document.getElementById('invBulkStringWire').value;
+        rows.forEach(r => { normalizeStringArrays(r); r.stringWires = r.stringWires.map(() => v); });
+      } else if (what === 'stringRun') {
+        const v = document.getElementById('invBulkStringRun').value.trim();
+        if (v === '') return;
+        rows.forEach(r => { normalizeStringArrays(r); r.stringLengths = r.stringLengths.map(() => v); });
       } else if (what === 'model') {
         const v = document.getElementById('invBulkModel').value;
         if (v) rows.forEach(r => { r.model = v; });
@@ -4918,6 +5448,9 @@
     populateCombinerSelect();
     updateSelectedCombinerOutput();
     if (ocpdCircuit.value === 'dc_combiner_output') ocpdSyncDefault();
+    // The output conductor is sized off this number, and the disconnect is
+    // checked against it — both live below, so they only run once declared.
+    if (combOutputReady) { combOutputRecompute(); updateCombDisconnectVisibility(); }
   }
 
   function renderCombinerRows() {
@@ -4985,18 +5518,266 @@
     dimensionsMm: [400, 600, 200], weightKg: 12.0,
   });
 
-  // ---- DC combiner nameplate: conditional Disconnect / Surge Suppression fields ----
+  // ---- DC combiner protection: surge suppression + main disconnect ----
+  // Hoisted-undefined rather than temporal-dead-zone: refreshCombinerSummary()
+  // above wants to refresh the output conductor, but runs before the consts
+  // that calc depends on exist.
+  var combOutputReady = false;
   function updateCombDisconnectVisibility() {
-    document.getElementById('combDisconnectAmpField').style.display = document.getElementById('combDisconnect').value === 'yes' ? 'flex' : 'none';
+    const on = document.getElementById('combDisconnect').value === 'yes';
+    document.querySelectorAll('.disc-field').forEach(el => { el.style.display = on ? 'flex' : 'none'; });
+    const note = document.getElementById('combDisconnectCheck');
+    if (!on) {
+      note.innerHTML = 'No main disconnect specified — the output circuit can then only be opened upstream, which the AHJ may push back on for a combiner sited away from the inverter.';
+      note.style.color = 'var(--ink-muted)';
+      return;
+    }
+    // A disconnect that can't carry the combined output is the classic
+    // combiner spec error, so it gets checked rather than just recorded.
+    const rating = parseNum(document.getElementById('combDisconnectAmpRating').value);
+    const vdc = parseNum(document.getElementById('combDisconnectVdcRating').value);
+    const combVdc = parseNum(document.getElementById('combVdcRating').value);
+    const problems = [];
+    if (rating > 0 && combinerOutputAmpacity > 0 && rating < combinerOutputAmpacity) {
+      problems.push('rated ' + rating + ' A but the largest combiner output is ' + combinerOutputAmpacity.toFixed(2) + ' A');
+    }
+    if (vdc > 0 && combVdc > 0 && vdc < combVdc) {
+      problems.push('rated ' + vdc + ' VDC, below the combiner’s own ' + combVdc + ' VDC rating');
+    }
+    note.innerHTML = problems.length
+      ? 'Disconnect undersized — ' + problems.join('; ') + '.'
+      : 'Disconnect clears the combined output ampacity and the combiner’s VDC rating.';
+    note.style.color = problems.length ? 'var(--fail)' : 'var(--pass)';
   }
   function updateCombSurgeSuppressionVisibility() {
-    document.getElementById('combSurgeSuppressionSizeField').style.display = document.getElementById('combSurgeSuppression').value === 'yes' ? 'flex' : 'none';
+    const on = document.getElementById('combSurgeSuppression').value === 'yes';
+    document.querySelectorAll('.surge-field').forEach(el => { el.style.display = on ? 'flex' : 'none'; });
+    const note = document.getElementById('combSurgeCheck');
+    if (!on) {
+      note.innerHTML = 'No surge device specified. A combiner sits at the far end of a long exposed DC run — worth confirming that’s deliberate.';
+      note.style.color = 'var(--ink-muted)';
+      return;
+    }
+    const uoc = parseNum(document.getElementById('combSurgeUoc').value);
+    const combVdc = parseNum(document.getElementById('combVdcRating').value);
+    if (uoc > 0 && combVdc > 0 && uoc < combVdc) {
+      note.innerHTML = 'SPD MCOV is ' + uoc + ' VDC, below the combiner’s ' + combVdc + ' VDC rating — the device would sit above its continuous operating voltage.';
+      note.style.color = 'var(--fail)';
+    } else {
+      note.innerHTML = 'SPD MCOV covers the combiner’s ' + combVdc + ' VDC rating.';
+      note.style.color = 'var(--pass)';
+    }
   }
   document.getElementById('combDisconnect').addEventListener('change', updateCombDisconnectVisibility);
   document.getElementById('combSurgeSuppression').addEventListener('change', updateCombSurgeSuppressionVisibility);
+  ['combDisconnectAmpRating', 'combDisconnectVdcRating'].forEach(id =>
+    document.getElementById(id).addEventListener('input', updateCombDisconnectVisibility));
+  document.getElementById('combSurgeUoc').addEventListener('input', updateCombSurgeSuppressionVisibility);
+  document.getElementById('combVdcRating').addEventListener('input', () => {
+    updateCombDisconnectVisibility();
+    updateCombSurgeSuppressionVisibility();
+  });
+
+  // ---- combiner output conductor sizing ----
+  // The schedule above picks a conductor straight off the ampacity table; this
+  // card does the same job properly — derating for ambient and raceway fill
+  // first, which is what actually governs a long combiner-to-inverter run.
+  const combOutputInsulation = document.getElementById('combOutputInsulation');
+  const combOutputConductorCount = document.getElementById('combOutputConductorCount');
+  const combOutputOverride = document.getElementById('combOutputConductorOverride');
+  let combOutputSelectedConductor = '';
+
+  (function populateCombOutputOverride() {
+    combOutputOverride.innerHTML = '<option value="" selected>Auto — as sized</option>' +
+      Object.keys(CIRCULAR_MILS).map(k => '<option value="' + k + '">' + k + '</option>').join('');
+  })();
+
+  function combOutputRecompute() {
+    const ambient = parseNum(ashraeMaxTempEl.value);
+    document.getElementById('combOutputAmbient').value = ashraeMaxTempEl.value;
+    const rating = parseInt(combOutputInsulation.value, 10);
+    const count = parseNum(combOutputConductorCount.value) || 1;
+    const base = combinerOutputAmpacity;
+    const tempFactor = tempCorrectionFactor(ambient, rating);
+    const fillFactor = fillAdjustmentFactor(count);
+    const required = base / (tempFactor * fillFactor);
+    const auto = selectConductor(required, rating);
+    const override = combOutputOverride.value;
+    combOutputSelectedConductor = override || auto || '';
+
+    document.getElementById('combOutputBase').innerHTML = base.toFixed(2) + '<small> A</small>';
+    document.getElementById('combOutputTempFactor').textContent = tempFactor.toFixed(2);
+    document.getElementById('combOutputFillFactor').textContent = fillFactor.toFixed(2);
+    document.getElementById('combOutputRequired').innerHTML = required.toFixed(2) + '<small> A</small>';
+    document.getElementById('combOutputConductor').textContent = combOutputSelectedConductor || 'exceeds 750 kcmil — split circuit';
+
+    const note = document.getElementById('combOutputNote');
+    if (!auto) {
+      note.innerHTML = 'No single conductor in the table carries ' + required.toFixed(2) + ' A after derating — run parallel sets or split the combiner.';
+      note.style.color = 'var(--fail)';
+      return;
+    }
+    if (override) {
+      const col = rating === 90 ? 'c90' : 'c75';
+      const derated = AMPACITY_TABLE[override][col] * tempFactor * fillFactor;
+      if (derated < base) {
+        note.innerHTML = '<b>' + override + '</b> is overridden in and derates to ' + derated.toFixed(2) +
+          ' A — below the ' + base.toFixed(2) + ' A output. The calc wants <b>' + auto + '</b>.';
+        note.style.color = 'var(--fail)';
+      } else {
+        note.innerHTML = '<b>' + override + '</b> is overridden in (derates to ' + derated.toFixed(2) +
+          ' A) and clears the ' + base.toFixed(2) + ' A output. The calc alone would have picked <b>' + auto + '</b>.';
+        note.style.color = 'var(--ink-muted)';
+      }
+      return;
+    }
+    note.innerHTML = '<b>' + auto + '</b> at ' + rating + ' °C carries ' + AMPACITY_TABLE[auto][rating === 90 ? 'c90' : 'c75'] +
+      ' A before derating, which is what ' + required.toFixed(2) + ' A of corrected demand needs.';
+    note.style.color = 'var(--ink-muted)';
+  }
+  [combOutputInsulation, combOutputConductorCount, combOutputOverride].forEach(el => {
+    el.addEventListener('input', combOutputRecompute);
+    el.addEventListener('change', combOutputRecompute);
+  });
+  ashraeMaxTempEl.addEventListener('input', combOutputRecompute);
+
+  // ---- vendor specification ----
+  // Reads the design rather than asking for it again: whatever is on Module
+  // Spec, PV String Design, Inverter Design and this panel right now.
+  function distinctStringConductors() {
+    const counts = {};
+    inverterDesignRows.forEach(row => {
+      normalizeStringArrays(row);
+      row.stringModules.forEach((n, s) => {
+        const e = stringElectrical(n, row.stringWires[s], row.stringLengths[s]);
+        const size = e ? (e.wire || 'unsized') : (row.stringWires[s] || 'unsized');
+        counts[size] = (counts[size] || 0) + 1;
+      });
+    });
+    return counts;
+  }
+  function describeCounts(counts, unit) {
+    const keys = Object.keys(counts);
+    if (!keys.length) return '—';
+    return keys.sort((a, b) => counts[b] - counts[a])
+      .map(k => counts[k] + ' × ' + k + (unit ? ' ' + unit : '')).join(', ');
+  }
+
+  // The combiner schedule sizes its input fuse off 690.8(A)(1) alone (Isc ×
+  // 1.25) while the per-string calc on Inverter Design also applies the
+  // 690.9(B) continuous factor (× 1.25 again). Those land on different standard
+  // sizes for most modules. Rather than silently picking one for the vendor,
+  // the spec reports both and says they disagree — a combiner ordered with the
+  // wrong fuse holder is not a mistake to bury.
+  function stringOcpdSpecValue(e) {
+    if (!e) return '—';
+    const scheduleFuse = combinerRows.length ? computeCombinerRow(combinerRows[0]).inputFuse : null;
+    const base = e.ocpd + ' A' +
+      (e.fuseCapped ? ' (capped at the module’s max series fuse)' : ' (690.9(B): ' + e.ocpdMin.toFixed(2) + ' A minimum)');
+    if (scheduleFuse === null || scheduleFuse === e.ocpd) return base;
+    return base + ' — NOTE: the combiner schedule on this panel shows ' + scheduleFuse +
+      ' A, sized on 690.8(A)(1) alone. Resolve before ordering.';
+  }
+
+  let combSpecRows = [];
+  function buildCombinerSpec() {
+    const d = MODULE_SKUS[modSku.value];
+    const tMin = parseNum(document.getElementById('ashraeMinTemp').value);
+    const vocCold = d.voc * (1 + (TEMP_COEFF_VOC / 100) * (tMin - 25));
+    const lengths = {};
+    let totalStrings = 0;
+    inverterDesignRows.forEach(r => r.stringModules.forEach(n => {
+      lengths[n] = (lengths[n] || 0) + 1;
+      totalStrings++;
+    }));
+    const longest = Object.keys(lengths).map(Number).sort((a, b) => b - a)[0] || 0;
+    const sampleString = stringElectrical(longest, '', 0);
+    const combInputs = combinerRows.map(r => parseNum(r.inputs) || 0);
+    const maxInputs = combInputs.length ? Math.max.apply(null, combInputs) : 0;
+    const surgeOn = document.getElementById('combSurgeSuppression').value === 'yes';
+    const discOn = document.getElementById('combDisconnect').value === 'yes';
+    const val = id => document.getElementById(id).value;
+    const sel = id => { const el = document.getElementById(id); return el.options[el.selectedIndex].textContent; };
+
+    combSpecRows = [
+      ['Project', document.getElementById('projectName').value || '—', 'Site Config (01)'],
+      ['Site', formatFullSiteAddress() || '—', 'Site Config (01)'],
+      ['Module', (document.getElementById('modManufacturer').value || '—') + ' · ' + d.pmax + ' W', 'Module Spec (05)'],
+      ['Module I(sc) / I(mp)', d.isc.toFixed(2) + ' A / ' + d.imp.toFixed(2) + ' A', 'Module Spec (05)'],
+      ['Max system voltage', val('modMaxSystemVoltage') + ' VDC', 'Module Spec (05)'],
+      ['Combiner VDC rating', val('combVdcRating') + ' VDC', 'DC Combiner Design (10)'],
+      ['Design string V(oc) at ' + tMin.toFixed(1) + ' °C',
+        longest ? (vocCold * longest).toFixed(1) + ' VDC (' + longest + ' modules × ' + vocCold.toFixed(2) + ' V)' : '—',
+        'PV String Design (08) + ASHRAE (04)'],
+      ['Strings on site', totalStrings + (Object.keys(lengths).length
+        ? ' (' + Object.keys(lengths).map(Number).sort((a, b) => b - a)
+            .map(n => lengths[n] + ' × ' + n + ' modules').join(', ') + ')' : ''),
+        'Inverter Design (09)'],
+      ['Combiners', combinerRows.length + ' — inputs per combiner: ' + (combInputs.join(', ') || '—'), 'DC Combiner Design (10)'],
+      ['String inputs required (largest combiner)', maxInputs || '—', 'DC Combiner Design (10)'],
+      ['String input OCPD (fuse)', stringOcpdSpecValue(sampleString), 'Inverter Design (09) + DC Combiner Design (10)'],
+      ['String conductor', describeCounts(distinctStringConductors()), 'Inverter Design (09)'],
+      ['Combiner output ampacity', combinerOutputAmpacity.toFixed(2) + ' A', 'DC Combiner Design (10)'],
+      ['Output conductor', combOutputSelectedConductor || '—', 'DC Combiner Design (10)'],
+      ['Output conductor basis', combOutputInsulation.value + ' °C insulation, ' +
+        document.getElementById('combOutputAmbient').value + ' °C ambient, ' +
+        combOutputConductorCount.value + ' current-carrying conductors', 'DC Combiner Design (10)'],
+      ['Busbar rating', (combinerRows.map(r => r.busRating).join(', ') || '—') + ' A', 'DC Combiner Design (10)'],
+      ['Surge suppression', surgeOn
+        ? sel('combSurgeType') + ' · In ' + val('combSurgeSuppressionSize') + ' kA · Imax ' + val('combSurgeImax') +
+          ' kA · MCOV ' + val('combSurgeUoc') + ' VDC · ' + sel('combSurgeMonitoring')
+        : 'Not fitted', 'DC Combiner Design (10)'],
+      ['Main disconnect', discOn
+        ? sel('combDisconnectType') + ' · ' + val('combDisconnectAmpRating') + ' A · ' + val('combDisconnectVdcRating') + ' VDC'
+        : 'Not fitted', 'DC Combiner Design (10)'],
+      ['Enclosure', (document.getElementById('combManufacturer').value || '—') + ' ' +
+        (document.getElementById('combModel').value || ''), 'DC Combiner Design (10)'],
+    ];
+
+    document.getElementById('combSpecBody').innerHTML = combSpecRows.map(r =>
+      '<tr><td class="wrap">' + escapeText(r[0]) + '</td><td class="wrap">' + escapeText(String(r[1])) +
+      '</td><td class="wrap" style="color:var(--ink-muted);">' + escapeText(r[2]) + '</td></tr>').join('');
+    document.getElementById('combSpecStatus').textContent =
+      'Built ' + new Date().toLocaleTimeString() + ' — ' + combSpecRows.length + ' line items.';
+  }
+  document.getElementById('combSpecBuildBtn').addEventListener('click', buildCombinerSpec);
+
+  function combSpecAsText() {
+    return combSpecRows.map(r => r[0] + ': ' + r[1] + '   [' + r[2] + ']').join('\n');
+  }
+  document.getElementById('combSpecCopyBtn').addEventListener('click', () => {
+    const status = document.getElementById('combSpecStatus');
+    if (!combSpecRows.length) { status.textContent = 'Build the specification first.'; return; }
+    const text = combSpecAsText();
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(
+        () => { status.textContent = 'Copied ' + combSpecRows.length + ' line items.'; },
+        () => { status.textContent = 'Clipboard blocked — use Download CSV instead.'; }
+      );
+    } else {
+      status.textContent = 'Clipboard unavailable here — use Download CSV instead.';
+    }
+  });
+  document.getElementById('combSpecCsvBtn').addEventListener('click', () => {
+    const status = document.getElementById('combSpecStatus');
+    if (!combSpecRows.length) { status.textContent = 'Build the specification first.'; return; }
+    const esc = v => '"' + String(v).replace(/"/g, '""') + '"';
+    const csv = ['Item,Value,Source'].concat(combSpecRows.map(r => r.map(esc).join(','))).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'dc_combiner_specification.csv';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    status.textContent = 'Downloaded dc_combiner_specification.csv';
+  });
+
+  combOutputReady = true;
   updateCombDisconnectVisibility();
   updateCombSurgeSuppressionVisibility();
-
   renderCombinerRows();
 
   // ---- voltage drop computed segment (mirrors voltage_drop_calc.check_segment) ----
@@ -5058,6 +5839,18 @@
   [etapConductor, etapLength].forEach(el => el.addEventListener('input', vdropRecompute));
   vdropRecompute();
 
+  // ---- bring the Inverter Design per-string calc online ----
+  // stringElectrical() leans on the NEC tables and panel settings declared
+  // above it in this file, so it stays inert until they all exist. Now they do.
+  const vdStringCombinerEl = document.getElementById('vdStringCombiner');
+  stringCalcReady = true;
+  refreshInverterBulkOptions();
+  recomputeInverterDesign();
+  [ampInsulationRating, ashraeMaxTempEl, modMaxFuse, modSku, vdStringCombinerEl].forEach(el => {
+    el.addEventListener('input', recomputeInverterDesign);
+    el.addEventListener('change', recomputeInverterDesign);
+  });
+
   // ---- save / load project state ----
   const PROJECT_FIELD_IDS = [
     'projectName', 'utilityName', 'projectType', 'projectTypeOther', 'targetAc', 'targetDc',
@@ -5071,6 +5864,9 @@
     'mvLoadBreakerQty', 'mvLoadBreakerSize',
     'combManufacturer', 'combModel', 'combVdcRating', 'combStringInputs', 'combStandardFuse',
     'combDisconnect', 'combDisconnectAmpRating', 'combSurgeSuppression', 'combSurgeSuppressionSize',
+    'combDisconnectType', 'combDisconnectVdcRating',
+    'combSurgeType', 'combSurgeImax', 'combSurgeUoc', 'combSurgeMonitoring',
+    'combOutputInsulation', 'combOutputConductorCount', 'combOutputConductorOverride',
     'xfmrKva', 'xfmrPrimaryV', 'xfmrSecondaryV', 'xfmrPrimaryWinding', 'xfmrSecondaryWinding',
     'ashraeStationId', 'ashraeMinTemp', 'ashraeMaxTemp', 'ashraeAvgHighTemp', 'modMaxSystemVoltage',
     'ashraeStationLinksInput', 'ashraeDataPaste',
@@ -5128,7 +5924,9 @@
       selectedStringLengths: selectedStringLengths.slice(),
       inverterDesignRows: inverterDesignRows.map(r => ({
         model: r.model, powerMode: r.powerMode, deratedKw: r.deratedKw,
-        switchboard: r.switchboard, stringModules: r.stringModules.slice(), name: r.name || '',
+        switchboard: r.switchboard, stringModules: r.stringModules.slice(),
+        stringWires: (r.stringWires || []).slice(), stringLengths: (r.stringLengths || []).slice(),
+        name: r.name || '',
       })),
       ashraeLinkStations: ashraeLinkStations.map(s => ({
         name: s.name, wmo: s.wmo, version: s.version, units: s.units,
@@ -5159,6 +5957,7 @@
     // PROJECT_FIELD_IDS just restored, so they have to be re-rendered from it.
     applyGpsFormatVisibility();
     renderGpsEditors();
+    centreMapOnSite(16);
     if (Array.isArray(project.ashraeLinkStations)) {
       ashraeLinkStations = project.ashraeLinkStations
         .map(s => ({
@@ -5199,8 +5998,13 @@
         model: r.model || invModel.value, powerMode: r.powerMode || 'full', deratedKw: r.deratedKw || '',
         switchboard: r.switchboard || 'SWBD-1',
         stringModules: Array.isArray(r.stringModules) ? r.stringModules.map(Number) : [],
+        stringWires: Array.isArray(r.stringWires) ? r.stringWires.slice() : [],
+        stringLengths: Array.isArray(r.stringLengths) ? r.stringLengths.slice() : [],
         name: r.name || '', expanded: false, selected: false,
       }));
+      // Projects saved before per-string conductors existed have no arrays to
+      // restore — backfill them so the schedule renders.
+      inverterDesignRows.forEach(normalizeStringArrays);
     }
     if (typeof refreshInverterBulkOptions === 'function') refreshInverterBulkOptions();
     if (typeof recomputeInverterDesign === 'function') recomputeInverterDesign();
@@ -5480,7 +6284,7 @@
       ['Site Config', 'Actual AC capacity (W)', fmt(actualCapacities.actualAcW), data.site.actual_ac_capacity_w],
       ['Ampacity', 'Selected conductor', document.getElementById('ampSelectedConductor').textContent, data.ampacity.selected_conductor],
       ['Ampacity', 'Required ampacity (A)', document.getElementById('ampRequiredAmpacity').textContent, data.ampacity.required_ampacity_a],
-      ['DC Combiner Spec', 'Largest output ampacity (A)', document.getElementById('combinerMaxOutput').textContent, data.combiners.max_output_ampacity_a],
+      ['DC Combiner Design', 'Largest output ampacity (A)', document.getElementById('combinerMaxOutput').textContent, data.combiners.max_output_ampacity_a],
       ['OCPD Sizing', 'Standard size (A)', document.getElementById('ocpdStandardSize').textContent, data.ocpd.standard_size_a],
       ['Switchboard 120%', 'Result', document.getElementById('sbResult').textContent, data.switchboard.passes ? 'Pass' : 'Fail'],
       ['Bonding & Grounding', 'Secondary conductor', document.getElementById('bondConductor').textContent, data.bonding.secondary_conductor],
