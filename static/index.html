@@ -356,19 +356,20 @@
       <li><button class="rail-btn" data-target="sec-ashrae"><span><span class="rail-num">04</span> ASHRAE Site Data</span><span class="rail-dot dot-warn"></span></button></li>
       <li><button class="rail-btn" data-target="sec-module"><span><span class="rail-num">05</span> Module Spec</span><span class="rail-dot dot-pass"></span></button></li>
       <li><button class="rail-btn" data-target="sec-inverter"><span><span class="rail-num">06</span> Inverter Spec</span><span class="rail-dot dot-pass"></span></button></li>
-      <li><button class="rail-btn" data-target="sec-system-design"><span><span class="rail-num">07</span> System Design</span><span class="rail-dot dot-pass" id="systemDesignDot"></span></button></li>
-      <li id="navCombiner"><button class="rail-btn" data-target="sec-combiner"><span><span class="rail-num">08</span> DC Combiner Spec</span><span class="rail-dot dot-pass" id="combinerDot"></span></button></li>
-      <li><button class="rail-btn" data-target="sec-ampacity"><span><span class="rail-num">09</span> Ampacity &amp; Conductors</span><span class="rail-dot dot-pass" id="ampacityDot"></span></button></li>
-      <li><button class="rail-btn" data-target="sec-ocpd"><span><span class="rail-num">10</span> OCPD Sizing</span><span class="rail-dot dot-pass" id="ocpdDot"></span></button></li>
-      <li><button class="rail-btn" data-target="sec-switchboard"><span><span class="rail-num">11</span> Switchboard 120%</span><span class="rail-dot dot-pass" id="switchboardDot"></span></button></li>
-      <li><button class="rail-btn" data-target="sec-bonding"><span><span class="rail-num">12</span> Bonding &amp; Grounding</span><span class="rail-dot dot-warn" id="bondingDot"></span></button></li>
-      <li><button class="rail-btn" data-target="sec-vdrop"><span><span class="rail-num">13</span> Voltage Drop Limits</span><span class="rail-dot dot-pass" id="vdropDot"></span></button></li>
-      <li><button class="rail-btn" data-target="sec-jurisdiction"><span><span class="rail-num">14</span> Jurisdiction</span><span class="rail-dot dot-warn"></span></button></li>
-      <li><button class="rail-btn" data-target="sec-upload"><span><span class="rail-num">15</span> Document Intake</span><span class="rail-dot dot-warn" id="uploadDot"></span></button></li>
-      <li><button class="rail-btn" data-target="sec-placards"><span><span class="rail-num">16</span> Placarding</span><span class="rail-dot dot-pass"></span></button></li>
-      <li><button class="rail-btn" data-target="sec-etap"><span><span class="rail-num">17</span> ETAP Export</span><span class="rail-dot dot-pass"></span></button></li>
-      <li><button class="rail-btn" data-target="sec-fluke"><span><span class="rail-num">18</span> I-V Curve Field Prep</span><span class="rail-dot dot-warn"></span></button></li>
-      <li><button class="rail-btn" data-target="sec-backend"><span><span class="rail-num">19</span> Backend Verification</span><span class="rail-dot dot-neutral" id="backendDot"></span></button></li>
+      <li><button class="rail-btn" data-target="sec-system-design"><span><span class="rail-num">07</span> System Architecture</span><span class="rail-dot dot-pass" id="systemDesignDot"></span></button></li>
+      <li><button class="rail-btn" data-target="sec-pv-string-design"><span><span class="rail-num">08</span> PV String Design</span><span class="rail-dot dot-pass" id="pvStringDesignDot"></span></button></li>
+      <li id="navCombiner"><button class="rail-btn" data-target="sec-combiner"><span><span class="rail-num">09</span> DC Combiner Spec</span><span class="rail-dot dot-pass" id="combinerDot"></span></button></li>
+      <li><button class="rail-btn" data-target="sec-ampacity"><span><span class="rail-num">10</span> Ampacity &amp; Conductors</span><span class="rail-dot dot-pass" id="ampacityDot"></span></button></li>
+      <li><button class="rail-btn" data-target="sec-ocpd"><span><span class="rail-num">11</span> OCPD Sizing</span><span class="rail-dot dot-pass" id="ocpdDot"></span></button></li>
+      <li><button class="rail-btn" data-target="sec-switchboard"><span><span class="rail-num">12</span> Switchboard 120%</span><span class="rail-dot dot-pass" id="switchboardDot"></span></button></li>
+      <li><button class="rail-btn" data-target="sec-bonding"><span><span class="rail-num">13</span> Bonding &amp; Grounding</span><span class="rail-dot dot-warn" id="bondingDot"></span></button></li>
+      <li><button class="rail-btn" data-target="sec-vdrop"><span><span class="rail-num">14</span> Voltage Drop Limits</span><span class="rail-dot dot-pass" id="vdropDot"></span></button></li>
+      <li><button class="rail-btn" data-target="sec-jurisdiction"><span><span class="rail-num">15</span> Jurisdiction</span><span class="rail-dot dot-warn"></span></button></li>
+      <li><button class="rail-btn" data-target="sec-upload"><span><span class="rail-num">16</span> Document Intake</span><span class="rail-dot dot-warn" id="uploadDot"></span></button></li>
+      <li><button class="rail-btn" data-target="sec-placards"><span><span class="rail-num">17</span> Placarding</span><span class="rail-dot dot-pass"></span></button></li>
+      <li><button class="rail-btn" data-target="sec-etap"><span><span class="rail-num">18</span> ETAP Export</span><span class="rail-dot dot-pass"></span></button></li>
+      <li><button class="rail-btn" data-target="sec-fluke"><span><span class="rail-num">19</span> I-V Curve Field Prep</span><span class="rail-dot dot-warn"></span></button></li>
+      <li><button class="rail-btn" data-target="sec-backend"><span><span class="rail-num">20</span> Backend Verification</span><span class="rail-dot dot-neutral" id="backendDot"></span></button></li>
     </ul>
     <div class="rail-foot">
       NEC edition resolved from <b>jurisdiction_lookup.py</b><br>
@@ -398,7 +399,7 @@
             <h2>Site Config</h2>
           </div>
         </div>
-        <p class="desc">Target AC/DC capacity are the design goals — they guide (but don't force) equipment selection on Module Spec (05), Inverter Spec (06), and System Design (07).</p>
+        <p class="desc">Target AC/DC capacity are the design goals — they guide (but don't force) equipment selection on Module Spec (05), Inverter Spec (06), System Architecture (07), and PV String Design (08).</p>
 
         <div class="card">
           <p class="card-title">Project targets</p>
@@ -612,6 +613,7 @@
             <div class="field wide"><label>Station ID</label><input class="prose" type="text" id="ashraeStationId" value="TBD — nearest: St. Louis Downtown-Parks, IL"></div>
             <div class="field"><label>Extreme annual min design dry-bulb <span class="unit">°C</span></label><input type="text" id="ashraeMinTemp" value="-10.0"></div>
             <div class="field"><label>Extreme annual max design dry-bulb, 2% <span class="unit">°C</span></label><input type="text" id="ashraeMaxTemp" value="35.0"></div>
+            <div class="field"><label>Average high dry-bulb <span class="unit">°C</span></label><input type="text" id="ashraeAvgHighTemp" value="28.0"></div>
           </div>
         </div>
 
@@ -680,7 +682,7 @@
             <div class="field"><label>I<sub>mp</sub> <span class="unit">A</span></label><input type="text" id="modImp" value="17.44" readonly></div>
             <div class="field"><label>Temp coeff. V<sub>oc</sub> <span class="unit">%/°C</span></label><input type="text" value="-0.24"></div>
             <div class="field"><label>Temp coeff. I<sub>sc</sub> <span class="unit">%/°C</span></label><input type="text" value="+0.04"></div>
-            <div class="field"><label>Max system voltage <span class="unit">V</span></label><input type="text" value="1500"></div>
+            <div class="field"><label>Max system voltage <span class="unit">V</span></label><input type="text" id="modMaxSystemVoltage" value="1500"></div>
             <div class="field">
               <label>Max series fuse rating <span class="unit">A</span></label>
               <input type="text" id="modMaxFuse" value="35">
@@ -784,7 +786,7 @@
 
         <div class="card">
           <p class="card-title">Additional inverter models</p>
-          <p class="desc" style="margin-bottom:14px;">Reference tracking only — an added model isn't summed into Actual AC capacity or any other calc (only the Model dropdown above and Quantity on System Design drive that). Used to flag a real mismatch before it becomes a field problem.</p>
+          <p class="desc" style="margin-bottom:14px;">Reference tracking only — an added model isn't summed into Actual AC capacity or any other calc (only the Model dropdown above and Quantity on System Architecture drive that). Used to flag a real mismatch before it becomes a field problem.</p>
           <div id="extraInverterList"></div>
           <button class="btn" id="addInverterBtn" style="margin-top: 6px;">+ Add inverter</button>
           <div class="note" id="inverterMismatchNote" style="display:none; border: 1px solid var(--fail); background: var(--fail-soft); margin-top: 14px;">
@@ -803,15 +805,101 @@
         </div>
       </section>
 
-      <!-- 07 SYSTEM DESIGN -->
+      <!-- 07 SYSTEM ARCHITECTURE -->
       <section class="panel" id="sec-system-design">
         <div class="panel-head">
           <div>
-            <p class="eyebrow">System-level design quantities</p>
-            <h2>System Design</h2>
+            <p class="eyebrow">Utility interconnection topology</p>
+            <h2>System Architecture</h2>
           </div>
         </div>
-        <p class="desc">As-built equipment quantities that don't belong to a single datasheet-driven spec panel. Module/inverter quantity here (moved off their spec panels) is what actually drives Actual DC/AC capacity on Site Config — the targets there are a guide, not a lock.</p>
+        <p class="desc">How this system interconnects to the utility, and which inverters (type and quantity) feed which panelboard or switchboard. Quantity of modules on site moved to PV String Design (08).</p>
+
+        <div class="card">
+          <p class="card-title">Interconnection</p>
+          <div class="field-grid">
+            <div class="field wide">
+              <label for="sysArchInterconnectionType">Interconnection type</label>
+              <select id="sysArchInterconnectionType">
+                <option value="backfed_breaker" selected>Backfed Breaker</option>
+                <option value="line_side_tap">Line Side Tap</option>
+                <option value="mv_interconnection">MV Interconnection</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <p class="card-title">Inverters for this interconnection</p>
+          <div class="field-grid">
+            <div class="field">
+              <label for="sysArchInverterModel">Type of inverter</label>
+              <select id="sysArchInverterModel">
+                <option value="250">Chint Power Systems CPS SCH250KTL-DO/US-800 — 250 kW</option>
+                <option value="300">Chint Power Systems CPS SCH300KTL-DO/US-800 — 300 kW</option>
+                <option value="350" selected>Chint Power Systems CPS SCH350KTL-DO/US-800 — 350 kW</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="invQuantity">Quantity of inverters</label>
+              <input type="text" id="invQuantity" value="15" data-calc>
+            </div>
+            <div class="field wide">
+              <label for="sysArchPanelboardTag">Connected to panelboard/switchboard</label>
+              <input class="prose" type="text" id="sysArchPanelboardTag" value="SWBD-1" placeholder="e.g. SWBD-1">
+            </div>
+          </div>
+          <p class="desc" style="margin-top:12px;" id="invQtyHint">Target AC capacity ÷ AC power rating ≈ — inverters (Site Config's target is a guide, not a lock — the quantity above is what actually drives Actual AC capacity, ETAP export, and the switchboard 120% check).</p>
+        </div>
+
+        <div class="card" id="sysArchUpstreamPanelboardCard">
+          <p class="card-title">Upstream panelboard</p>
+          <div class="field-grid">
+            <div class="field"><label for="sysArchBusSize">Bus size <span class="unit">A</span></label><input type="text" id="sysArchBusSize" value="1200"></div>
+            <div class="field"><label for="sysArchAcVoltage">AC voltage <span class="unit">V</span></label><input type="text" id="sysArchAcVoltage" value="480"></div>
+          </div>
+          <p class="desc" style="margin-top:12px; margin-bottom:6px;">All existing breakers in the upstream panelboard, including the main.</p>
+          <div style="overflow-x:auto;">
+            <table class="etap">
+              <thead><tr><th>Order</th><th>Type</th><th style="text-align:right;">Size (A)</th><th></th></tr></thead>
+              <tbody id="sysArchBreakerBody"></tbody>
+            </table>
+          </div>
+          <button class="btn" id="addBreakerBtn" type="button" style="margin-top:14px;">+ Add breaker</button>
+        </div>
+
+        <div class="card" id="sysArchLineTapCard" style="display:none;">
+          <p class="card-title">Line side tap details</p>
+          <div class="field-grid">
+            <div class="field"><label for="sysArchFeederSize">Feeder size</label><input class="prose" type="text" id="sysArchFeederSize" value="500 kcmil"></div>
+            <div class="field"><label for="sysArchFeederType">Feeder type</label><input class="prose" type="text" id="sysArchFeederType" value="THWN-2 Cu"></div>
+            <div class="field"><label for="sysArchFeederQuantity">Quantity of feeders tapped</label><input type="text" id="sysArchFeederQuantity" value="3"></div>
+            <div class="field"><label for="sysArchServiceSize">Upstream service size <span class="unit">A</span></label><input type="text" id="sysArchServiceSize" value="1600"></div>
+          </div>
+        </div>
+
+        <div class="card" id="sysArchMvCard" style="display:none;">
+          <p class="card-title">MV interconnection planning</p>
+          <div class="field-grid">
+            <div class="field"><label for="mvExpectedPoints">Expected interconnection points</label><input type="text" id="mvExpectedPoints" value="1"></div>
+            <div class="field"><label for="mvExpectedTransformers">Expected transformers</label><input type="text" id="mvExpectedTransformers" value="1"></div>
+            <div class="field"><label for="mvExpectedSwitchboards">Expected switchboards</label><input type="text" id="mvExpectedSwitchboards" value="1"></div>
+            <div class="field"><label for="mvInvertersPerSwitchboard">Expected inverters per switchboard</label><input type="text" id="mvInvertersPerSwitchboard" value="15"></div>
+            <div class="field"><label for="mvLoadBreakerQty">Load breakers per switchboard — quantity</label><input type="text" id="mvLoadBreakerQty" value="1"></div>
+            <div class="field"><label for="mvLoadBreakerSize">Load breakers per switchboard — size <span class="unit">A</span></label><input type="text" id="mvLoadBreakerSize" value="800"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 08 PV STRING DESIGN -->
+      <section class="panel" id="sec-pv-string-design">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">PV string / module quantities</p>
+            <h2>PV String Design</h2>
+          </div>
+        </div>
+        <p class="desc">As-built module quantity — moved off Module Spec so a datasheet-driven spec panel doesn't also own an as-built count. What actually drives Actual DC capacity on Site Config; the target there is a guide, not a lock.</p>
 
         <div class="card">
           <p class="card-title">Quantity on site</p>
@@ -820,17 +908,28 @@
               <label for="modQuantity">Quantity of modules on site</label>
               <input type="text" id="modQuantity" value="9,465" data-calc>
             </div>
-            <div class="field">
-              <label for="invQuantity">Quantity of inverters on site</label>
-              <input type="text" id="invQuantity" value="15" data-calc>
-            </div>
           </div>
           <p class="desc" style="margin-top:12px;" id="modQtyHint">Target DC capacity ÷ P<sub>max</sub> ≈ — modules (Site Config's target is a guide, not a lock — the quantity above is what actually drives Actual DC capacity).</p>
-          <p class="desc" style="margin-top:6px;" id="invQtyHint">Target AC capacity ÷ AC power rating ≈ — inverters (Site Config's target is a guide, not a lock — the quantity above is what actually drives Actual AC capacity, ETAP export, and the switchboard 120% check).</p>
+        </div>
+
+        <div class="card">
+          <p class="card-title">String length range — max system voltage &amp; MPPT window</p>
+          <p class="desc" style="margin-bottom:14px;">For each candidate string length (modules in series): Voc at ASHRAE extreme low (cold — must clear neither the module's max system voltage nor the inverter's MPPT max) and Vmp at ASHRAE average high (hot — must not sag below the inverter's MPPT min). Reacts to the SKU on Module Spec and the model on Inverter Spec.</p>
+          <div class="computed-row">
+            <div class="computed"><div class="k">Min string length</div><div class="v" id="stringLenMin">—<small> modules</small></div></div>
+            <div class="computed"><div class="k">Max string length</div><div class="v" id="stringLenMax">—<small> modules</small></div></div>
+            <div class="computed"><div class="k">Recommended</div><div class="v" id="stringLenRecommended" style="font-size:20px;">—<small> modules</small></div></div>
+          </div>
+          <div style="overflow-x:auto; margin-top:14px;">
+            <table class="fluke">
+              <thead><tr><th>Modules/string</th><th style="text-align:right;">Voc @ extreme low (V)</th><th style="text-align:right;">Vmp @ avg high (V)</th><th>Within MPPT window?</th></tr></thead>
+              <tbody id="stringLenBody"></tbody>
+            </table>
+          </div>
         </div>
       </section>
 
-      <!-- 08 DC COMBINER SPEC -->
+      <!-- 09 DC COMBINER SPEC -->
       <section class="panel" id="sec-combiner">
         <div class="panel-head">
           <div>
@@ -931,7 +1030,7 @@
         </div>
       </section>
 
-      <!-- 09 AMPACITY & CONDUCTORS -->
+      <!-- 10 AMPACITY & CONDUCTORS -->
       <section class="panel" id="sec-ampacity">
         <div class="panel-head">
           <div>
@@ -983,7 +1082,7 @@
         </div>
       </section>
 
-      <!-- 10 OCPD SIZING -->
+      <!-- 11 OCPD SIZING -->
       <section class="panel" id="sec-ocpd">
         <div class="panel-head">
           <div>
@@ -1023,7 +1122,7 @@
         </div>
       </section>
 
-      <!-- 11 SWITCHBOARD 120% RULE -->
+      <!-- 12 SWITCHBOARD 120% RULE -->
       <section class="panel" id="sec-switchboard">
         <div class="panel-head">
           <div>
@@ -1053,7 +1152,7 @@
         </div>
       </section>
 
-      <!-- 12 BONDING & GROUNDING -->
+      <!-- 13 BONDING & GROUNDING -->
       <section class="panel" id="sec-bonding">
         <div class="panel-head">
           <div>
@@ -1117,7 +1216,7 @@
         </div>
       </section>
 
-      <!-- 13 VOLTAGE DROP -->
+      <!-- 14 VOLTAGE DROP -->
       <section class="panel" id="sec-vdrop">
         <div class="panel-head">
           <div>
@@ -1156,7 +1255,7 @@
         </div>
       </section>
 
-      <!-- 14 JURISDICTION -->
+      <!-- 15 JURISDICTION -->
       <section class="panel" id="sec-jurisdiction">
         <div class="panel-head">
           <div>
@@ -1200,7 +1299,7 @@
         </div>
       </section>
 
-      <!-- 15 DOCUMENT INTAKE -->
+      <!-- 16 DOCUMENT INTAKE -->
       <section class="panel" id="sec-upload">
         <div class="panel-head">
           <div>
@@ -1257,7 +1356,7 @@
         </div>
       </section>
 
-      <!-- 16 PLACARDING -->
+      <!-- 17 PLACARDING -->
       <section class="panel" id="sec-placards">
         <div class="panel-head">
           <div>
@@ -1294,7 +1393,7 @@
         </div>
       </section>
 
-      <!-- 17 ETAP EXPORT -->
+      <!-- 18 ETAP EXPORT -->
       <section class="panel" id="sec-etap">
         <div class="panel-head">
           <div>
@@ -1344,7 +1443,7 @@
         </div>
       </section>
 
-      <!-- 18 I-V CURVE FIELD PREP -->
+      <!-- 19 I-V CURVE FIELD PREP -->
       <section class="panel" id="sec-fluke">
         <div class="panel-head">
           <div>
@@ -1432,7 +1531,7 @@
         </div>
       </section>
 
-      <!-- 19 BACKEND VERIFICATION -->
+      <!-- 20 BACKEND VERIFICATION -->
       <section class="panel" id="sec-backend">
         <div class="panel-head">
           <div>
@@ -1664,6 +1763,7 @@
     if (typeof combinerRecompute === 'function') combinerRecompute();
     if (typeof ampacityRecompute === 'function') ampacityRecompute();
     if (typeof ocpdSyncDefault === 'function') ocpdSyncDefault();
+    if (typeof recomputeStringLength === 'function') recomputeStringLength();
   }
   modSku.addEventListener('change', applyModuleSku);
 
@@ -1681,10 +1781,12 @@
     document.getElementById('invPhases').value = d.phases;
     document.getElementById('invMaxOutputCurrent').value = d.maxOutputCurrentA;
     document.getElementById('invMaxOcpd').value = d.maxOcpdA;
+    document.getElementById('sysArchInverterModel').value = invModel.value;
     recompute();
     if (typeof ocpdSyncDefault === 'function') ocpdSyncDefault();
     if (typeof vdropRecompute === 'function') vdropRecompute();
     if (typeof checkInverterMismatch === 'function') checkInverterMismatch();
+    if (typeof recomputeStringLength === 'function') recomputeStringLength();
   }
   invModel.addEventListener('change', applyInverterModel);
 
@@ -1767,6 +1869,69 @@
     extraInverters.splice(Number(idx), 1);
     renderExtraInverters();
     checkInverterMismatch();
+  });
+
+  // ---- System Architecture: interconnection type + inverter-model sync ----
+  // sysArchInverterModel is a second control over the SAME underlying model
+  // choice as Inverter Spec's invModel (not independent state) -- changing
+  // either one updates the other and re-runs applyInverterModel() once.
+  const sysArchInverterModel = document.getElementById('sysArchInverterModel');
+  let syncingInverterModel = false;
+  function syncInverterModelFrom(source) {
+    if (syncingInverterModel) return;
+    syncingInverterModel = true;
+    const other = source === invModel ? sysArchInverterModel : invModel;
+    other.value = source.value;
+    syncingInverterModel = false;
+    if (source === sysArchInverterModel) applyInverterModel();
+  }
+  invModel.addEventListener('change', () => syncInverterModelFrom(invModel));
+  sysArchInverterModel.addEventListener('change', () => syncInverterModelFrom(sysArchInverterModel));
+
+  const sysArchInterconnectionType = document.getElementById('sysArchInterconnectionType');
+  function updateInterconnectionTypeVisibility() {
+    const type = sysArchInterconnectionType.value;
+    document.getElementById('sysArchUpstreamPanelboardCard').style.display = (type === 'backfed_breaker' || type === 'line_side_tap') ? 'block' : 'none';
+    document.getElementById('sysArchLineTapCard').style.display = type === 'line_side_tap' ? 'block' : 'none';
+    document.getElementById('sysArchMvCard').style.display = type === 'mv_interconnection' ? 'block' : 'none';
+  }
+  sysArchInterconnectionType.addEventListener('change', updateInterconnectionTypeVisibility);
+  updateInterconnectionTypeVisibility();
+
+  // ---- System Architecture: upstream panelboard breaker list ----
+  let sysArchBreakers = [
+    { order: '1', type: 'Main', size: '800' },
+    { order: '2', type: 'Branch', size: '400' },
+  ];
+  const sysArchBreakerBody = document.getElementById('sysArchBreakerBody');
+
+  function renderSysArchBreakers() {
+    sysArchBreakerBody.innerHTML = sysArchBreakers.map((b, i) =>
+      '<tr>' +
+        '<td><input type="text" class="wide" data-breaker-index="' + i + '" data-breaker-field="order" value="' + escapeAttr(b.order) + '"></td>' +
+        '<td><input type="text" class="wide" data-breaker-index="' + i + '" data-breaker-field="type" value="' + escapeAttr(b.type) + '"></td>' +
+        '<td style="text-align:right;"><input type="text" data-breaker-index="' + i + '" data-breaker-field="size" value="' + escapeAttr(b.size) + '"></td>' +
+        '<td>' + (sysArchBreakers.length > 1 ? '<button type="button" class="contact-remove" data-remove-breaker="' + i + '">Remove</button>' : '') + '</td>' +
+      '</tr>'
+    ).join('');
+  }
+  renderSysArchBreakers();
+
+  document.getElementById('addBreakerBtn').addEventListener('click', () => {
+    sysArchBreakers.push({ order: String(sysArchBreakers.length + 1), type: 'Branch', size: '' });
+    renderSysArchBreakers();
+  });
+  sysArchBreakerBody.addEventListener('input', e => {
+    const idx = e.target.dataset.breakerIndex;
+    const field = e.target.dataset.breakerField;
+    if (idx === undefined || !field) return;
+    sysArchBreakers[Number(idx)][field] = e.target.value;
+  });
+  sysArchBreakerBody.addEventListener('click', e => {
+    const idx = e.target.dataset.removeBreaker;
+    if (idx === undefined) return;
+    sysArchBreakers.splice(Number(idx), 1);
+    renderSysArchBreakers();
   });
 
   // ---- jurisdiction stub lookup ----
@@ -2103,6 +2268,62 @@
   }
   [ivIrradiance, ivCellTemp, ivModulesPerString].forEach(el => el.addEventListener('input', ivRecomputeExpected));
   ivRecomputeExpected();
+
+  // ---- PV String Design: string length range (NEC 690.7 cold-Voc ceiling + inverter MPPT window) ----
+  // Reuses the same single-coefficient temp-correction approximation as
+  // computeExpectedIV() above (Voc and Vmp both scaled by TEMP_COEFF_VOC),
+  // just evaluated at ASHRAE design temperatures instead of a field test-day
+  // reading.
+  function computeStringLengthRange() {
+    const d = MODULE_SKUS[modSku.value];
+    const tMin = parseNum(document.getElementById('ashraeMinTemp').value);
+    const tAvgHigh = parseNum(document.getElementById('ashraeAvgHighTemp').value);
+    const mpptVMin = parseNum(document.getElementById('invMpptVMin').value);
+    const mpptVMax = parseNum(document.getElementById('invMpptVMax').value);
+    const maxSystemV = parseNum(document.getElementById('modMaxSystemVoltage').value);
+
+    const vocPerModuleCold = d.voc * (1 + (TEMP_COEFF_VOC / 100) * (tMin - 25));
+    const vmpPerModuleHot = d.vmp * (1 + (TEMP_COEFF_VOC / 100) * (tAvgHigh - 25));
+    const voltageCeiling = Math.min(maxSystemV, mpptVMax);
+
+    const maxLen = vocPerModuleCold > 0 ? Math.floor(voltageCeiling / vocPerModuleCold) : 0;
+    const minLen = vmpPerModuleHot > 0 ? Math.ceil(mpptVMin / vmpPerModuleHot) : 0;
+
+    return { vocPerModuleCold, vmpPerModuleHot, maxSystemV, mpptVMin, mpptVMax, minLen, maxLen };
+  }
+
+  function recomputeStringLength() {
+    const r = computeStringLengthRange();
+    const valid = r.maxLen >= r.minLen && r.minLen > 0;
+
+    document.getElementById('stringLenMin').innerHTML = r.minLen + '<small> modules</small>';
+    document.getElementById('stringLenMax').innerHTML = r.maxLen + '<small> modules</small>';
+    const recEl = document.getElementById('stringLenRecommended');
+    recEl.innerHTML = valid ? (r.maxLen + '<small> modules</small>') : '—<small> no valid length in range</small>';
+    recEl.style.color = valid ? 'var(--pass)' : 'var(--fail)';
+
+    const rangeStart = Math.max(1, r.minLen - 1);
+    const rangeEnd = Math.max(rangeStart + 1, r.maxLen + 1);
+    const body = document.getElementById('stringLenBody');
+    body.innerHTML = '';
+    for (let n = rangeStart; n <= rangeEnd; n++) {
+      const voc = r.vocPerModuleCold * n;
+      const vmp = r.vmpPerModuleHot * n;
+      const withinWindow = voc <= r.mpptVMax && voc <= r.maxSystemV && vmp >= r.mpptVMin;
+      const isRecommended = valid && n === r.maxLen;
+      const row = document.createElement('tr');
+      row.innerHTML =
+        '<td>' + n + (isRecommended ? ' <span class="chip chip-pass" style="margin-left:6px;">Recommended</span>' : '') + '</td>' +
+        '<td style="text-align:right;">' + voc.toFixed(1) + '</td>' +
+        '<td style="text-align:right;">' + vmp.toFixed(1) + '</td>' +
+        '<td><span class="status-chip ' + (withinWindow ? 'status-extracted' : 'status-fail') + '"><span class="p"></span>' + (withinWindow ? 'Pass' : 'Fail') + '</span></td>';
+      body.appendChild(row);
+    }
+  }
+  [document.getElementById('ashraeMinTemp'), document.getElementById('ashraeAvgHighTemp'),
+   document.getElementById('invMpptVMin'), document.getElementById('invMpptVMax'),
+   document.getElementById('modMaxSystemVoltage')].forEach(el => el.addEventListener('input', recomputeStringLength));
+  recomputeStringLength();
 
   document.getElementById('ivValidateBtn').addEventListener('click', () => {
     const exp = computeExpectedIV();
@@ -3206,10 +3427,14 @@
     'siteLatitude', 'siteLongitude',
     'clientBusinessName', 'clientAddress', 'clientWebsite',
     'modSku', 'modMaxFuse', 'modQuantity', 'invModel', 'invDcTopology', 'invAcRating', 'invQuantity',
+    'sysArchInterconnectionType', 'sysArchPanelboardTag', 'sysArchBusSize', 'sysArchAcVoltage',
+    'sysArchFeederSize', 'sysArchFeederType', 'sysArchFeederQuantity', 'sysArchServiceSize',
+    'mvExpectedPoints', 'mvExpectedTransformers', 'mvExpectedSwitchboards', 'mvInvertersPerSwitchboard',
+    'mvLoadBreakerQty', 'mvLoadBreakerSize',
     'combManufacturer', 'combModel', 'combVdcRating', 'combStringInputs', 'combStandardFuse',
     'combDisconnect', 'combDisconnectAmpRating', 'combSurgeSuppression', 'combSurgeSuppressionSize',
     'xfmrKva', 'xfmrPrimaryV', 'xfmrSecondaryV', 'xfmrPrimaryWinding', 'xfmrSecondaryWinding',
-    'ashraeStationId', 'ashraeMinTemp', 'ashraeMaxTemp',
+    'ashraeStationId', 'ashraeMinTemp', 'ashraeMaxTemp', 'ashraeAvgHighTemp', 'modMaxSystemVoltage',
     'ampCircuitType', 'ampParallelStrings', 'ampInsulationRating', 'ampConductorCount',
     'ocpdCircuit', 'ocpdContinuousCurrent',
     'sbBusbarRating', 'sbMainRating',
@@ -3253,6 +3478,7 @@
       savedAt: new Date().toISOString(), fields, contacts, logoDataUrl,
       combinerRows: combinerRowsOut, directoryContacts: directoryContactsOut,
       extraInverters: extraInverters.map(inv => ({ model: inv.model, dcVoltage: inv.dcVoltage, acVoltage: inv.acVoltage, phases: inv.phases })),
+      sysArchBreakers: sysArchBreakers.map(b => ({ order: b.order, type: b.type, size: b.size })),
     };
   }
 
@@ -3275,6 +3501,11 @@
     updateProjectTypeOtherVisibility();
     if (typeof updateCombDisconnectVisibility === 'function') updateCombDisconnectVisibility();
     if (typeof updateCombSurgeSuppressionVisibility === 'function') updateCombSurgeSuppressionVisibility();
+    if (typeof updateInterconnectionTypeVisibility === 'function') updateInterconnectionTypeVisibility();
+    if (Array.isArray(project.sysArchBreakers) && project.sysArchBreakers.length) {
+      sysArchBreakers = project.sysArchBreakers.map(b => ({ order: b.order || '', type: b.type || '', size: b.size || '' }));
+      renderSysArchBreakers();
+    }
 
     if (Array.isArray(project.contacts) && project.contacts.length) {
       contactList.innerHTML = '';
@@ -3430,6 +3661,7 @@
         sku: modSku.value,
         max_series_fuse_rating_a: parseNum(modMaxFuse.value),
         quantity: parseNum(modQuantity.value),
+        max_system_voltage_v: parseNum(document.getElementById('modMaxSystemVoltage').value),
       },
       inverter: {
         model: document.getElementById('invModel').value,
@@ -3440,6 +3672,8 @@
         max_output_current_a: parseNum(document.getElementById('invMaxOutputCurrent').value),
         manufacturer_max_ocpd_a: parseNum(document.getElementById('invMaxOcpd').value),
         dc_topology: invDcTopology.value,
+        max_dc_voltage_v: parseNum(document.getElementById('invMpptVMax').value),
+        mppt_v_min: parseNum(document.getElementById('invMpptVMin').value),
       },
       combiner_rows: combinerRows.map(r => ({
         inputs: parseInt(r.inputs, 10) || 0,
@@ -3450,6 +3684,7 @@
         station_id: document.getElementById('ashraeStationId').value,
         min_design_temp_c: parseNum(document.getElementById('ashraeMinTemp').value),
         max_design_temp_c: parseNum(ashraeMaxTempEl.value),
+        avg_high_temp_c: parseNum(document.getElementById('ashraeAvgHighTemp').value),
       },
       voltage_drop_limits: {
         string_to_combiner_pct: parseNum(document.getElementById('vdStringCombiner').value),
@@ -3553,6 +3788,9 @@
       ['Placarding', 'Estimated total ($)', document.getElementById('placardTotal').textContent, data.placarding.estimated_total],
       ['ETAP Export', 'Total source MVA', document.getElementById('etapTotalMva').textContent, data.etap.total_source_mva_at_poi],
       ['I-V Curve Field Prep', 'Expected Voc (V)', document.getElementById('ivExpVoc').textContent, data.iv_curve.expected.voc],
+      ['PV String Design', 'Recommended string length (modules)', document.getElementById('stringLenRecommended').textContent, data.string_design.recommended_string_length == null ? '—' : String(data.string_design.recommended_string_length)],
+      ['PV String Design', 'Max string length (modules)', document.getElementById('stringLenMax').textContent, data.string_design.max_string_length],
+      ['PV String Design', 'Min string length (modules)', document.getElementById('stringLenMin').textContent, data.string_design.min_string_length],
     ];
 
     const body = document.getElementById('backendCompareBody');

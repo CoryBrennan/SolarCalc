@@ -24,6 +24,7 @@ from app import (
     iv_curve_calc,
     jurisdiction_lookup,
     placarding_calc,
+    string_design_calc,
     switchboard_block,
     voltage_drop_calc,
 )
@@ -127,6 +128,10 @@ def calculate(project: ProjectInput) -> dict:
         tolerance_pct=project.iv_curve_conditions.tolerance_pct,
     )
 
+    string_length_result = string_design_calc.compute_string_length_range(
+        module=project.module, inverter=project.inverter, ashrae=project.ashrae,
+    )
+
     header = document_header.build_document_header(
         site=site,
         client_info=project.client_info,
@@ -156,6 +161,7 @@ def calculate(project: ProjectInput) -> dict:
         "placarding": placarding_result,
         "etap": etap_result,
         "iv_curve": {"expected": iv_expected, "validation": iv_validation},
+        "string_design": string_length_result,
         "document_header": {"header": header, "missing_fields": document_header.missing_header_fields(header)},
     }
 

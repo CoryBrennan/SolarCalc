@@ -47,6 +47,7 @@ class ModuleSpec(BaseModel):
     sku: str = "720"
     max_series_fuse_rating_a: float = 35
     quantity: int = 9465
+    max_system_voltage_v: float = 1500
 
 
 class InverterSpec(BaseModel):
@@ -63,7 +64,8 @@ class InverterSpec(BaseModel):
     # per-MPPT string breakdown yet.
     mppt_count: int = 15
     strings_per_mppt_direct: int = 2
-    max_dc_voltage_v: float = 1500
+    max_dc_voltage_v: float = 1500  # doubles as MPPT V max for string-length sizing
+    mppt_v_min: float = 500.0
 
 
 class CombinerRow(BaseModel):
@@ -76,6 +78,7 @@ class ASHRAESiteData(BaseModel):
     station_id: str = "TBD — nearest: St. Louis Downtown-Parks, IL"
     min_design_temp_c: float = -10.0
     max_design_temp_c: float = 35.0
+    avg_high_temp_c: float = 28.0
 
 
 class ClientVoltageDropLimits(BaseModel):
