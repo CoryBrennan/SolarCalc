@@ -132,6 +132,9 @@
   }
 
   .content { padding: 26px 28px 60px; max-width: 980px; }
+  /* Panels whose tables are wider than the standard column need the cards to
+     grow with them, not just scroll inside a 980px box. */
+  .content.wide { max-width: 1500px; }
   .panel { display: none; flex-direction: column; gap: 22px; }
   .panel.active { display: flex; }
 
@@ -182,10 +185,13 @@
   .bulk-btns { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
   .inv-expand { background: none; border: none; cursor: pointer; color: var(--accent); font-size: 13px; padding: 2px 6px; }
   .inv-strings-row > td { background: var(--accent-soft); padding: 12px 16px; }
-  .inv-strings-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
-  .inv-string-cell { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+  /* Multi-column so STR-1, STR-2, STR-3 read top-to-bottom down each column
+     rather than left-to-right across the row. */
+  .inv-strings-grid { columns: 200px; column-gap: 18px; }
+  .inv-string-cell { display: flex; align-items: center; gap: 6px; font-size: 12px; break-inside: avoid; margin-bottom: 8px; }
   .inv-string-cell span { font-family: var(--font-mono); color: var(--ink-muted); white-space: nowrap; }
   .inv-string-cell input { width: 100%; }
+  .inv-name-dupe { border-color: var(--fail) !important; color: var(--fail); }
   .summary-block { margin-bottom: 14px; }
   .summary-block .h { font-size: 12.5px; font-weight: 600; color: var(--ink); margin-bottom: 4px; }
   .summary-block ul { margin: 0; padding-left: 18px; }
@@ -976,19 +982,10 @@
               <label for="invDesignSwitchboardCount">Number of switchboards</label>
               <input type="text" id="invDesignSwitchboardCount" value="1">
             </div>
-            <div class="field wide">
-              <label for="invNamingConvention">Inverter naming convention</label>
-              <select id="invNamingConvention">
-                <option value="sequential" selected>INV-N — sequential across site (INV-1, INV-2, INV-3)</option>
-                <option value="switchboard">INV-(switchboard)-(N) — INV-1-2 is the 2nd inverter on switchboard 1</option>
-              </select>
-            </div>
           </div>
           <div class="computed-row" style="margin-top:14px;">
             <div class="computed"><div class="k">Strings available</div><div class="v" id="invDesignStringsAvailable">—<small> strings</small></div></div>
             <div class="computed"><div class="k">Strings assigned</div><div class="v" id="invDesignStringsAssigned">—<small> strings</small></div></div>
-            <div class="computed"><div class="k">Target DC : AC</div><div class="v" id="invDesignTargetRatio">—</div></div>
-            <div class="computed"><div class="k">Actual DC : AC</div><div class="v" id="invDesignActualRatio">—</div></div>
           </div>
           <p class="desc" style="margin-top:12px;" id="invDesignBalanceHint">—</p>
         </div>
@@ -998,6 +995,12 @@
           <div class="computed-row">
             <div class="computed"><div class="k">Actual AC power</div><div class="v" id="invSummaryAc">—<small> kW</small></div></div>
             <div class="computed"><div class="k">Actual DC power</div><div class="v" id="invSummaryDc">—<small> kW</small></div></div>
+            <div class="computed"><div class="k">Actual DC : AC</div><div class="v" id="invDesignActualRatio">—</div></div>
+          </div>
+          <div class="computed-row" style="margin-top:12px;">
+            <div class="computed"><div class="k">Target AC power</div><div class="v" id="invSummaryTargetAc">—<small> kW</small></div></div>
+            <div class="computed"><div class="k">Target DC power</div><div class="v" id="invSummaryTargetDc">—<small> kW</small></div></div>
+            <div class="computed"><div class="k">Target DC : AC</div><div class="v" id="invDesignTargetRatio">—</div></div>
           </div>
           <div id="invSummaryBreakdown" style="margin-top:16px;"></div>
         </div>
@@ -1015,9 +1018,12 @@
             </div>
             <div class="bulk-btns">
               <button class="btn btn-primary" data-bulk-apply="strings" type="button">Apply to selected</button>
-              <button class="btn" id="invDistributeBtn" type="button">Distribute by AC &amp; DC:AC</button>
               <button class="btn" data-bulk-selectall type="button">Select all</button>
               <button class="btn" data-bulk-selectnone type="button">Clear selection</button>
+            </div>
+            <div class="bulk-btns">
+              <button class="btn" id="invDistributeRatioBtn" type="button">Distribute by DC:AC ratio</button>
+              <button class="btn" id="invDistributeEvenBtn" type="button">Distribute evenly</button>
             </div>
           </div>
 
@@ -1072,16 +1078,60 @@
             </div>
             <div class="bulk-btns">
               <button class="btn btn-primary" data-bulk-apply="derate" type="button">Apply to selected</button>
-              <button class="btn" data-bulk-apply="fullrating" type="button">Reset to full rating</button>
               <button class="btn" data-bulk-selectall type="button">Select all</button>
               <button class="btn" data-bulk-selectnone type="button">Clear selection</button>
+            </div>
+            <div class="bulk-btns">
+              <button class="btn" data-bulk-apply="fullrating" type="button">Reset to full rating</button>
+            </div>
+          </div>
+
+          <div class="bulk-group">
+            <div class="field-grid">
+              <div class="field wide">
+                <label for="invNamingConvention">Naming convention</label>
+                <select id="invNamingConvention">
+                  <option value="sequential" selected>Sequential across site — INV-1, INV-2, INV-3</option>
+                  <option value="switchboard">Per switchboard — INV-1-2 is the 2nd inverter on switchboard 1</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="invNamePrefix">Prefix</label>
+                <input class="prose" type="text" id="invNamePrefix" value="INV">
+              </div>
+              <div class="field">
+                <label for="invNameSeparator">Separator</label>
+                <input class="prose" type="text" id="invNameSeparator" value="-">
+              </div>
+              <div class="field">
+                <label for="invNameStart">Start number</label>
+                <input type="text" id="invNameStart" value="1">
+              </div>
+              <div class="field">
+                <label for="invNamePad">Digits (zero-pad)</label>
+                <input type="text" id="invNamePad" value="1">
+              </div>
+            </div>
+            <p class="desc" style="margin-top:12px;" id="invNamePreview">—</p>
+            <div class="bulk-btns">
+              <button class="btn btn-primary" data-bulk-apply="rename" type="button">Apply naming to selected</button>
+              <button class="btn" data-bulk-selectall type="button">Select all</button>
+              <button class="btn" data-bulk-selectnone type="button">Clear selection</button>
+            </div>
+            <div class="bulk-btns">
+              <button class="btn" id="invNameResetBtn" type="button">Clear custom names</button>
             </div>
           </div>
         </div>
 
         <div class="card">
           <p class="card-title">Inverter schedule</p>
-          <p class="desc" style="margin-bottom:14px;">Use the ▸ toggle to open an inverter and edit the module count of individual strings on it.</p>
+          <p class="desc" style="margin-bottom:14px;">Use the ▸ toggle to open an inverter and edit the module count of individual strings on it. Inverter names are editable — two inverters can't share a name.</p>
+          <div class="bulk-btns" style="margin-top:0; margin-bottom:14px;">
+            <button class="btn" id="invExpandAllBtn" type="button">Open all inverters</button>
+            <button class="btn" id="invCollapseAllBtn" type="button">Close all inverters</button>
+          </div>
+          <p class="desc" style="margin-bottom:14px; display:none; color:var(--fail);" id="invNameDupeWarning"></p>
           <div style="overflow-x:auto;">
             <table class="etap">
               <thead><tr><th></th><th>Edit</th><th>Inverter</th><th>Model (from Inverter Spec)</th><th>Power</th><th style="text-align:right;">AC kW</th><th style="text-align:right;">Strings</th><th style="text-align:right;">DC kW</th><th>Switchboard</th></tr></thead>
@@ -1767,6 +1817,7 @@
 
 <script>
   // ---- nav switching ----
+  const WIDE_PANELS = ['sec-inverter-design'];
   const railBtns = document.querySelectorAll('.rail-btn');
   railBtns.forEach(btn => {
     btn.addEventListener('click', () => {
@@ -1774,6 +1825,7 @@
       document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
       btn.classList.add('active');
       document.getElementById(btn.dataset.target).classList.add('active');
+      document.querySelector('.content').classList.toggle('wide', WIDE_PANELS.includes(btn.dataset.target));
     });
   });
 
@@ -2529,7 +2581,12 @@
     // `var` so this is hoisted-undefined rather than in the temporal dead zone:
     // this runs once during init, before the Inverter Design block below has
     // initialized its own state.
-    if (inverterDesignReady) recomputeInverterDesign();
+    if (inverterDesignReady) {
+      // Ticking a new "used" length on this panel has to reach the Inverter
+      // Design modules-per-string dropdown straight away.
+      refreshInverterBulkOptions();
+      recomputeInverterDesign();
+    }
   }
 
   function recomputeStringLength() {
@@ -2620,7 +2677,7 @@
   const invDesignBody = document.getElementById('invDesignBody');
 
   function defaultInverterDesignRow() {
-    return { model: invModel.value, powerMode: 'full', deratedKw: '', switchboard: 'SWBD-1', stringModules: [], expanded: false, selected: false };
+    return { model: invModel.value, powerMode: 'full', deratedKw: '', switchboard: 'SWBD-1', stringModules: [], name: '', expanded: false, selected: false };
   }
   let inverterDesignRows = [];
 
@@ -2629,15 +2686,45 @@
     return Array.from({ length: n }, (_, i) => 'SWBD-' + (i + 1));
   }
 
-  // INV-N across the whole site, or INV-(switchboard)-(N within that switchboard).
-  function inverterTags() {
-    const perBoard = {};
-    return inverterDesignRows.map((row, i) => {
-      if (invNamingConventionEl.value !== 'switchboard') return 'INV-' + (i + 1);
+  // Auto names built from the PVCase-style prefix / separator / start / padding
+  // controls: either <prefix><sep>N across the site, or
+  // <prefix><sep><switchboard><sep>N within each board.
+  function namingOptions() {
+    return {
+      prefix: document.getElementById('invNamePrefix').value,
+      sep: document.getElementById('invNameSeparator').value,
+      start: parseInt(parseNum(document.getElementById('invNameStart').value), 10) || 1,
+      pad: Math.max(1, Math.min(6, parseInt(parseNum(document.getElementById('invNamePad').value), 10) || 1)),
+      perBoard: invNamingConventionEl.value === 'switchboard',
+    };
+  }
+  function padNum(n, pad) {
+    return String(n).padStart(pad, '0');
+  }
+  function autoInverterTags() {
+    const o = namingOptions();
+    const counters = {};
+    let seq = o.start;
+    return inverterDesignRows.map(row => {
+      if (!o.perBoard) return o.prefix + o.sep + padNum(seq++, o.pad);
       const boardNum = (row.switchboard.match(/(\d+)$/) || [null, '1'])[1];
-      perBoard[boardNum] = (perBoard[boardNum] || 0) + 1;
-      return 'INV-' + boardNum + '-' + perBoard[boardNum];
+      counters[boardNum] = (counters[boardNum] === undefined ? o.start : counters[boardNum] + 1);
+      return o.prefix + o.sep + boardNum + o.sep + padNum(counters[boardNum], o.pad);
     });
+  }
+  // A row keeps its auto name until the designer types one in.
+  function effectiveInverterNames() {
+    const auto = autoInverterTags();
+    return inverterDesignRows.map((r, i) => (r.name && r.name.trim()) ? r.name.trim() : auto[i]);
+  }
+  function duplicateInverterNames() {
+    const seen = {};
+    const dupes = {};
+    effectiveInverterNames().forEach(n => {
+      if (seen[n]) dupes[n] = true;
+      seen[n] = true;
+    });
+    return dupes;
   }
 
   function inverterRowAcKw(row) {
@@ -2664,17 +2751,29 @@
     if (row.stringModules.length > want) row.stringModules.length = want;
   }
 
+  // Rows are only ever appended to or truncated from the bottom, so editing the
+  // quantity never disturbs the rows above. A blank or unparseable box is
+  // treated as "mid-typing" and leaves the schedule alone rather than wiping it.
+  // While the quantity box is mid-edit, "15" briefly passes through "" and "1"
+  // on the way to "150" — shrinking on those would delete rows the designer
+  // never meant to touch, so truncation waits until the field is committed.
+  let allowInverterRowShrink = true;
   function syncInverterDesignRowCount() {
-    const want = Math.max(0, Math.min(500, parseInt(parseNum(invDesignQuantityEl.value), 10) || 0));
-    while (inverterDesignRows.length < want) inverterDesignRows.push(defaultInverterDesignRow());
-    if (inverterDesignRows.length > want) inverterDesignRows.length = want;
+    const raw = invDesignQuantityEl.value.trim();
+    const parsed = parseInt(parseNum(raw), 10);
+    if (raw !== '' && Number.isFinite(parsed)) {
+      const want = Math.max(0, Math.min(500, parsed));
+      while (inverterDesignRows.length < want) inverterDesignRows.push(defaultInverterDesignRow());
+      if (allowInverterRowShrink && inverterDesignRows.length > want) inverterDesignRows.length = want;
+    }
     const tags = switchboardTags();
     inverterDesignRows.forEach(r => { if (!tags.includes(r.switchboard)) r.switchboard = tags[0]; });
   }
 
   function renderInverterDesign() {
     const tags = switchboardTags();
-    const names = inverterTags();
+    const names = effectiveInverterNames();
+    const dupes = duplicateInverterNames();
     const modelOptions = Object.keys(INVERTER_MODELS);
     invDesignBody.innerHTML = inverterDesignRows.map((row, i) => {
       const kw = inverterRowAcKw(row);
@@ -2692,7 +2791,7 @@
       let html = '<tr>' +
         '<td><button type="button" class="inv-expand" data-inv-expand="' + i + '">' + (row.expanded ? '&#9662;' : '&#9656;') + '</button></td>' +
         '<td><input type="checkbox" data-inv-select="' + i + '"' + (row.selected ? ' checked' : '') + ' style="width:auto;"></td>' +
-        '<td class="mono">' + names[i] + '</td>' +
+        '<td><input type="text" class="mono' + (dupes[names[i]] ? ' inv-name-dupe' : '') + '" data-inv-row="' + i + '" data-inv-field="name" value="' + escapeAttr(names[i]) + '" style="min-width:110px;"></td>' +
         '<td>' + modelSel + '</td>' +
         '<td>' + powerSel + '</td>' +
         '<td style="text-align:right;">' + kwCell + '</td>' +
@@ -2753,6 +2852,8 @@
     const site = summarizeRows(inverterDesignRows);
     document.getElementById('invSummaryAc').innerHTML = fmt(site.acKw) + '<small> kW</small>';
     document.getElementById('invSummaryDc').innerHTML = fmt(site.dcKw) + '<small> kW</small>';
+    document.getElementById('invSummaryTargetAc').innerHTML = fmt(parseNum(targetAc.value) / 1000) + '<small> kW</small>';
+    document.getElementById('invSummaryTargetDc').innerHTML = fmt(parseNum(targetDc.value) / 1000) + '<small> kW</small>';
     let html = summaryBlockHtml('Site summary', inverterDesignRows);
     switchboardTags().forEach(tag => {
       const rows = inverterDesignRows.filter(r => r.switchboard === tag);
@@ -2782,6 +2883,8 @@
     syncInverterDesignRowCount();
     renderInverterDesign();
     renderInverterSummary();
+    refreshNameDupeState();
+    updateNamePreview();
 
     const available = totalStringsOnSite();
     const assigned = inverterDesignRows.reduce((sum, r) => sum + r.stringModules.length, 0);
@@ -2854,9 +2957,29 @@
       recomputeInverterDesign();
       return;
     }
+    if (field === 'name') {
+      // Re-rendering would steal focus mid-word, so just flag duplicates.
+      row.name = e.target.value;
+      refreshNameDupeState();
+      return;
+    }
     row[field] = e.target.value;
     recomputeInverterDesign();
   });
+
+  function refreshNameDupeState() {
+    const names = effectiveInverterNames();
+    const dupes = duplicateInverterNames();
+    invDesignBody.querySelectorAll('[data-inv-field="name"]').forEach(el => {
+      el.classList.toggle('inv-name-dupe', !!dupes[names[Number(el.dataset.invRow)]]);
+    });
+    const keys = Object.keys(dupes);
+    const warn = document.getElementById('invNameDupeWarning');
+    warn.style.display = keys.length ? 'block' : 'none';
+    warn.textContent = keys.length
+      ? 'Duplicate inverter name' + (keys.length === 1 ? '' : 's') + ': ' + keys.join(', ') + ' — each inverter needs a unique name.'
+      : '';
+  }
 
   invDesignBody.addEventListener('change', e => {
     const selIdx = e.target.dataset.invSelect;
@@ -2908,6 +3031,11 @@
         if (v) rows.forEach(r => { r.powerMode = 'derated'; r.deratedKw = v; });
       } else if (what === 'fullrating') {
         rows.forEach(r => { r.powerMode = 'full'; r.deratedKw = ''; });
+      } else if (what === 'rename') {
+        // Bake the generated name onto the targeted rows so they keep it even if
+        // the convention later changes; untouched rows stay on auto-naming.
+        const auto = autoInverterTags();
+        inverterDesignRows.forEach((r, i) => { if (rows.includes(r)) r.name = auto[i]; });
       }
       recomputeInverterDesign();
     });
@@ -2925,7 +3053,7 @@
   // Each inverter carries the DC its own AC rating asks for at the site's target
   // DC:AC ratio, so a derated unit gets proportionally fewer strings. Any
   // shortfall or excess against the strings actually on site shows in the hint.
-  document.getElementById('invDistributeBtn').addEventListener('click', () => {
+  document.getElementById('invDistributeRatioBtn').addEventListener('click', () => {
     const ratio = targetDcAcRatio();
     if (!ratio) return;
     inverterDesignRows.forEach(row => {
@@ -2937,11 +3065,60 @@
     recomputeInverterDesign();
   });
 
-  [invDesignQuantityEl, invDesignSwitchboardCountEl].forEach(el => el.addEventListener('input', () => {
+  // Straight even split of the strings actually on site, remainder spread one
+  // apiece across the first inverters.
+  document.getElementById('invDistributeEvenBtn').addEventListener('click', () => {
+    const rows = inverterDesignRows;
+    if (!rows.length) return;
+    const available = totalStringsOnSite();
+    const base = Math.floor(available / rows.length);
+    let remainder = available - base * rows.length;
+    rows.forEach(row => {
+      resizeStringModules(row, base + (remainder > 0 ? 1 : 0));
+      if (remainder > 0) remainder--;
+    });
+    recomputeInverterDesign();
+  });
+
+  document.getElementById('invExpandAllBtn').addEventListener('click', () => {
+    inverterDesignRows.forEach(r => { r.expanded = true; });
+    renderInverterDesign();
+  });
+  document.getElementById('invCollapseAllBtn').addEventListener('click', () => {
+    inverterDesignRows.forEach(r => { r.expanded = false; });
+    renderInverterDesign();
+  });
+
+  document.getElementById('invNameResetBtn').addEventListener('click', () => {
+    inverterDesignRows.forEach(r => { r.name = ''; });
+    recomputeInverterDesign();
+  });
+
+  function updateNamePreview() {
+    const auto = autoInverterTags();
+    document.getElementById('invNamePreview').textContent = auto.length
+      ? 'Preview: ' + auto.slice(0, 4).join(', ') + (auto.length > 4 ? ', …' : '')
+      : '—';
+  }
+  ['invNamePrefix', 'invNameSeparator', 'invNameStart', 'invNamePad'].forEach(id =>
+    document.getElementById(id).addEventListener('input', () => { updateNamePreview(); renderInverterDesign(); }));
+
+  invDesignQuantityEl.addEventListener('input', () => {
+    allowInverterRowShrink = false;
     refreshInverterBulkOptions();
     recomputeInverterDesign();
-  }));
-  invNamingConventionEl.addEventListener('change', renderInverterDesign);
+    allowInverterRowShrink = true;
+  });
+  // Blur/Enter is the commit — that's when a reduced count actually trims rows.
+  invDesignQuantityEl.addEventListener('change', () => {
+    refreshInverterBulkOptions();
+    recomputeInverterDesign();
+  });
+  invDesignSwitchboardCountEl.addEventListener('input', () => {
+    refreshInverterBulkOptions();
+    recomputeInverterDesign();
+  });
+  invNamingConventionEl.addEventListener('change', () => { updateNamePreview(); renderInverterDesign(); });
   document.getElementById('modQuantity').addEventListener('input', recomputeInverterDesign);
 
   initDocTracker({
@@ -4069,6 +4246,7 @@
     'ashraeStationId', 'ashraeMinTemp', 'ashraeMaxTemp', 'ashraeAvgHighTemp', 'modMaxSystemVoltage',
     'modManufacturer', 'modFirstYearDegradation', 'modAnnualDegradation',
     'invDesignQuantity', 'invDesignSwitchboardCount', 'invNamingConvention',
+    'invNamePrefix', 'invNameSeparator', 'invNameStart', 'invNamePad',
     'ampCircuitType', 'ampParallelStrings', 'ampInsulationRating', 'ampConductorCount',
     'ocpdCircuit', 'ocpdContinuousCurrent',
     'sbBusbarRating', 'sbMainRating',
@@ -4116,7 +4294,7 @@
       selectedStringLengths: selectedStringLengths.slice(),
       inverterDesignRows: inverterDesignRows.map(r => ({
         model: r.model, powerMode: r.powerMode, deratedKw: r.deratedKw,
-        switchboard: r.switchboard, stringModules: r.stringModules.slice(),
+        switchboard: r.switchboard, stringModules: r.stringModules.slice(), name: r.name || '',
       })),
     };
   }
@@ -4155,7 +4333,7 @@
         model: r.model || invModel.value, powerMode: r.powerMode || 'full', deratedKw: r.deratedKw || '',
         switchboard: r.switchboard || 'SWBD-1',
         stringModules: Array.isArray(r.stringModules) ? r.stringModules.map(Number) : [],
-        expanded: false, selected: false,
+        name: r.name || '', expanded: false, selected: false,
       }));
     }
     if (typeof refreshInverterBulkOptions === 'function') refreshInverterBulkOptions();
