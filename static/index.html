@@ -147,6 +147,7 @@
   .chip-warn { background: var(--warn-soft); color: var(--warn); }
   .chip-pass { background: var(--pass-soft); color: var(--pass); }
   .chip-muted { background: var(--surface-2); color: var(--ink-muted); }
+  .chip-fail { background: var(--fail-soft); color: var(--fail); }
 
   .card {
     background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px 22px;
@@ -173,6 +174,21 @@
   .field input[type="text"].prose { font-family: var(--font-body); }
   .field input:hover, .field select:hover { border-color: var(--ink-muted); }
   .field.readonly input { color: var(--ink-muted); background: transparent; border-style: dashed; }
+  .field input[readonly] { color: var(--ink-muted); border-style: dashed; }
+  .field textarea {
+    font-family: var(--font-mono); font-size: 12.5px; line-height: 1.6;
+    padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface-2);
+    color: var(--ink); width: 100%; resize: vertical;
+  }
+  .field textarea:hover { border-color: var(--ink-muted); }
+  /* Verbatim capture of text pasted from an external tool — never reflowed, so
+     what the engineer checks against the source page is what they pasted. */
+  pre.capture {
+    font-family: var(--font-mono); font-size: 12px; line-height: 1.6; margin: 0;
+    background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px 14px; max-height: 320px; overflow: auto; white-space: pre-wrap;
+    word-break: break-word; color: var(--ink-muted);
+  }
 
   .computed-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
   .computed { background: var(--accent-soft); border-radius: 8px; padding: 12px 14px; }
@@ -266,6 +282,19 @@
     border-radius: 7px; text-decoration: none; border: none; cursor: pointer;
   }
   .btn:hover { filter: brightness(1.08); }
+  .btn-quiet { background: var(--surface-2); color: var(--ink); }
+
+  /* Paste-a-value-in bar: a text field plus its action buttons on one line,
+     the buttons bottom-aligned with the input rather than its label. */
+  .insert-bar { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+  .radio-row { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 14px; }
+  .radio-row label {
+    display: flex; align-items: center; gap: 7px; font-size: 12.5px;
+    color: var(--ink-muted); cursor: pointer;
+  }
+  .radio-row input[type="radio"] { width: auto; margin: 0; accent-color: var(--accent); }
+  /* Coordinate readouts run long — they can't take the 20px .computed .v size. */
+  .computed .v.readout { font-size: 14px; line-height: 1.5; word-break: break-word; }
 
   /* ---------- ETAP export ---------- */
   table.etap { width: 100%; border-collapse: collapse; font-size: 12.5px; }
@@ -479,6 +508,15 @@
 
         <div class="card">
           <p class="card-title">Site address</p>
+          <div class="insert-bar">
+            <div class="field" style="flex:1; min-width:260px;">
+              <label for="siteMapPaste">Insert from Google Maps <span class="unit">link, coordinates, or address</span></label>
+              <input class="prose" type="text" id="siteMapPaste" placeholder="Paste a Maps link, 38.6270, -90.1994, 38°37&#39;37.2&quot;N 90°11&#39;57.8&quot;W, or 1601 Depot Ave, East St. Louis, IL 62201">
+            </div>
+            <button class="btn" id="siteMapInsertBtn" type="button">Insert →</button>
+            <button class="btn btn-quiet" id="openMapBtn" type="button">Open in Google Maps →</button>
+          </div>
+          <p class="desc" id="siteMapPasteStatus" style="margin:8px 0 16px;">Paste whatever Google Maps gives you — the share link, the right-click coordinate readout (either format), or the address line — and it fills the fields below. Typing them in directly still works.</p>
           <div class="field-grid">
             <div class="field wide">
               <label for="siteStreet">Street address</label>
@@ -498,7 +536,7 @@
             </div>
             <div class="field">
               <label for="siteCounty">County <span class="unit">optional</span></label>
-              <input class="prose" type="text" id="siteCounty" value="St. Clair">
+              <input class="prose" type="text" id="siteCounty" placeholder="e.g. St. Clair">
             </div>
             <div class="field">
               <label for="siteAhjOverride">AHJ name override <span class="unit">optional</span></label>
@@ -508,20 +546,95 @@
               <input type="checkbox" id="siteIsE911Address" style="width:auto;">
               <label for="siteIsE911Address" style="justify-content:flex-start; gap:6px;">This is the official E911 address <span class="unit">uncheck if placeholder/approximate</span></label>
             </div>
+          </div>
+
+          <p class="card-title" style="margin-top:22px;">GPS coordinates</p>
+          <div class="radio-row">
+            <label><input type="radio" name="gpsFormat" value="dd" checked> Decimal degrees</label>
+            <label><input type="radio" name="gpsFormat" value="dms"> Degrees, minutes, seconds</label>
+          </div>
+
+          <div class="field-grid" id="gpsDdBlock">
             <div class="field">
-              <label for="siteLatitude">Latitude <span class="unit">GPS</span></label>
-              <input type="text" id="siteLatitude" value="38.6270" placeholder="e.g. 38.6270">
+              <label for="gpsDdLat">Latitude <span class="unit">decimal °</span></label>
+              <input type="text" id="gpsDdLat" placeholder="e.g. 38.6270">
             </div>
             <div class="field">
-              <label for="siteLongitude">Longitude <span class="unit">GPS</span></label>
-              <input type="text" id="siteLongitude" value="-90.1994" placeholder="e.g. -90.1994">
+              <label for="gpsDdLatHem">Direction <span class="unit">N / S</span></label>
+              <select id="gpsDdLatHem"><option value="N">N — north</option><option value="S">S — south</option></select>
             </div>
-            <div class="field wide">
-              <label>&nbsp;</label>
-              <button class="btn" id="openMapBtn" type="button" style="background: var(--surface-2); color: var(--ink); width: fit-content;">Open in Google Maps →</button>
+            <div class="field">
+              <label for="gpsDdLng">Longitude <span class="unit">decimal °</span></label>
+              <input type="text" id="gpsDdLng" placeholder="e.g. 90.1994">
+            </div>
+            <div class="field">
+              <label for="gpsDdLngHem">Direction <span class="unit">E / W</span></label>
+              <select id="gpsDdLngHem"><option value="E">E — east</option><option value="W" selected>W — west</option></select>
             </div>
           </div>
-          <p class="desc" style="margin-top:12px;">Single source of truth for the site's jurisdiction — the Jurisdiction panel resolves NEC edition/AHJ from these same fields rather than keeping its own copies. For sites without a formal address yet (raw land, no assigned E911), use the GPS fields and Google Maps link to pin the location instead.</p>
+
+          <div class="field-grid" id="gpsDmsBlock" style="display:none;">
+            <div class="field">
+              <label for="gpsDmsLatD">Latitude <span class="unit">°</span></label>
+              <input type="text" id="gpsDmsLatD" placeholder="38">
+            </div>
+            <div class="field">
+              <label for="gpsDmsLatM">Latitude <span class="unit">′ minutes</span></label>
+              <input type="text" id="gpsDmsLatM" placeholder="37">
+            </div>
+            <div class="field">
+              <label for="gpsDmsLatS">Latitude <span class="unit">″ seconds</span></label>
+              <input type="text" id="gpsDmsLatS" placeholder="37.20">
+            </div>
+            <div class="field">
+              <label for="gpsDmsLatHem">Direction <span class="unit">N / S</span></label>
+              <select id="gpsDmsLatHem"><option value="N">N — north</option><option value="S">S — south</option></select>
+            </div>
+            <div class="field">
+              <label for="gpsDmsLngD">Longitude <span class="unit">°</span></label>
+              <input type="text" id="gpsDmsLngD" placeholder="90">
+            </div>
+            <div class="field">
+              <label for="gpsDmsLngM">Longitude <span class="unit">′ minutes</span></label>
+              <input type="text" id="gpsDmsLngM" placeholder="11">
+            </div>
+            <div class="field">
+              <label for="gpsDmsLngS">Longitude <span class="unit">″ seconds</span></label>
+              <input type="text" id="gpsDmsLngS" placeholder="57.80">
+            </div>
+            <div class="field">
+              <label for="gpsDmsLngHem">Direction <span class="unit">E / W</span></label>
+              <select id="gpsDmsLngHem"><option value="E">E — east</option><option value="W" selected>W — west</option></select>
+            </div>
+          </div>
+
+          <div class="computed-row" style="margin-top:16px;">
+            <div class="computed"><div class="k">Decimal degrees</div><div class="v readout" id="gpsReadoutDd">—</div></div>
+            <div class="computed"><div class="k">Degrees, minutes, seconds</div><div class="v readout" id="gpsReadoutDms">—</div></div>
+          </div>
+          <input type="hidden" id="siteLatitude">
+          <input type="hidden" id="siteLongitude">
+
+          <p class="desc" style="margin-top:12px;">Both formats edit the same coordinate — switching the radio re-renders what you already entered, it doesn't clear it. Signed decimals paste in fine: a leading minus flips the direction selector for you. Everything downstream (Google Maps link, ASHRAE station search (04), backend payload) reads the decimal value.</p>
+          <p class="desc" style="margin-top:8px;">Single source of truth for the site's jurisdiction — the Jurisdiction panel resolves NEC edition/AHJ from these same fields rather than keeping its own copies. For sites without a formal address yet (raw land, no assigned E911), use the GPS fields and Google Maps link to pin the location instead.</p>
+        </div>
+
+        <div class="card">
+          <p class="card-title">E911 documentation</p>
+          <p class="desc" style="margin-bottom:14px;">Proof of the address above — what the AHJ, utility, and interconnection application will ask for when the site is raw land with a newly assigned E911 address. Tick <b>This is the official E911 address</b> above once the assignment letter is in hand.</p>
+          <div class="dropzone" id="e911DocDropzone" tabindex="0" role="button" aria-label="Upload E911 documentation">
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
+              <path d="M12 3v12m0-12 4 4m-4-4-4 4"/>
+              <path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/>
+            </svg>
+            <div class="cta">Drop E911 documents here, or click to browse</div>
+            <div class="sub">E911 address assignment letter · County / AHJ address verification · Plat or parcel map · Deed or legal description · Utility service address confirmation · Other</div>
+            <input type="file" id="e911DocInput" multiple style="display:none;">
+          </div>
+          <table class="manifest" style="margin-top:14px;">
+            <thead><tr><th>File</th><th>Detected type</th><th>Status</th></tr></thead>
+            <tbody id="e911DocManifestBody"><tr class="empty"><td colspan="3">No E911 documentation uploaded yet</td></tr></tbody>
+          </table>
         </div>
       </section>
 
@@ -643,32 +756,141 @@
           </div>
           <span class="chip chip-warn">Not resolved — no weather data PDF provided</span>
         </div>
-        <p class="desc">Design dry-bulb temperatures for the site. Min drives max system voltage per 690.7(A)(2); max (2% design) drives ampacity temperature correction per 310.15(B)(1). Nearest station for East St. Louis, IL is St. Louis Downtown/Bi-State — needs confirming against the actual ASHRAE handbook data, not just estimated here.</p>
+        <p class="desc">Design dry-bulb temperatures for the site. Min drives max system voltage per 690.7(A)(2); max (2% design) drives ampacity temperature correction per 310.15(B)(1). <span class="mono">ashrae-meteo.info</span> has no public API — it's an interactive map tool only — so this panel is built around getting you to the map with the site's coordinates in hand and bringing the station data back, rather than pretending to fetch it.</p>
 
         <div class="card">
-          <p class="card-title">Design temperatures</p>
-          <div class="field-grid">
-            <div class="field wide"><label>Station ID</label><input class="prose" type="text" id="ashraeStationId" value="TBD — nearest: St. Louis Downtown-Parks, IL"></div>
-            <div class="field"><label>Extreme annual min design dry-bulb <span class="unit">°C</span></label><input type="text" id="ashraeMinTemp" value="-10.0"></div>
-            <div class="field"><label>Extreme annual max design dry-bulb, 2% <span class="unit">°C</span></label><input type="text" id="ashraeMaxTemp" value="35.0"></div>
-            <div class="field"><label>Average high dry-bulb <span class="unit">°C</span></label><input type="text" id="ashraeAvgHighTemp" value="28.0"></div>
+          <p class="card-title">ASHRAE map lookup</p>
+          <p class="desc" style="margin-bottom:14px;">The coordinates below mirror Site Config (01) — copy them into the map's <span class="mono">Lat&amp;Lon</span> box, or right-click the site on the map, then bring each nearby station's link back here.</p>
+          <div class="computed-row" style="margin-bottom:14px;">
+            <div class="computed"><div class="k">Site latitude / longitude</div><div class="v readout" id="ashraeCoordDd">—</div></div>
+            <div class="computed"><div class="k">Degrees, minutes, seconds</div><div class="v readout" id="ashraeCoordDms">—</div></div>
+          </div>
+          <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+            <button class="btn btn-quiet" id="ashraeCopyCoordBtn" type="button">Copy coordinates</button>
+            <a class="btn" id="ashraeMapLink" href="http://ashrae-meteo.info/v3.0/index.php" target="_blank" rel="noopener">Open ASHRAE climatic design map →</a>
+            <button class="btn btn-quiet" id="ashraeWalkthroughBtn" type="button" aria-expanded="false" aria-controls="ashraeWalkthrough">Show walkthrough</button>
+            <span class="desc" id="ashraeCopyStatus" style="margin:0;"></span>
+          </div>
+
+          <div id="ashraeWalkthrough" style="display:none; margin-top:16px;">
+            <div class="note" style="display:block;">
+              <p style="margin:0 0 10px;"><b>Getting the site onto the ASHRAE map</b></p>
+              <ol style="margin:0 0 14px; padding-left:20px; line-height:1.75;">
+                <li>Click <b>Copy coordinates</b> above — that puts <span class="mono">lat, lon</span> in decimal degrees on the clipboard, which is the format the map's search box expects.</li>
+                <li>Open the map with the link above. It lands on the <b>MAP</b> tab.</li>
+                <li>Paste into the <span class="mono">Lat&amp;Lon (xx.xx;yy.yy) or WMO</span> box at the top-left and press the magnifier. The map recentres and drops a pin.</li>
+                <li>Alternatively, skip the box entirely: <b>right-click</b> the site location on the map. The nearest weather stations appear in the left-hand list, lettered A, B, C… with their distances.</li>
+                <li>Pick the ASHRAE edition (2009 / 2013 / 2017 / 2021 / 2025) and the <span class="mono">SI</span> / <span class="mono">IP</span> unit radio before reading values — this panel works in <b>°C (SI)</b>.</li>
+              </ol>
+              <p style="margin:0 0 10px;"><b>Copying a station's link back here</b></p>
+              <ol style="margin:0; padding-left:20px; line-height:1.75;">
+                <li>Click a station in the left-hand list (or its lettered pin). Its full data table loads below the map.</li>
+                <li>Look to the right of the station name for the <b>link box</b> — the long <span class="mono">http://ashrae-meteo.info/index.php?lat=…&amp;lng=…&amp;wmo=…</span> URL — and use the chain-link icon beside it to copy it.</li>
+                <li>Paste it into <b>Station links from the map</b> below, one per line. Prefix a readable name if you want: <span class="mono">ST LOUIS REGIONAL AP, IL | http://…</span></li>
+                <li>Click <b>Parse links</b>, then pick the station from the dropdown. Distance and grade are computed here from the site coordinates.</li>
+                <li>For the full data set, select the station's whole data table on the map page, copy it, and paste it into <b>Selected station — full ASHRAE data set</b> at the bottom of this panel.</li>
+              </ol>
+            </div>
           </div>
         </div>
 
         <div class="card">
+          <p class="card-title">Station links from the map</p>
+          <p class="desc" style="margin-bottom:14px;">One link per line. The <span class="mono">lat</span>, <span class="mono">lng</span>, <span class="mono">wmo</span>, and ASHRAE edition are read straight out of each URL, so the coordinates are the map's own — not an estimate. Distance and grade are computed against Site Config's coordinates.</p>
+          <div class="field" style="margin-bottom:12px;">
+            <label for="ashraeStationLinksInput">Paste station links <span class="unit">optional <span class="mono">Name | url</span> prefix</span></label>
+            <textarea id="ashraeStationLinksInput" rows="4" placeholder="ST LOUIS REGIONAL AP, IL | http://ashrae-meteo.info/index.php?lat=38.883&amp;lng=-90.050&amp;place=%22%22&amp;wmo=724395&amp;si_ip=SI&amp;ashrae_version=2025"></textarea>
+          </div>
+          <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:14px;">
+            <button class="btn" id="ashraeParseLinksBtn" type="button">Parse links →</button>
+            <button class="btn btn-quiet" id="ashraeClearLinksBtn" type="button">Clear station list</button>
+            <span class="desc" id="ashraeLinkStatus" style="margin:0;"></span>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="etap">
+              <thead>
+                <tr><th>Station</th><th>WMO</th><th>Edition</th><th style="text-align:right;">Latitude</th><th style="text-align:right;">Longitude</th><th style="text-align:right;">Distance</th><th>Grade</th><th></th></tr>
+              </thead>
+              <tbody id="ashraeLinkStationsBody"><tr class="empty"><td colspan="8">No station links parsed yet</td></tr></tbody>
+            </table>
+          </div>
+          <div class="field wide" style="margin-top:16px;">
+            <label for="ashraeStationSelect">Selected station <span class="unit">drives the design temperatures below</span></label>
+            <select id="ashraeStationSelect"><option value="">— no stations parsed yet —</option></select>
+          </div>
+        </div>
+
+        <div class="card">
+          <p class="card-title">Design temperatures</p>
+          <div class="field-grid">
+            <div class="field wide"><label for="ashraeStationId">Station ID</label><input class="prose" type="text" id="ashraeStationId" placeholder="e.g. ST LOUIS REGIONAL AP, IL (WMO 724395)"></div>
+            <div class="field"><label for="ashraeMinTemp">Extreme annual min design dry-bulb <span class="unit">°C</span></label><input type="text" id="ashraeMinTemp" value="-10.0"></div>
+            <div class="field"><label for="ashraeMaxTemp">Extreme annual max design dry-bulb, 2% <span class="unit">°C</span></label><input type="text" id="ashraeMaxTemp" value="35.0"></div>
+            <div class="field"><label for="ashraeAvgHighTemp">Average high dry-bulb <span class="unit">°C</span></label><input type="text" id="ashraeAvgHighTemp" value="28.0"></div>
+          </div>
+          <p class="desc" id="ashraeProvenance" style="margin-top:12px;">Source: <b>manual entry</b> — nothing selected yet. Selecting a station above, or pushing values from the full data set below, stamps its provenance here.</p>
+        </div>
+
+        <div class="card">
           <p class="card-title">Nearest stations <span class="unit">stub dataset — not a live pull</span></p>
-          <p class="desc" style="margin-bottom:14px;"><span class="mono">ashrae-meteo.info</span> doesn't expose a public API (checked directly — it's an interactive map tool only), so this can't be a live lookup against the real ASHRAE database. Below is a small embedded reference dataset — same "stub table" honesty as the Jurisdiction panel's 4-state NEC table — sorted by real distance from the GPS coordinates on Site Config. <b>Confirm against the actual ASHRAE Handbook before using in a stamped calc.</b></p>
+          <p class="desc" style="margin-bottom:14px;">A small embedded reference dataset — same "stub table" honesty as the Jurisdiction panel's 4-state NEC table — sorted by real distance from the GPS coordinates on Site Config. Use it to sanity-check which station the map should be pointing at. <b>Confirm against the actual ASHRAE Handbook before using in a stamped calc.</b></p>
           <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:14px;">
             <button class="btn" id="findStationsBtn" type="button">Find nearest stations →</button>
           </div>
           <div style="overflow-x:auto;">
             <table class="etap">
               <thead>
-                <tr><th>Station</th><th>State</th><th style="text-align:right;">Distance</th><th style="text-align:right;">Min design dry-bulb</th><th style="text-align:right;">Max design dry-bulb, 2%</th><th></th></tr>
+                <tr><th>Station</th><th>State</th><th style="text-align:right;">Distance</th><th>Grade</th><th style="text-align:right;">Min design dry-bulb</th><th style="text-align:right;">Max design dry-bulb, 2%</th><th></th></tr>
               </thead>
-              <tbody id="stationResultsBody"><tr class="empty"><td colspan="6">Click "Find nearest stations" to search the stub dataset</td></tr></tbody>
+              <tbody id="stationResultsBody"><tr class="empty"><td colspan="7">Click "Find nearest stations" to search the stub dataset</td></tr></tbody>
             </table>
           </div>
+          <p class="desc" style="margin-top:12px;"><b>Grade</b> is this panel's own distance-based suitability call, not an ASHRAE data-quality rating: <span class="mono">A</span> ≤ 15 mi, <span class="mono">B</span> ≤ 40 mi, <span class="mono">C</span> ≤ 100 mi, <span class="mono">D</span> beyond that. Terrain, elevation change, and urban heat island can all make a closer station the worse choice — the grade doesn't know about any of them.</p>
+        </div>
+
+        <div class="card">
+          <p class="card-title">Selected station — full ASHRAE data set</p>
+          <p class="desc" style="margin-bottom:14px;">Select the station's data table on the map page, copy it, and paste it here. The labelled header values and the annual heating row parse out reliably; everything else is kept verbatim below so nothing is lost in translation. <b>Check every parsed value against the page before using it.</b></p>
+          <div class="field" style="margin-bottom:12px;">
+            <label for="ashraeDataPaste">Paste the station's data table <span class="unit">from ashrae-meteo.info</span></label>
+            <textarea id="ashraeDataPaste" rows="6" placeholder="2025 ASHRAE Handbook - Foundamentals (SI)&#10;ST LOUIS REGIONAL AP, IL, USA (WMO: 724395)&#10;Lat: 38.883N   Lon: 90.05W   Elev: 166   StdP: 99.35   Time zone: -6.00 (NAC)   Period: 2005-2023&#10;Annual Heating, Humidification, and Ventilation Design Conditions&#10;1  -14.6  -11.5  -20.5  0.6  -12.0  -17.6  0.8  -10.8  11.8  1.3  10.5  3.7  3.3  340  0.495"></textarea>
+          </div>
+          <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:16px;">
+            <button class="btn" id="ashraeParseDataBtn" type="button">Parse pasted data →</button>
+            <button class="btn btn-quiet" id="ashraePushTempsBtn" type="button">Push to design temperatures</button>
+            <button class="btn btn-quiet" id="ashraeClearDataBtn" type="button">Clear</button>
+          </div>
+          <p class="desc" id="ashraeDataStatus" style="margin:0 0 16px;">Nothing parsed yet.</p>
+
+          <p class="card-title">Station header</p>
+          <div class="field-grid">
+            <div class="field wide"><label for="ashraeDsName">Station name</label><input class="prose" type="text" id="ashraeDsName" placeholder="ST LOUIS REGIONAL AP, IL, USA"></div>
+            <div class="field"><label for="ashraeDsWmo">WMO</label><input type="text" id="ashraeDsWmo" placeholder="724395"></div>
+            <div class="field"><label for="ashraeDsEdition">ASHRAE edition</label><input type="text" id="ashraeDsEdition" placeholder="2025"></div>
+            <div class="field"><label for="ashraeDsLat">Latitude <span class="unit">°</span></label><input type="text" id="ashraeDsLat" placeholder="38.883"></div>
+            <div class="field"><label for="ashraeDsLon">Longitude <span class="unit">°</span></label><input type="text" id="ashraeDsLon" placeholder="-90.050"></div>
+            <div class="field"><label for="ashraeDsElev">Elevation <span class="unit">m</span></label><input type="text" id="ashraeDsElev" placeholder="166"></div>
+            <div class="field"><label for="ashraeDsStdP">Standard pressure <span class="unit">kPa</span></label><input type="text" id="ashraeDsStdP" placeholder="99.35"></div>
+            <div class="field"><label for="ashraeDsTz">Time zone <span class="unit">h from UTC</span></label><input type="text" id="ashraeDsTz" placeholder="-6.00"></div>
+            <div class="field"><label for="ashraeDsPeriod">Period of record</label><input class="prose" type="text" id="ashraeDsPeriod" placeholder="2005-2023"></div>
+            <div class="field"><label for="ashraeDsDistance">Distance from site <span class="unit">mi</span></label><input type="text" id="ashraeDsDistance" readonly placeholder="—"></div>
+          </div>
+
+          <p class="card-title" style="margin-top:22px;">Design-critical values <span class="unit">°C</span></p>
+          <div class="field-grid">
+            <div class="field"><label for="ashraeDsHeatDb996">Heating DB 99.6%</label><input type="text" id="ashraeDsHeatDb996" placeholder="-14.6"></div>
+            <div class="field"><label for="ashraeDsHeatDb99">Heating DB 99%</label><input type="text" id="ashraeDsHeatDb99" placeholder="-11.5"></div>
+            <div class="field"><label for="ashraeDsExtremeMin">Extreme annual min DB</label><input type="text" id="ashraeDsExtremeMin" placeholder="-20.5"></div>
+            <div class="field"><label for="ashraeDsCoolDb04">Cooling DB 0.4%</label><input type="text" id="ashraeDsCoolDb04" placeholder="35.5"></div>
+            <div class="field"><label for="ashraeDsCoolDb1">Cooling DB 1%</label><input type="text" id="ashraeDsCoolDb1" placeholder="34.0"></div>
+            <div class="field"><label for="ashraeDsCoolDb2">Cooling DB 2%</label><input type="text" id="ashraeDsCoolDb2" placeholder="32.6"></div>
+            <div class="field"><label for="ashraeDsExtremeMax">Extreme annual max DB</label><input type="text" id="ashraeDsExtremeMax" placeholder="38.4"></div>
+            <div class="field"><label for="ashraeDsAvgHigh">Average high DB</label><input type="text" id="ashraeDsAvgHigh" placeholder="28.0"></div>
+          </div>
+          <p class="desc" style="margin-top:10px;"><b>Push to design temperatures</b> sends extreme annual min → min design dry-bulb, cooling DB 2% → max design dry-bulb, and average high → average high. Only the blanks the parser couldn't fill need typing in by hand.</p>
+
+          <p class="card-title" style="margin-top:22px;">Captured data set <span class="unit">verbatim</span></p>
+          <pre class="capture" id="ashraeDsRaw">Nothing captured yet — paste the station's data table above and click Parse.</pre>
         </div>
       </section>
 
@@ -1896,11 +2118,16 @@
   ];
   (function populateStateSelect() {
     const select = document.getElementById('siteState');
+    // No preselected state — the site address starts blank so nothing sample
+    // survives into a real project by accident.
+    const blank = document.createElement('option');
+    blank.value = '';
+    blank.textContent = '— select state —';
+    select.appendChild(blank);
     US_STATES.forEach(([code, name]) => {
       const opt = document.createElement('option');
       opt.value = code;
       opt.textContent = code + ' — ' + name;
-      if (code === 'IL') opt.selected = true;
       select.appendChild(opt);
     });
   })();
@@ -1913,14 +2140,252 @@
   projectTypeSelect.addEventListener('change', updateProjectTypeOtherVisibility);
   updateProjectTypeOtherVisibility();
 
+  // ---- GPS coordinates: decimal degrees vs degrees/minutes/seconds ----
+  // siteLatitude / siteLongitude are hidden canonical signed-decimal fields.
+  // Everything downstream reads them (Google Maps link, ASHRAE station search,
+  // backend payload, save/load); both visible editors write into them and are
+  // re-rendered from them, so flipping the format radio never loses input.
+  const siteLatitude = document.getElementById('siteLatitude');
+  const siteLongitude = document.getElementById('siteLongitude');
+  // Hoisted-undefined rather than temporal-dead-zone: the GPS editors run at
+  // init, before the ASHRAE block further down has built its own state.
+  var ashraeCoordMirrorReady = false;
+
+  function dmsToDecimal(d, m, s) {
+    return Math.abs(Number(d) || 0) + Math.abs(Number(m) || 0) / 60 + Math.abs(Number(s) || 0) / 3600;
+  }
+  function decimalToDms(dec) {
+    const abs = Math.abs(dec);
+    let d = Math.floor(abs);
+    let m = Math.floor((abs - d) * 60);
+    let s = ((abs - d) * 60 - m) * 60;
+    // Carry the rounding so nothing ever renders as 37′ 60.00″.
+    if (Number(s.toFixed(2)) >= 60) { s = 0; m += 1; }
+    if (m >= 60) { m = 0; d += 1; }
+    return { d: d, m: m, s: s };
+  }
+  function formatDmsPair(lat, lng) {
+    if (lat === null || lng === null) return '—';
+    const a = decimalToDms(lat);
+    const b = decimalToDms(lng);
+    return a.d + '° ' + a.m + '′ ' + a.s.toFixed(2) + '″ ' + (lat < 0 ? 'S' : 'N') +
+      '   ' + b.d + '° ' + b.m + '′ ' + b.s.toFixed(2) + '″ ' + (lng < 0 ? 'W' : 'E');
+  }
+  function siteCoords() {
+    const latRaw = siteLatitude.value.trim();
+    const lngRaw = siteLongitude.value.trim();
+    const lat = latRaw === '' ? null : Number(latRaw);
+    const lng = lngRaw === '' ? null : Number(lngRaw);
+    return {
+      lat: (lat !== null && Number.isFinite(lat)) ? lat : null,
+      lng: (lng !== null && Number.isFinite(lng)) ? lng : null,
+    };
+  }
+  function setSiteCoords(lat, lng) {
+    siteLatitude.value = (lat === null || !Number.isFinite(lat)) ? '' : String(Number(lat.toFixed(7)));
+    siteLongitude.value = (lng === null || !Number.isFinite(lng)) ? '' : String(Number(lng.toFixed(7)));
+  }
+
+  // A leading minus in a magnitude box means the designer pasted a signed
+  // decimal — trust the sign and move the direction selector to match rather
+  // than silently flipping the hemisphere.
+  function signedFromMagnitude(raw, hemEl, negValue) {
+    if (raw.trim() === '') return null;
+    const v = parseFloat(raw.replace(/,/g, ''));
+    if (!Number.isFinite(v)) return null;
+    if (v < 0) hemEl.value = negValue;
+    return Math.abs(v) * (hemEl.value === negValue ? -1 : 1);
+  }
+
+  function commitDdEditor() {
+    setSiteCoords(
+      signedFromMagnitude(document.getElementById('gpsDdLat').value, document.getElementById('gpsDdLatHem'), 'S'),
+      signedFromMagnitude(document.getElementById('gpsDdLng').value, document.getElementById('gpsDdLngHem'), 'W')
+    );
+  }
+  function commitDmsEditor() {
+    function axis(dId, mId, sId, hemId, negValue) {
+      const d = document.getElementById(dId).value.trim();
+      const m = document.getElementById(mId).value.trim();
+      const s = document.getElementById(sId).value.trim();
+      if (d === '' && m === '' && s === '') return null;
+      const hemEl = document.getElementById(hemId);
+      if (parseFloat(d) < 0) hemEl.value = negValue;
+      const mag = dmsToDecimal(d, m, s);
+      return mag * (hemEl.value === negValue ? -1 : 1);
+    }
+    setSiteCoords(
+      axis('gpsDmsLatD', 'gpsDmsLatM', 'gpsDmsLatS', 'gpsDmsLatHem', 'S'),
+      axis('gpsDmsLngD', 'gpsDmsLngM', 'gpsDmsLngS', 'gpsDmsLngHem', 'W')
+    );
+  }
+
+  // `skip` names the editor currently being typed into, so rewriting its boxes
+  // mid-keystroke doesn't fight the cursor.
+  function renderGpsEditors(skip) {
+    const c = siteCoords();
+    if (skip !== 'dd') {
+      document.getElementById('gpsDdLat').value = c.lat === null ? '' : String(Number(Math.abs(c.lat).toFixed(6)));
+      document.getElementById('gpsDdLng').value = c.lng === null ? '' : String(Number(Math.abs(c.lng).toFixed(6)));
+      if (c.lat !== null) document.getElementById('gpsDdLatHem').value = c.lat < 0 ? 'S' : 'N';
+      if (c.lng !== null) document.getElementById('gpsDdLngHem').value = c.lng < 0 ? 'W' : 'E';
+    }
+    if (skip !== 'dms') {
+      const a = c.lat === null ? null : decimalToDms(c.lat);
+      const b = c.lng === null ? null : decimalToDms(c.lng);
+      document.getElementById('gpsDmsLatD').value = a ? String(a.d) : '';
+      document.getElementById('gpsDmsLatM').value = a ? String(a.m) : '';
+      document.getElementById('gpsDmsLatS').value = a ? a.s.toFixed(2) : '';
+      document.getElementById('gpsDmsLngD').value = b ? String(b.d) : '';
+      document.getElementById('gpsDmsLngM').value = b ? String(b.m) : '';
+      document.getElementById('gpsDmsLngS').value = b ? b.s.toFixed(2) : '';
+      if (c.lat !== null) document.getElementById('gpsDmsLatHem').value = c.lat < 0 ? 'S' : 'N';
+      if (c.lng !== null) document.getElementById('gpsDmsLngHem').value = c.lng < 0 ? 'W' : 'E';
+    }
+    document.getElementById('gpsReadoutDd').textContent =
+      (c.lat === null || c.lng === null) ? '—' : c.lat.toFixed(6) + ', ' + c.lng.toFixed(6);
+    document.getElementById('gpsReadoutDms').textContent = formatDmsPair(c.lat, c.lng);
+    if (ashraeCoordMirrorReady) updateAshraeCoordMirror();
+  }
+
+  function applyGpsFormatVisibility() {
+    const checked = document.querySelector('input[name="gpsFormat"]:checked');
+    const mode = checked ? checked.value : 'dd';
+    document.getElementById('gpsDdBlock').style.display = mode === 'dd' ? 'grid' : 'none';
+    document.getElementById('gpsDmsBlock').style.display = mode === 'dms' ? 'grid' : 'none';
+  }
+  document.querySelectorAll('input[name="gpsFormat"]').forEach(el => {
+    el.addEventListener('change', () => { applyGpsFormatVisibility(); renderGpsEditors(); });
+  });
+
+  ['gpsDdLat', 'gpsDdLng'].forEach(id => {
+    const el = document.getElementById(id);
+    el.addEventListener('input', () => { commitDdEditor(); renderGpsEditors('dd'); });
+    el.addEventListener('change', () => { commitDdEditor(); renderGpsEditors(); });
+  });
+  ['gpsDdLatHem', 'gpsDdLngHem'].forEach(id => {
+    document.getElementById(id).addEventListener('change', () => { commitDdEditor(); renderGpsEditors(); });
+  });
+  ['gpsDmsLatD', 'gpsDmsLatM', 'gpsDmsLatS', 'gpsDmsLngD', 'gpsDmsLngM', 'gpsDmsLngS'].forEach(id => {
+    const el = document.getElementById(id);
+    el.addEventListener('input', () => { commitDmsEditor(); renderGpsEditors('dms'); });
+    el.addEventListener('change', () => { commitDmsEditor(); renderGpsEditors(); });
+  });
+  ['gpsDmsLatHem', 'gpsDmsLngHem'].forEach(id => {
+    document.getElementById(id).addEventListener('change', () => { commitDmsEditor(); renderGpsEditors(); });
+  });
+  applyGpsFormatVisibility();
+  renderGpsEditors();
+
+  // ---- insert a site location pasted from Google Maps ----
+  // Accepts what Google Maps actually hands you: a share/place URL, the
+  // right-click coordinate readout in either format, or the address line.
+  function parseCoordinateText(text) {
+    const s = text.trim();
+    if (!s) return null;
+    let hit = null;
+
+    // Place URLs carry the pin as !3d<lat>!4d<lng>; the map centre is @lat,lng,zoom.
+    const pin = s.match(/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/);
+    const at = s.match(/@(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/);
+    const param = s.match(/[?&](?:q|query|ll|center|daddr|lat)=(-?\d+(?:\.\d+)?)(?:,|%2C)\s*(-?\d+(?:\.\d+)?)/i);
+    if (pin) hit = { lat: Number(pin[1]), lng: Number(pin[2]) };
+    else if (at) hit = { lat: Number(at[1]), lng: Number(at[2]) };
+    else if (param) hit = { lat: Number(param[1]), lng: Number(param[2]) };
+
+    // 38°37'37.2"N 90°11'57.8"W — Google's own right-click DMS readout.
+    if (!hit) {
+      const dms = s.match(/(\d+(?:\.\d+)?)\s*[°d]\s*(\d+(?:\.\d+)?)\s*['′m]\s*(\d+(?:\.\d+)?)\s*["″s]?\s*([NnSs])[\s,]+(\d+(?:\.\d+)?)\s*[°d]\s*(\d+(?:\.\d+)?)\s*['′m]\s*(\d+(?:\.\d+)?)\s*["″s]?\s*([EeWw])/);
+      if (dms) {
+        hit = {
+          lat: dmsToDecimal(dms[1], dms[2], dms[3]) * (dms[4].toUpperCase() === 'S' ? -1 : 1),
+          lng: dmsToDecimal(dms[5], dms[6], dms[7]) * (dms[8].toUpperCase() === 'W' ? -1 : 1),
+        };
+      }
+    }
+    // Bare decimal pair, with or without trailing hemisphere letters.
+    if (!hit) {
+      const dd = s.match(/^\s*(-?\d+(?:\.\d+)?)\s*°?\s*([NnSs])?\s*[,;\s]\s*(-?\d+(?:\.\d+)?)\s*°?\s*([EeWw])?\s*$/);
+      if (dd) {
+        let lat = Number(dd[1]);
+        let lng = Number(dd[3]);
+        if (dd[2] && dd[2].toUpperCase() === 'S') lat = -Math.abs(lat);
+        if (dd[4] && dd[4].toUpperCase() === 'W') lng = -Math.abs(lng);
+        hit = { lat: lat, lng: lng };
+      }
+    }
+    if (!hit || !Number.isFinite(hit.lat) || !Number.isFinite(hit.lng)) return null;
+    if (Math.abs(hit.lat) > 90 || Math.abs(hit.lng) > 180) return null;
+    return hit;
+  }
+
+  // "1601 Depot Ave, East St. Louis, IL 62201" → street / city / state / zip.
+  // Deliberately conservative: it only claims a field when the shape is
+  // unambiguous, and leaves the rest for the designer.
+  function parseAddressText(text) {
+    let s = text.trim().replace(/,?\s*(USA|United States)\s*$/i, '');
+    const parts = s.split(',').map(p => p.trim()).filter(Boolean);
+    if (parts.length < 2) return null;
+    const out = {};
+    let last = parts.pop();
+
+    const stateZip = last.match(/^([A-Za-z]{2})\.?\s+(\d{5})(?:-\d{4})?$/);
+    const zipOnly = last.match(/^(\d{5})(?:-\d{4})?$/);
+    const stateOnly = last.match(/^([A-Za-z]{2})\.?$/);
+    if (stateZip) { out.state = stateZip[1].toUpperCase(); out.zip = stateZip[2]; }
+    else if (zipOnly) {
+      out.zip = zipOnly[1];
+      const prev = parts.length ? parts[parts.length - 1] : '';
+      if (/^[A-Za-z]{2}\.?$/.test(prev)) { out.state = parts.pop().replace('.', '').toUpperCase(); }
+    } else if (stateOnly) { out.state = stateOnly[1].toUpperCase(); }
+    else { parts.push(last); }
+
+    if (parts.length) out.city = parts.pop();
+    if (parts.length) out.street = parts.join(', ');
+    // A two-letter "state" that isn't one is almost certainly part of the city.
+    if (out.state && !US_STATES.some(([code]) => code === out.state)) return null;
+    return (out.state || out.zip || out.city) ? out : null;
+  }
+
+  const siteMapPasteStatus = document.getElementById('siteMapPasteStatus');
+  document.getElementById('siteMapInsertBtn').addEventListener('click', () => {
+    const raw = document.getElementById('siteMapPaste').value;
+    if (!raw.trim()) {
+      siteMapPasteStatus.textContent = 'Nothing to insert — paste a Maps link, a coordinate pair, or an address first.';
+      return;
+    }
+    const filled = [];
+    const coords = parseCoordinateText(raw);
+    if (coords) {
+      setSiteCoords(coords.lat, coords.lng);
+      renderGpsEditors();
+      filled.push('coordinates ' + coords.lat.toFixed(6) + ', ' + coords.lng.toFixed(6));
+    }
+    // A Maps URL can carry a readable place name in its /place/ segment.
+    let addressSource = raw;
+    const placeSeg = raw.match(/\/place\/([^/@]+)/);
+    if (placeSeg) addressSource = decodeURIComponent(placeSeg[1]).replace(/\+/g, ' ');
+    const addr = coords && !placeSeg ? null : parseAddressText(addressSource);
+    if (addr) {
+      if (addr.street) { document.getElementById('siteStreet').value = addr.street; filled.push('street'); }
+      if (addr.city) { document.getElementById('siteCity').value = addr.city; filled.push('city'); }
+      if (addr.state) { document.getElementById('siteState').value = addr.state; filled.push('state'); }
+      if (addr.zip) { document.getElementById('siteZip').value = addr.zip; filled.push('ZIP'); }
+      resolveJurisdiction();
+      updateTopbar();
+    }
+    siteMapPasteStatus.textContent = filled.length
+      ? 'Inserted ' + filled.join(', ') + '. Check the fields below before relying on them.'
+      : 'Couldn’t read that. Paste a Google Maps link, a coordinate pair (38.6270, -90.1994 or 38°37′37.2″N 90°11′57.8″W), or a full address line.';
+  });
+
   // ---- open site location in Google Maps ----
   // For sites without a formal address (raw land, no assigned E911 address
   // yet), GPS coordinates are usually the only reliable way to pin the
   // location — falls back to the composed address when no coordinates are set.
   document.getElementById('openMapBtn').addEventListener('click', () => {
-    const lat = document.getElementById('siteLatitude').value.trim();
-    const lng = document.getElementById('siteLongitude').value.trim();
-    const query = (lat && lng) ? (lat + ',' + lng) : formatFullSiteAddress();
+    const c = siteCoords();
+    const query = (c.lat !== null && c.lng !== null) ? (c.lat + ',' + c.lng) : formatFullSiteAddress();
     if (!query) {
       alert('Enter GPS coordinates or a site address first.');
       return;
@@ -2212,7 +2677,7 @@
     const ahjOverride = siteAhjOverride.value.trim();
     const edition = NEC_TABLE[state];
 
-    document.getElementById('jurisStateDisplay').textContent = state;
+    document.getElementById('jurisStateDisplay').textContent = state || '—';
     document.getElementById('jurisCountyDisplay').textContent = county || '—';
     document.getElementById('jurisAhjDisplay').textContent = ahjOverride || '—';
 
@@ -2222,8 +2687,8 @@
     if (!edition) {
       editionEl.textContent = 'UNKNOWN — confirm with AHJ';
       editionEl.style.color = 'var(--fail)';
-      ahjEl.textContent = ahjOverride || ('Unresolved — ' + state);
-      jurisdictionPill.textContent = 'UNRESOLVED · ' + state;
+      ahjEl.textContent = ahjOverride || (state ? 'Unresolved — ' + state : 'Unresolved — no state set on Site Config');
+      jurisdictionPill.textContent = state ? 'UNRESOLVED · ' + state : 'UNRESOLVED · NO STATE';
       jurisdictionPill.className = 'pill pill-fail';
     } else {
       editionEl.textContent = edition;
@@ -2288,6 +2753,17 @@
       { label: 'Warranty', keywords: ['warranty'] },
       { label: 'PVSyst .PAN File', keywords: ['.pan', 'pvsyst'] },
       { label: 'Quote', keywords: ['quote'] },
+    ],
+  });
+
+  initDocTracker({
+    dropzoneId: 'e911DocDropzone', inputId: 'e911DocInput', manifestBodyId: 'e911DocManifestBody',
+    types: [
+      { label: 'E911 address assignment letter', keywords: ['e911', '911', 'assignment', 'addressing'] },
+      { label: 'County / AHJ address verification', keywords: ['verification', 'ahj', 'county', 'confirm'] },
+      { label: 'Plat or parcel map', keywords: ['plat', 'parcel', 'survey', 'gis'] },
+      { label: 'Deed or legal description', keywords: ['deed', 'legal', 'title'] },
+      { label: 'Utility service address confirmation', keywords: ['utility', 'service', 'meter'] },
     ],
   });
 
@@ -3869,12 +4345,12 @@
   ashraeMaxTempEl.addEventListener('input', ampacityRecompute);
   ampacityRecompute();
 
-  // ---- ASHRAE nearest stations (stub dataset) ----
+  // ---- ASHRAE station selection ----
   // ashrae-meteo.info has no public API (confirmed directly — interactive map
-  // tool only, no documented endpoints), so this can't be a live pull from
-  // the real site. Small embedded reference dataset instead, same "stub
-  // table" honesty as the Jurisdiction panel's 4-state NEC table — sorted by
-  // real distance from Site Config's GPS coordinates.
+  // tool only, no documented endpoints), so nothing on this panel is a live
+  // pull. Two honest paths instead: paste the map's own station links back in
+  // (real coordinates, real WMO numbers, straight out of the URL), or fall
+  // back to the small embedded stub dataset for a sanity check.
   const ASHRAE_STATIONS = [
     { name: 'St. Louis Downtown-Parks', state: 'IL', lat: 38.57, lng: -90.16, minTempC: -12.0, maxTempC: 35.0 },
     { name: 'St. Louis Lambert Intl', state: 'MO', lat: 38.75, lng: -90.37, minTempC: -13.0, maxTempC: 35.5 },
@@ -3898,18 +4374,342 @@
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
-  document.getElementById('findStationsBtn').addEventListener('click', () => {
-    const body = document.getElementById('stationResultsBody');
-    const latStr = document.getElementById('siteLatitude').value.trim();
-    const lngStr = document.getElementById('siteLongitude').value.trim();
-    if (!latStr || !lngStr) {
-      body.innerHTML = '<tr class="empty"><td colspan="6">Enter GPS coordinates on Site Config first.</td></tr>';
+  function escapeText(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  // Distance-based suitability call — this panel's own, NOT an ASHRAE
+  // data-quality rating. Terrain, elevation change, and urban heat island can
+  // all make a closer station the worse pick; the grade knows none of that.
+  function stationGrade(mi) {
+    if (mi <= 15) return { letter: 'A', note: 'same locality', cls: 'chip-pass' };
+    if (mi <= 40) return { letter: 'B', note: 'nearby', cls: 'chip-pass' };
+    if (mi <= 100) return { letter: 'C', note: 'regional', cls: 'chip-warn' };
+    return { letter: 'D', note: 'distant — justify', cls: 'chip-fail' };
+  }
+  function gradeCellHtml(mi) {
+    const g = stationGrade(mi);
+    return '<span class="chip ' + g.cls + '">' + g.letter + '</span> <span style="color:var(--ink-muted);">' + g.note + '</span>';
+  }
+
+  // ---- site coordinate mirror + walkthrough ----
+  function updateAshraeCoordMirror() {
+    const c = siteCoords();
+    document.getElementById('ashraeCoordDd').textContent =
+      (c.lat === null || c.lng === null) ? '— set coordinates on Site Config (01)' : c.lat.toFixed(6) + ', ' + c.lng.toFixed(6);
+    document.getElementById('ashraeCoordDms').textContent = formatDmsPair(c.lat, c.lng);
+    if (ashraeStationsReady) renderAshraeLinkStations();
+  }
+  ashraeCoordMirrorReady = true;
+
+  document.getElementById('ashraeCopyCoordBtn').addEventListener('click', () => {
+    const c = siteCoords();
+    const status = document.getElementById('ashraeCopyStatus');
+    if (c.lat === null || c.lng === null) {
+      status.textContent = 'No coordinates set on Site Config (01) yet.';
       return;
     }
-    const lat = parseNum(latStr);
-    const lng = parseNum(lngStr);
+    const text = c.lat.toFixed(6) + ', ' + c.lng.toFixed(6);
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(
+        () => { status.textContent = 'Copied ' + text; },
+        () => { status.textContent = 'Clipboard blocked by the browser — copy manually: ' + text; }
+      );
+    } else {
+      status.textContent = 'Clipboard unavailable here — copy manually: ' + text;
+    }
+  });
+
+  const ashraeWalkthroughBtn = document.getElementById('ashraeWalkthroughBtn');
+  ashraeWalkthroughBtn.addEventListener('click', () => {
+    const box = document.getElementById('ashraeWalkthrough');
+    const opening = box.style.display === 'none';
+    box.style.display = opening ? 'block' : 'none';
+    ashraeWalkthroughBtn.textContent = opening ? 'Hide walkthrough' : 'Show walkthrough';
+    ashraeWalkthroughBtn.setAttribute('aria-expanded', opening ? 'true' : 'false');
+  });
+
+  // ---- station links pasted back from the map ----
+  // Every field here comes out of the URL the map itself generated, so the
+  // coordinates and WMO number are the map's, not an estimate.
+  var ashraeStationsReady = false;
+  let ashraeLinkStations = [];
+
+  function parseAshraeStationLink(line) {
+    const raw = line.trim();
+    if (!raw) return null;
+    let name = '';
+    let url = raw;
+    const split = raw.match(/^(.*?)\s*[|=]\s*(https?:\/\/\S+)\s*$/i);
+    if (split) { name = split[1].trim(); url = split[2].trim(); }
+    const urlMatch = url.match(/https?:\/\/\S+/);
+    if (!urlMatch) return null;
+    url = urlMatch[0];
+    function param(key) {
+      const m = url.match(new RegExp('[?&]' + key + '=([^&#]*)', 'i'));
+      if (!m) return '';
+      try { return decodeURIComponent(m[1].replace(/\+/g, ' ')); } catch (e) { return m[1]; }
+    }
+    const lat = parseFloat(param('lat'));
+    const lng = parseFloat(param('lng') || param('lon'));
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+    const place = param('place').replace(/^[\s"'%]+|[\s"'%]+$/g, '');
+    const wmo = param('wmo').replace(/[^\d]/g, '');
+    return {
+      name: name || place || (wmo ? 'WMO ' + wmo : 'Unnamed station'),
+      wmo: wmo,
+      version: param('ashrae_version'),
+      units: param('si_ip'),
+      lat: lat, lng: lng, url: url,
+    };
+  }
+
+  function stationDistanceMi(s) {
+    const c = siteCoords();
+    if (c.lat === null || c.lng === null) return null;
+    return haversineMiles(c.lat, c.lng, s.lat, s.lng);
+  }
+
+  function renderAshraeLinkStations() {
+    const body = document.getElementById('ashraeLinkStationsBody');
+    const select = document.getElementById('ashraeStationSelect');
+    if (!ashraeLinkStations.length) {
+      body.innerHTML = '<tr class="empty"><td colspan="8">No station links parsed yet</td></tr>';
+      select.innerHTML = '<option value="">— no stations parsed yet —</option>';
+      return;
+    }
+    const prev = select.value;
+    body.innerHTML = ashraeLinkStations.map((s, i) => {
+      const mi = stationDistanceMi(s);
+      return '<tr>' +
+        '<td><input type="text" class="wide" data-station-name="' + i + '" value="' + escapeAttr(s.name) + '"></td>' +
+        '<td>' + escapeText(s.wmo || '—') + '</td>' +
+        '<td>' + escapeText(s.version || '—') + '</td>' +
+        '<td style="text-align:right;">' + s.lat.toFixed(4) + '</td>' +
+        '<td style="text-align:right;">' + s.lng.toFixed(4) + '</td>' +
+        '<td style="text-align:right;">' + (mi === null ? '—' : mi.toFixed(1) + ' mi') + '</td>' +
+        '<td>' + (mi === null ? '— no site coords' : gradeCellHtml(mi)) + '</td>' +
+        '<td><button type="button" class="contact-remove" data-remove-station="' + i + '">Remove</button></td>' +
+      '</tr>';
+    }).join('');
+
+    select.innerHTML = '<option value="">— none selected —</option>' + ashraeLinkStations.map((s, i) => {
+      const mi = stationDistanceMi(s);
+      return '<option value="' + i + '">' + escapeText(s.name) + (s.wmo ? ' (WMO ' + s.wmo + ')' : '') +
+        (mi === null ? '' : ' — ' + mi.toFixed(1) + ' mi, grade ' + stationGrade(mi).letter) + '</option>';
+    }).join('');
+    if (prev !== '' && Number(prev) < ashraeLinkStations.length) select.value = prev;
+
+    body.querySelectorAll('[data-station-name]').forEach(el => {
+      // Renaming shouldn't re-render the row being typed into, so the dropdown
+      // label refreshes on blur rather than on every keystroke.
+      el.addEventListener('input', () => { ashraeLinkStations[Number(el.dataset.stationName)].name = el.value; });
+      el.addEventListener('change', () => { renderAshraeLinkStations(); applySelectedAshraeStation(); });
+    });
+    body.querySelectorAll('[data-remove-station]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        ashraeLinkStations.splice(Number(btn.dataset.removeStation), 1);
+        select.value = '';
+        renderAshraeLinkStations();
+        applySelectedAshraeStation();
+      });
+    });
+  }
+
+  document.getElementById('ashraeParseLinksBtn').addEventListener('click', () => {
+    const lines = document.getElementById('ashraeStationLinksInput').value.split(/\r?\n/);
+    const status = document.getElementById('ashraeLinkStatus');
+    let added = 0;
+    let skipped = 0;
+    lines.forEach(line => {
+      if (!line.trim()) return;
+      const s = parseAshraeStationLink(line);
+      if (!s) { skipped++; return; }
+      // Same WMO (or same coordinates when the URL carries no WMO) is the same
+      // station — re-pasting a link updates it instead of duplicating the row.
+      const existing = ashraeLinkStations.findIndex(x => (s.wmo && x.wmo === s.wmo) ||
+        (!s.wmo && x.lat === s.lat && x.lng === s.lng));
+      if (existing >= 0) ashraeLinkStations[existing] = s; else ashraeLinkStations.push(s);
+      added++;
+    });
+    ashraeStationsReady = true;
+    renderAshraeLinkStations();
+    status.textContent = added
+      ? 'Parsed ' + added + ' link' + (added === 1 ? '' : 's') +
+        (skipped ? ', skipped ' + skipped + ' line' + (skipped === 1 ? '' : 's') + ' with no readable lat/lng' : '') + '.'
+      : 'No readable ashrae-meteo.info links found — each line needs lat and lng parameters in the URL.';
+  });
+
+  document.getElementById('ashraeClearLinksBtn').addEventListener('click', () => {
+    ashraeLinkStations = [];
+    document.getElementById('ashraeStationLinksInput').value = '';
+    document.getElementById('ashraeLinkStatus').textContent = 'Station list cleared.';
+    renderAshraeLinkStations();
+    applySelectedAshraeStation();
+  });
+
+  // ---- selected station drives the design-temperature card ----
+  function setAshraeProvenance(html) {
+    document.getElementById('ashraeProvenance').innerHTML = html;
+  }
+  function applySelectedAshraeStation() {
+    const idx = document.getElementById('ashraeStationSelect').value;
+    if (idx === '' || !ashraeLinkStations[Number(idx)]) {
+      document.getElementById('ashraeDsDistance').value = '';
+      setAshraeProvenance('Source: <b>manual entry</b> — no station selected. Selecting a station above, or pushing values from the full data set below, stamps its provenance here.');
+      return;
+    }
+    const s = ashraeLinkStations[Number(idx)];
+    const mi = stationDistanceMi(s);
+    document.getElementById('ashraeStationId').value = s.name + (s.wmo ? ' (WMO ' + s.wmo + ')' : '');
+    document.getElementById('ashraeDsName').value = s.name;
+    document.getElementById('ashraeDsWmo').value = s.wmo;
+    document.getElementById('ashraeDsEdition').value = s.version;
+    document.getElementById('ashraeDsLat').value = String(s.lat);
+    document.getElementById('ashraeDsLon').value = String(s.lng);
+    document.getElementById('ashraeDsDistance').value = mi === null ? '' : mi.toFixed(1);
+    setAshraeProvenance(
+      'Source: <b>' + escapeText(s.name) + '</b>' + (s.wmo ? ' (WMO ' + escapeText(s.wmo) + ')' : '') +
+      (s.version ? ', ASHRAE ' + escapeText(s.version) + ' edition' : '') +
+      (mi === null ? '' : ' — ' + mi.toFixed(1) + ' mi from site, grade ' + stationGrade(mi).letter) +
+      '. The three temperatures above are still whatever is typed in — paste the station data set at the bottom of this panel and use <b>Push to design temperatures</b> to fill them from the map.'
+    );
+  }
+  document.getElementById('ashraeStationSelect').addEventListener('change', applySelectedAshraeStation);
+
+  // ---- full data set pasted from the map page ----
+  // The labelled header values and the annual heating row have a layout this
+  // panel can verify against the source page, so those are parsed. The cooling
+  // and extreme-annual tables are captured verbatim instead of guessed at —
+  // their column order isn't something this panel can confirm, and a silently
+  // mis-assigned design temperature is worse than a blank one.
+  const ASHRAE_HEATING_ORDER = [
+    'coldestMonth', 'heatDb996', 'heatDb99', 'humidDp996', 'humidHr996', 'humidMcdb996',
+    'humidDp99', 'humidHr99', 'humidMcdb99', 'ws04', 'mcdb04', 'ws1', 'mcdb1',
+    'mcws', 'pcwd', 'wsf',
+  ];
+
+  function ashraeSectionText(raw, startRe, stopRes) {
+    const m = raw.match(startRe);
+    if (!m) return '';
+    const rest = raw.slice(m.index + m[0].length);
+    let cut = rest.length;
+    stopRes.forEach(re => {
+      const at = rest.search(re);
+      if (at >= 0 && at < cut) cut = at;
+    });
+    return rest.slice(0, cut);
+  }
+
+  document.getElementById('ashraeParseDataBtn').addEventListener('click', () => {
+    const raw = document.getElementById('ashraeDataPaste').value;
+    const status = document.getElementById('ashraeDataStatus');
+    if (!raw.trim()) { status.textContent = 'Nothing pasted yet.'; return; }
+    document.getElementById('ashraeDsRaw').textContent = raw.trim();
+
+    const found = [];
+    function grab(id, re, transform) {
+      const m = raw.match(re);
+      if (!m) return false;
+      const v = transform ? transform(m) : m[1].trim();
+      if (v === '' || v === null) return false;
+      document.getElementById(id).value = v;
+      found.push(id);
+      return true;
+    }
+
+    grab('ashraeDsName', /([^\n]*?)\s*\(\s*WMO\s*:?\s*\d+\s*\)/i);
+    grab('ashraeDsWmo', /WMO\s*:?\s*(\d+)/i);
+    grab('ashraeDsEdition', /(\d{4})\s+ASHRAE\s+Handbook/i);
+    grab('ashraeDsElev', /Elev\s*:?\s*(-?\d+(?:\.\d+)?)/i);
+    grab('ashraeDsStdP', /StdP\s*:?\s*(-?\d+(?:\.\d+)?)/i);
+    grab('ashraeDsTz', /Time\s*zone\s*:?\s*(-?\d+(?:\.\d+)?)/i);
+    grab('ashraeDsPeriod', /Period\s*:?\s*(\d{4}\s*-\s*\d{4})/i);
+    // The map writes hemispheres as a trailing letter (38.883N / 90.05W)
+    // rather than a sign, so convert to the signed decimals used everywhere else.
+    grab('ashraeDsLat', /Lat\s*:?\s*(-?\d+(?:\.\d+)?)\s*([NS])?/i,
+      m => String(Math.abs(Number(m[1])) * ((m[2] && m[2].toUpperCase() === 'S') || Number(m[1]) < 0 ? -1 : 1)));
+    grab('ashraeDsLon', /Lon\s*:?\s*(-?\d+(?:\.\d+)?)\s*([EW])?/i,
+      m => String(Math.abs(Number(m[1])) * ((m[2] && m[2].toUpperCase() === 'W') || Number(m[1]) < 0 ? -1 : 1)));
+
+    // The distance box belongs to whatever station this data set is for, not
+    // to whatever was selected last — recompute it from the parsed coordinates.
+    const dsLat = parseFloat(document.getElementById('ashraeDsLat').value);
+    const dsLon = parseFloat(document.getElementById('ashraeDsLon').value);
+    const site = siteCoords();
+    document.getElementById('ashraeDsDistance').value =
+      (Number.isFinite(dsLat) && Number.isFinite(dsLon) && site.lat !== null && site.lng !== null)
+        ? haversineMiles(site.lat, site.lng, dsLat, dsLon).toFixed(1) : '';
+
+    // Percentile labels ("99.6%", "0.4%") sit in the header rows and would
+    // otherwise be read as data, so strip them before pulling the numbers.
+    const heatingText = ashraeSectionText(
+      raw,
+      /Annual\s+Heating[^\n]*\n/i,
+      [/Annual\s+Cooling/i, /Extreme\s+Annual/i, /Dehumidification/i]
+    ).replace(/\d+(?:\.\d+)?\s*%/g, ' ');
+    const heatNums = (heatingText.match(/-?\d+(?:\.\d+)?/g) || []).map(Number);
+    let heatingNote = 'annual heating row not found';
+    if (heatNums.length >= ASHRAE_HEATING_ORDER.length) {
+      const row = {};
+      ASHRAE_HEATING_ORDER.forEach((k, i) => { row[k] = heatNums[i]; });
+      document.getElementById('ashraeDsHeatDb996').value = String(row.heatDb996);
+      document.getElementById('ashraeDsHeatDb99').value = String(row.heatDb99);
+      found.push('ashraeDsHeatDb996', 'ashraeDsHeatDb99');
+      heatingNote = 'annual heating row read (' + ASHRAE_HEATING_ORDER.length + ' values)';
+    } else if (heatNums.length) {
+      heatingNote = 'annual heating row found but only ' + heatNums.length + ' of ' +
+        ASHRAE_HEATING_ORDER.length + ' values — left blank rather than mis-assigned';
+    }
+
+    status.innerHTML = 'Parsed ' + found.length + ' field' + (found.length === 1 ? '' : 's') +
+      ' from the paste; ' + heatingNote + '. <b>Cooling and extreme-annual values are not parsed</b> — this panel can\'t verify those column orders against the source page, so type them in from the captured block below rather than trusting a guess. Then use <b>Push to design temperatures</b>.';
+  });
+
+  document.getElementById('ashraeClearDataBtn').addEventListener('click', () => {
+    document.getElementById('ashraeDataPaste').value = '';
+    document.getElementById('ashraeDsRaw').textContent = 'Nothing captured yet — paste the station\'s data table above and click Parse.';
+    document.getElementById('ashraeDataStatus').textContent = 'Cleared.';
+  });
+
+  document.getElementById('ashraePushTempsBtn').addEventListener('click', () => {
+    const pushed = [];
+    function push(fromId, toId, label) {
+      const v = document.getElementById(fromId).value.trim();
+      if (v === '') return;
+      const el = document.getElementById(toId);
+      el.value = v;
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      pushed.push(label);
+    }
+    push('ashraeDsExtremeMin', 'ashraeMinTemp', 'min design DB');
+    push('ashraeDsCoolDb2', 'ashraeMaxTemp', 'max design DB (2%)');
+    push('ashraeDsAvgHigh', 'ashraeAvgHighTemp', 'average high DB');
+    const status = document.getElementById('ashraeDataStatus');
+    if (!pushed.length) {
+      status.textContent = 'Nothing to push — fill extreme annual min, cooling DB 2%, or average high above first.';
+      return;
+    }
+    const name = document.getElementById('ashraeDsName').value.trim();
+    const wmo = document.getElementById('ashraeDsWmo').value.trim();
+    const dist = document.getElementById('ashraeDsDistance').value.trim();
+    setAshraeProvenance(
+      'Source: <b>' + escapeText(name || 'pasted data set') + '</b>' + (wmo ? ' (WMO ' + escapeText(wmo) + ')' : '') +
+      (dist ? ' — ' + escapeText(dist) + ' mi from site, grade ' + stationGrade(Number(dist)).letter : '') +
+      '. Pushed from the pasted ASHRAE data set: ' + pushed.join(', ') + '.'
+    );
+    status.textContent = 'Pushed ' + pushed.join(', ') + ' into the design temperatures card above.';
+  });
+
+  document.getElementById('findStationsBtn').addEventListener('click', () => {
+    const body = document.getElementById('stationResultsBody');
+    const c = siteCoords();
+    if (c.lat === null || c.lng === null) {
+      body.innerHTML = '<tr class="empty"><td colspan="7">Enter GPS coordinates on Site Config first.</td></tr>';
+      return;
+    }
     const nearest = ASHRAE_STATIONS
-      .map(s => Object.assign({}, s, { distanceMi: haversineMiles(lat, lng, s.lat, s.lng) }))
+      .map(s => Object.assign({}, s, { distanceMi: haversineMiles(c.lat, c.lng, s.lat, s.lng) }))
       .sort((a, b) => a.distanceMi - b.distanceMi)
       .slice(0, 5);
 
@@ -3918,6 +4718,7 @@
         '<td>' + s.name + '</td>' +
         '<td>' + s.state + '</td>' +
         '<td style="text-align:right;">' + s.distanceMi.toFixed(1) + ' mi</td>' +
+        '<td>' + gradeCellHtml(s.distanceMi) + '</td>' +
         '<td style="text-align:right;">' + s.minTempC.toFixed(1) + ' °C</td>' +
         '<td style="text-align:right;">' + s.maxTempC.toFixed(1) + ' °C</td>' +
         '<td><button type="button" class="contact-remove" data-select-station="' + i + '">Select</button></td>' +
@@ -3929,11 +4730,22 @@
         const s = nearest[Number(btn.dataset.selectStation)];
         document.getElementById('ashraeStationId').value = s.name + ', ' + s.state + ' (stub dataset — confirm against ASHRAE Handbook)';
         document.getElementById('ashraeMinTemp').value = s.minTempC.toFixed(1);
+        document.getElementById('ashraeMinTemp').dispatchEvent(new Event('input', { bubbles: true }));
         document.getElementById('ashraeMaxTemp').value = s.maxTempC.toFixed(1);
         document.getElementById('ashraeMaxTemp').dispatchEvent(new Event('input', { bubbles: true }));
+        document.getElementById('ashraeDsDistance').value = s.distanceMi.toFixed(1);
+        document.getElementById('ashraeStationSelect').value = '';
+        setAshraeProvenance(
+          'Source: <b>' + s.name + ', ' + s.state + '</b> — ' + s.distanceMi.toFixed(1) + ' mi from site, grade ' +
+          stationGrade(s.distanceMi).letter + '. <b>Embedded stub dataset, not the ASHRAE Handbook</b> — good enough to sanity-check the design, not to stamp. Replace with a real station data set from the map before issuing.'
+        );
       });
     });
   });
+
+  updateAshraeCoordMirror();
+  renderAshraeLinkStations();
+  applySelectedAshraeStation();
 
   // ---- switchboard 120% rule (mirrors switchboard_calc.check_120_percent_rule) ----
   // Defined before OCPD Sizing below because OCPD's initial calc calls this directly.
@@ -4261,6 +5073,11 @@
     'combDisconnect', 'combDisconnectAmpRating', 'combSurgeSuppression', 'combSurgeSuppressionSize',
     'xfmrKva', 'xfmrPrimaryV', 'xfmrSecondaryV', 'xfmrPrimaryWinding', 'xfmrSecondaryWinding',
     'ashraeStationId', 'ashraeMinTemp', 'ashraeMaxTemp', 'ashraeAvgHighTemp', 'modMaxSystemVoltage',
+    'ashraeStationLinksInput', 'ashraeDataPaste',
+    'ashraeDsName', 'ashraeDsWmo', 'ashraeDsEdition', 'ashraeDsLat', 'ashraeDsLon', 'ashraeDsElev',
+    'ashraeDsStdP', 'ashraeDsTz', 'ashraeDsPeriod', 'ashraeDsDistance',
+    'ashraeDsHeatDb996', 'ashraeDsHeatDb99', 'ashraeDsExtremeMin', 'ashraeDsCoolDb04',
+    'ashraeDsCoolDb1', 'ashraeDsCoolDb2', 'ashraeDsExtremeMax', 'ashraeDsAvgHigh',
     'modManufacturer', 'modFirstYearDegradation', 'modAnnualDegradation',
     'invDesignQuantity', 'invDesignSwitchboardCount', 'invNamingConvention',
     'invNamePrefix', 'invNameSeparator', 'invNameStart', 'invNamePad',
@@ -4273,7 +5090,7 @@
     'ivStringId', 'ivMeasVoc', 'ivMeasIsc', 'ivMeasVmp', 'ivMeasImp',
   ];
   const CHECKBOX_FIELD_IDS = ['siteIsE911Address'];
-  const RADIO_GROUP_NAMES = ['modUnitSystem', 'invUnitSystem', 'combUnitSystem'];
+  const RADIO_GROUP_NAMES = ['modUnitSystem', 'invUnitSystem', 'combUnitSystem', 'gpsFormat'];
 
   function serializeProject() {
     const fields = {};
@@ -4313,6 +5130,11 @@
         model: r.model, powerMode: r.powerMode, deratedKw: r.deratedKw,
         switchboard: r.switchboard, stringModules: r.stringModules.slice(), name: r.name || '',
       })),
+      ashraeLinkStations: ashraeLinkStations.map(s => ({
+        name: s.name, wmo: s.wmo, version: s.version, units: s.units,
+        lat: s.lat, lng: s.lng, url: s.url,
+      })),
+      ashraeSelectedStation: document.getElementById('ashraeStationSelect').value,
     };
   }
 
@@ -4333,6 +5155,33 @@
       }
     });
     updateProjectTypeOtherVisibility();
+    // The GPS editors are derived views of the hidden canonical lat/lng that
+    // PROJECT_FIELD_IDS just restored, so they have to be re-rendered from it.
+    applyGpsFormatVisibility();
+    renderGpsEditors();
+    if (Array.isArray(project.ashraeLinkStations)) {
+      ashraeLinkStations = project.ashraeLinkStations
+        .map(s => ({
+          name: s.name || '', wmo: s.wmo || '', version: s.version || '', units: s.units || '',
+          lat: Number(s.lat), lng: Number(s.lng), url: s.url || '',
+        }))
+        .filter(s => Number.isFinite(s.lat) && Number.isFinite(s.lng));
+      ashraeStationsReady = ashraeLinkStations.length > 0;
+      renderAshraeLinkStations();
+      const sel = document.getElementById('ashraeStationSelect');
+      if (project.ashraeSelectedStation != null) sel.value = project.ashraeSelectedStation;
+      applySelectedAshraeStation();
+      // Selecting a station stamps the header fields from the link, which would
+      // clobber anything the designer parsed or corrected by hand — so the
+      // saved values win on reload.
+      PROJECT_FIELD_IDS.filter(id => id.indexOf('ashraeDs') === 0).forEach(id => {
+        const el = document.getElementById(id);
+        if (el && Object.prototype.hasOwnProperty.call(fields, id)) el.value = fields[id];
+      });
+    }
+    const savedPaste = (project.fields || {}).ashraeDataPaste;
+    if (savedPaste) document.getElementById('ashraeDsRaw').textContent = savedPaste.trim();
+    updateAshraeCoordMirror();
     if (typeof updateCombDisconnectVisibility === 'function') updateCombDisconnectVisibility();
     if (typeof updateCombSurgeSuppressionVisibility === 'function') updateCombSurgeSuppressionVisibility();
     if (typeof updateInterconnectionTypeVisibility === 'function') updateInterconnectionTypeVisibility();
