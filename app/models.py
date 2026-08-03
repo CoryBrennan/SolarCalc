@@ -45,9 +45,12 @@ class SiteConfig(BaseModel):
 
 class ModuleSpec(BaseModel):
     sku: str = "720"
+    manufacturer: str = "ReneSola"
     max_series_fuse_rating_a: float = 35
     quantity: int = 9465
     max_system_voltage_v: float = 1500
+    first_year_degradation_pct: float = 1.0
+    annual_degradation_pct: float = 0.4
 
 
 class InverterSpec(BaseModel):

@@ -129,7 +129,10 @@ def calculate(project: ProjectInput) -> dict:
     )
 
     string_length_result = string_design_calc.compute_string_length_range(
-        module=project.module, inverter=project.inverter, ashrae=project.ashrae,
+        module=project.module,
+        inverter=project.inverter,
+        ashrae=project.ashrae,
+        voltage_drop_limits=project.voltage_drop_limits,
     )
 
     header = document_header.build_document_header(

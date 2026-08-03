@@ -358,18 +358,19 @@
       <li><button class="rail-btn" data-target="sec-inverter"><span><span class="rail-num">06</span> Inverter Spec</span><span class="rail-dot dot-pass"></span></button></li>
       <li><button class="rail-btn" data-target="sec-system-design"><span><span class="rail-num">07</span> System Architecture</span><span class="rail-dot dot-pass" id="systemDesignDot"></span></button></li>
       <li><button class="rail-btn" data-target="sec-pv-string-design"><span><span class="rail-num">08</span> PV String Design</span><span class="rail-dot dot-pass" id="pvStringDesignDot"></span></button></li>
-      <li id="navCombiner"><button class="rail-btn" data-target="sec-combiner"><span><span class="rail-num">09</span> DC Combiner Spec</span><span class="rail-dot dot-pass" id="combinerDot"></span></button></li>
-      <li><button class="rail-btn" data-target="sec-ampacity"><span><span class="rail-num">10</span> Ampacity &amp; Conductors</span><span class="rail-dot dot-pass" id="ampacityDot"></span></button></li>
-      <li><button class="rail-btn" data-target="sec-ocpd"><span><span class="rail-num">11</span> OCPD Sizing</span><span class="rail-dot dot-pass" id="ocpdDot"></span></button></li>
-      <li><button class="rail-btn" data-target="sec-switchboard"><span><span class="rail-num">12</span> Switchboard 120%</span><span class="rail-dot dot-pass" id="switchboardDot"></span></button></li>
-      <li><button class="rail-btn" data-target="sec-bonding"><span><span class="rail-num">13</span> Bonding &amp; Grounding</span><span class="rail-dot dot-warn" id="bondingDot"></span></button></li>
-      <li><button class="rail-btn" data-target="sec-vdrop"><span><span class="rail-num">14</span> Voltage Drop Limits</span><span class="rail-dot dot-pass" id="vdropDot"></span></button></li>
-      <li><button class="rail-btn" data-target="sec-jurisdiction"><span><span class="rail-num">15</span> Jurisdiction</span><span class="rail-dot dot-warn"></span></button></li>
-      <li><button class="rail-btn" data-target="sec-upload"><span><span class="rail-num">16</span> Document Intake</span><span class="rail-dot dot-warn" id="uploadDot"></span></button></li>
-      <li><button class="rail-btn" data-target="sec-placards"><span><span class="rail-num">17</span> Placarding</span><span class="rail-dot dot-pass"></span></button></li>
-      <li><button class="rail-btn" data-target="sec-etap"><span><span class="rail-num">18</span> ETAP Export</span><span class="rail-dot dot-pass"></span></button></li>
-      <li><button class="rail-btn" data-target="sec-fluke"><span><span class="rail-num">19</span> I-V Curve Field Prep</span><span class="rail-dot dot-warn"></span></button></li>
-      <li><button class="rail-btn" data-target="sec-backend"><span><span class="rail-num">20</span> Backend Verification</span><span class="rail-dot dot-neutral" id="backendDot"></span></button></li>
+      <li><button class="rail-btn" data-target="sec-inverter-design"><span><span class="rail-num">09</span> Inverter Design</span><span class="rail-dot dot-pass" id="inverterDesignDot"></span></button></li>
+      <li id="navCombiner"><button class="rail-btn" data-target="sec-combiner"><span><span class="rail-num">10</span> DC Combiner Spec</span><span class="rail-dot dot-pass" id="combinerDot"></span></button></li>
+      <li><button class="rail-btn" data-target="sec-ampacity"><span><span class="rail-num">11</span> Ampacity &amp; Conductors</span><span class="rail-dot dot-pass" id="ampacityDot"></span></button></li>
+      <li><button class="rail-btn" data-target="sec-ocpd"><span><span class="rail-num">12</span> OCPD Sizing</span><span class="rail-dot dot-pass" id="ocpdDot"></span></button></li>
+      <li><button class="rail-btn" data-target="sec-switchboard"><span><span class="rail-num">13</span> Switchboard 120%</span><span class="rail-dot dot-pass" id="switchboardDot"></span></button></li>
+      <li><button class="rail-btn" data-target="sec-bonding"><span><span class="rail-num">14</span> Bonding &amp; Grounding</span><span class="rail-dot dot-warn" id="bondingDot"></span></button></li>
+      <li><button class="rail-btn" data-target="sec-vdrop"><span><span class="rail-num">15</span> Voltage Drop Limits</span><span class="rail-dot dot-pass" id="vdropDot"></span></button></li>
+      <li><button class="rail-btn" data-target="sec-jurisdiction"><span><span class="rail-num">16</span> Jurisdiction</span><span class="rail-dot dot-warn"></span></button></li>
+      <li><button class="rail-btn" data-target="sec-upload"><span><span class="rail-num">17</span> Document Intake</span><span class="rail-dot dot-warn" id="uploadDot"></span></button></li>
+      <li><button class="rail-btn" data-target="sec-placards"><span><span class="rail-num">18</span> Placarding</span><span class="rail-dot dot-pass"></span></button></li>
+      <li><button class="rail-btn" data-target="sec-etap"><span><span class="rail-num">19</span> ETAP Export</span><span class="rail-dot dot-pass"></span></button></li>
+      <li><button class="rail-btn" data-target="sec-fluke"><span><span class="rail-num">20</span> I-V Curve Field Prep</span><span class="rail-dot dot-warn"></span></button></li>
+      <li><button class="rail-btn" data-target="sec-backend"><span><span class="rail-num">21</span> Backend Verification</span><span class="rail-dot dot-neutral" id="backendDot"></span></button></li>
     </ul>
     <div class="rail-foot">
       NEC edition resolved from <b>jurisdiction_lookup.py</b><br>
@@ -399,7 +400,7 @@
             <h2>Site Config</h2>
           </div>
         </div>
-        <p class="desc">Target AC/DC capacity are the design goals — they guide (but don't force) equipment selection on Module Spec (05), Inverter Spec (06), System Architecture (07), and PV String Design (08).</p>
+        <p class="desc">Target AC/DC capacity are the design goals — they guide (but don't force) equipment selection on Module Spec (05), Inverter Spec (06), System Architecture (07), PV String Design (08), and Inverter Design (09).</p>
 
         <div class="card">
           <p class="card-title">Project targets</p>
@@ -666,6 +667,10 @@
           <p class="card-title">Nameplate (STC) — source: ReneSola RS9-700~720NBG-E1 2384+1303+33.pdf</p>
           <div class="field-grid">
             <div class="field wide">
+              <label for="modManufacturer">Manufacturer</label>
+              <input class="prose" type="text" id="modManufacturer" value="ReneSola">
+            </div>
+            <div class="field wide">
               <label for="modSku">SKU</label>
               <select id="modSku">
                 <option value="700">RS9-700NBG-E1 — 700 W</option>
@@ -687,6 +692,8 @@
               <label>Max series fuse rating <span class="unit">A</span></label>
               <input type="text" id="modMaxFuse" value="35">
             </div>
+            <div class="field"><label for="modFirstYearDegradation">First-year degradation <span class="unit">%</span></label><input type="text" id="modFirstYearDegradation" value="1.0"></div>
+            <div class="field"><label for="modAnnualDegradation">Annual degradation <span class="unit">%/yr</span></label><input type="text" id="modAnnualDegradation" value="0.4"></div>
           </div>
         </div>
 
@@ -908,28 +915,104 @@
               <label for="modQuantity">Quantity of modules on site</label>
               <input type="text" id="modQuantity" value="9,465" data-calc>
             </div>
+            <div class="field"><label>Manufacturer <span class="unit">Module Spec</span></label><input class="prose" type="text" id="pvStringModMfg" readonly></div>
+            <div class="field"><label>Module power <span class="unit">W</span></label><input type="text" id="pvStringModPower" readonly></div>
           </div>
           <p class="desc" style="margin-top:12px;" id="modQtyHint">Target DC capacity ÷ P<sub>max</sub> ≈ — modules (Site Config's target is a guide, not a lock — the quantity above is what actually drives Actual DC capacity).</p>
         </div>
 
         <div class="card">
           <p class="card-title">String length range — max system voltage &amp; MPPT window</p>
-          <p class="desc" style="margin-bottom:14px;">For each candidate string length (modules in series): Voc at ASHRAE extreme low (cold — must clear neither the module's max system voltage nor the inverter's MPPT max) and Vmp at ASHRAE average high (hot — must not sag below the inverter's MPPT min). Reacts to the SKU on Module Spec and the model on Inverter Spec.</p>
+          <p class="desc" style="margin-bottom:14px;">For each candidate string length (modules in series): Voc at ASHRAE extreme low (cold — must clear neither the module's max system voltage nor the inverter's MPPT max) and Vmp at ASHRAE average high (hot — must not sag below the inverter's MPPT min). MPPT life is how many years the hot string Vmp stays above the MPPT minimum once module degradation (first-year, then annual, both from Module Spec) and the Total DC voltage drop limit are applied — a length is only recommended at <span class="mono">&ge; 15</span> years. Tick the lengths this design will actually use.</p>
           <div class="computed-row">
             <div class="computed"><div class="k">Min string length</div><div class="v" id="stringLenMin">—<small> modules</small></div></div>
             <div class="computed"><div class="k">Max string length</div><div class="v" id="stringLenMax">—<small> modules</small></div></div>
             <div class="computed"><div class="k">Recommended</div><div class="v" id="stringLenRecommended" style="font-size:20px;">—<small> modules</small></div></div>
+            <div class="computed"><div class="k">Recommended MPPT life</div><div class="v" id="stringLenRecommendedLife" style="font-size:20px;">—<small> yr</small></div></div>
+            <div class="computed"><div class="k">Selected lengths</div><div class="v" id="stringLenSelected" style="font-size:20px;">—</div></div>
+            <div class="computed"><div class="k">Total strings on site</div><div class="v" id="stringTotalCount" style="font-size:20px;">—<small> strings</small></div></div>
           </div>
           <div style="overflow-x:auto; margin-top:14px;">
             <table class="fluke">
-              <thead><tr><th>Modules/string</th><th style="text-align:right;">Voc @ extreme low (V)</th><th style="text-align:right;">Vmp @ avg high (V)</th><th>Within MPPT window?</th></tr></thead>
+              <thead><tr><th>Use</th><th>Modules/string</th><th style="text-align:right;">Voc @ extreme low (V)</th><th style="text-align:right;">Vmp @ avg high (V)</th><th style="text-align:right;">MPPT life (yr)</th><th>Within MPPT window?</th></tr></thead>
               <tbody id="stringLenBody"></tbody>
             </table>
           </div>
         </div>
       </section>
 
-      <!-- 09 DC COMBINER SPEC -->
+      <!-- 09 INVERTER DESIGN -->
+      <section class="panel" id="sec-inverter-design">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">Per-inverter string &amp; switchboard assignment</p>
+            <h2>Inverter Design</h2>
+          </div>
+        </div>
+        <p class="desc">One row per inverter on site: which model from Inverter Spec (06), its full or derated AC power, how many of the strings from PV String Design (08) land on it, and which switchboard it feeds. Set every inverter at once with the bulk controls, then tick individual rows to override just those.</p>
+
+        <div class="card">
+          <p class="card-title">Quantity on site</p>
+          <div class="field-grid">
+            <div class="field">
+              <label for="invDesignQuantity">Target inverter quantity on site</label>
+              <input type="text" id="invDesignQuantity" value="15">
+            </div>
+            <div class="field">
+              <label for="invDesignSwitchboardCount">Number of switchboards</label>
+              <input type="text" id="invDesignSwitchboardCount" value="1">
+            </div>
+          </div>
+          <div class="computed-row" style="margin-top:14px;">
+            <div class="computed"><div class="k">Strings available</div><div class="v" id="invDesignStringsAvailable">—<small> strings</small></div></div>
+            <div class="computed"><div class="k">Strings assigned</div><div class="v" id="invDesignStringsAssigned">—<small> strings</small></div></div>
+            <div class="computed"><div class="k">Even split</div><div class="v" id="invDesignEvenSplit">—<small> per inverter</small></div></div>
+            <div class="computed"><div class="k">Total AC capacity</div><div class="v" id="invDesignTotalAc">—<small> kW</small></div></div>
+          </div>
+          <p class="desc" style="margin-top:12px;" id="invDesignBalanceHint">—</p>
+        </div>
+
+        <div class="card">
+          <p class="card-title">Bulk edit</p>
+          <p class="desc" style="margin-bottom:14px;">Applies to the ticked rows below, or to every inverter when none are ticked. Leave a field blank to leave that column alone.</p>
+          <div class="field-grid">
+            <div class="field wide">
+              <label for="invBulkModel">Set model</label>
+              <select id="invBulkModel"><option value="">— no change —</option></select>
+            </div>
+            <div class="field">
+              <label for="invBulkStrings">Set strings per inverter</label>
+              <input type="text" id="invBulkStrings" placeholder="e.g. 26">
+            </div>
+            <div class="field">
+              <label for="invBulkSwitchboard">Set switchboard</label>
+              <select id="invBulkSwitchboard"><option value="">— no change —</option></select>
+            </div>
+            <div class="field">
+              <label for="invBulkDerate">Set derated power <span class="unit">kW</span></label>
+              <input type="text" id="invBulkDerate" placeholder="blank = full rating">
+            </div>
+          </div>
+          <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:14px;">
+            <button class="btn btn-primary" id="invBulkApplyBtn" type="button">Apply to selected</button>
+            <button class="btn" id="invBulkEvenSplitBtn" type="button">Distribute strings evenly</button>
+            <button class="btn" id="invSelectAllBtn" type="button">Select all</button>
+            <button class="btn" id="invSelectNoneBtn" type="button">Clear selection</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <p class="card-title">Inverter schedule</p>
+          <div style="overflow-x:auto;">
+            <table class="etap">
+              <thead><tr><th>Edit</th><th>Inverter</th><th>Model (from Inverter Spec)</th><th>Power</th><th style="text-align:right;">AC kW</th><th style="text-align:right;">Strings</th><th>Switchboard</th></tr></thead>
+              <tbody id="invDesignBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- 10 DC COMBINER SPEC -->
       <section class="panel" id="sec-combiner">
         <div class="panel-head">
           <div>
@@ -1030,7 +1113,7 @@
         </div>
       </section>
 
-      <!-- 10 AMPACITY & CONDUCTORS -->
+      <!-- 11 AMPACITY & CONDUCTORS -->
       <section class="panel" id="sec-ampacity">
         <div class="panel-head">
           <div>
@@ -1082,7 +1165,7 @@
         </div>
       </section>
 
-      <!-- 11 OCPD SIZING -->
+      <!-- 12 OCPD SIZING -->
       <section class="panel" id="sec-ocpd">
         <div class="panel-head">
           <div>
@@ -1122,7 +1205,7 @@
         </div>
       </section>
 
-      <!-- 12 SWITCHBOARD 120% RULE -->
+      <!-- 13 SWITCHBOARD 120% RULE -->
       <section class="panel" id="sec-switchboard">
         <div class="panel-head">
           <div>
@@ -1152,7 +1235,7 @@
         </div>
       </section>
 
-      <!-- 13 BONDING & GROUNDING -->
+      <!-- 14 BONDING & GROUNDING -->
       <section class="panel" id="sec-bonding">
         <div class="panel-head">
           <div>
@@ -1216,7 +1299,7 @@
         </div>
       </section>
 
-      <!-- 14 VOLTAGE DROP -->
+      <!-- 15 VOLTAGE DROP -->
       <section class="panel" id="sec-vdrop">
         <div class="panel-head">
           <div>
@@ -1255,7 +1338,7 @@
         </div>
       </section>
 
-      <!-- 15 JURISDICTION -->
+      <!-- 16 JURISDICTION -->
       <section class="panel" id="sec-jurisdiction">
         <div class="panel-head">
           <div>
@@ -1299,7 +1382,7 @@
         </div>
       </section>
 
-      <!-- 16 DOCUMENT INTAKE -->
+      <!-- 17 DOCUMENT INTAKE -->
       <section class="panel" id="sec-upload">
         <div class="panel-head">
           <div>
@@ -1356,7 +1439,7 @@
         </div>
       </section>
 
-      <!-- 17 PLACARDING -->
+      <!-- 18 PLACARDING -->
       <section class="panel" id="sec-placards">
         <div class="panel-head">
           <div>
@@ -1393,7 +1476,7 @@
         </div>
       </section>
 
-      <!-- 18 ETAP EXPORT -->
+      <!-- 19 ETAP EXPORT -->
       <section class="panel" id="sec-etap">
         <div class="panel-head">
           <div>
@@ -1443,7 +1526,7 @@
         </div>
       </section>
 
-      <!-- 19 I-V CURVE FIELD PREP -->
+      <!-- 20 I-V CURVE FIELD PREP -->
       <section class="panel" id="sec-fluke">
         <div class="panel-head">
           <div>
@@ -1531,7 +1614,7 @@
         </div>
       </section>
 
-      <!-- 20 BACKEND VERIFICATION -->
+      <!-- 21 BACKEND VERIFICATION -->
       <section class="panel" id="sec-backend">
         <div class="panel-head">
           <div>
@@ -1757,6 +1840,7 @@
     document.getElementById('modIsc').value = d.isc.toFixed(2);
     document.getElementById('modImp').value = d.imp.toFixed(2);
     document.getElementById('modBifacial').value = d.bifacial;
+    document.getElementById('pvStringModPower').value = d.pmax;
     MODULE_W = d.pmax;
     recompute();
     if (typeof ivRecomputeExpected === 'function') ivRecomputeExpected();
@@ -1766,6 +1850,14 @@
     if (typeof recomputeStringLength === 'function') recomputeStringLength();
   }
   modSku.addEventListener('change', applyModuleSku);
+
+  const modManufacturer = document.getElementById('modManufacturer');
+  function syncPvStringModuleMfg() {
+    document.getElementById('pvStringModMfg').value = modManufacturer.value;
+  }
+  modManufacturer.addEventListener('input', syncPvStringModuleMfg);
+  syncPvStringModuleMfg();
+  document.getElementById('pvStringModPower').value = MODULE_SKUS[modSku.value].pmax;
 
   // ---- inverter model switch (CPS SCH-DO/US-800 family) ----
   const INVERTER_MODELS = {
@@ -2289,7 +2381,58 @@
     const maxLen = vocPerModuleCold > 0 ? Math.floor(voltageCeiling / vocPerModuleCold) : 0;
     const minLen = vmpPerModuleHot > 0 ? Math.ceil(mpptVMin / vmpPerModuleHot) : 0;
 
-    return { vocPerModuleCold, vmpPerModuleHot, maxSystemV, mpptVMin, mpptVMax, minLen, maxLen };
+    const vDropFrac = parseNum(document.getElementById('vdTotalDc').value) / 100;
+    const firstYearDegFrac = parseNum(document.getElementById('modFirstYearDegradation').value) / 100;
+    const annualDegFrac = parseNum(document.getElementById('modAnnualDegradation').value) / 100;
+
+    return {
+      vocPerModuleCold, vmpPerModuleHot, maxSystemV, mpptVMin, mpptVMax, minLen, maxLen,
+      vDropFrac, firstYearDegFrac, annualDegFrac,
+    };
+  }
+
+  // Years a string stays inside the MPPT window: the hot-day string Vmp, derated
+  // by the Total DC voltage-drop limit, loses the datasheet's first-year
+  // degradation up front and then a fixed annual slice of that same starting
+  // voltage until it reaches the inverter's MPPT minimum.
+  const MPPT_LIFE_TARGET_YEARS = 15;
+  function mpptLifeYears(modulesPerString, r) {
+    const vmpString = r.vmpPerModuleHot * modulesPerString;
+    const vmpAfterDrop = vmpString * (1 - r.vDropFrac);
+    const vmpAfterYearOne = vmpAfterDrop * (1 - r.firstYearDegFrac);
+    const annualLossV = vmpAfterDrop * r.annualDegFrac;
+    if (annualLossV <= 0) return Infinity;
+    if (vmpAfterYearOne <= r.mpptVMin) return 0;
+    return 1 + (vmpAfterYearOne - r.mpptVMin) / annualLossV;
+  }
+
+  // String lengths the designer has ticked as in-scope for this project.
+  let selectedStringLengths = [];
+
+  // The string length the rest of the design counts on: the shortest one the
+  // designer ticked, falling back to the recommended length before any tick.
+  let recommendedStringLength = null;
+  function primaryStringLength() {
+    if (selectedStringLengths.length) return Math.min.apply(null, selectedStringLengths);
+    return recommendedStringLength;
+  }
+  function totalStringsOnSite() {
+    const len = primaryStringLength();
+    if (!len || len <= 0) return 0;
+    return Math.floor(parseNum(document.getElementById('modQuantity').value) / len);
+  }
+
+  function updateSelectedStringLengths() {
+    const el = document.getElementById('stringLenSelected');
+    const sorted = selectedStringLengths.slice().sort((a, b) => a - b);
+    el.innerHTML = sorted.length ? sorted.join(', ') + '<small> modules</small>' : '—<small> none selected</small>';
+    const total = totalStringsOnSite();
+    document.getElementById('stringTotalCount').innerHTML = total
+      ? total + '<small> strings</small>' : '—<small> strings</small>';
+    // `var` so this is hoisted-undefined rather than in the temporal dead zone:
+    // this runs once during init, before the Inverter Design block below has
+    // initialized its own state.
+    if (inverterDesignReady) recomputeInverterDesign();
   }
 
   function recomputeStringLength() {
@@ -2298,32 +2441,253 @@
 
     document.getElementById('stringLenMin').innerHTML = r.minLen + '<small> modules</small>';
     document.getElementById('stringLenMax').innerHTML = r.maxLen + '<small> modules</small>';
+
+    // Longer strings sit higher above the MPPT floor, so the longest length that
+    // still clears the cold-Voc ceiling is also the longest-lived one.
+    let recommended = null;
+    for (let n = r.maxLen; n >= r.minLen; n--) {
+      if (mpptLifeYears(n, r) >= MPPT_LIFE_TARGET_YEARS) { recommended = n; break; }
+    }
+    recommendedStringLength = recommended;
     const recEl = document.getElementById('stringLenRecommended');
-    recEl.innerHTML = valid ? (r.maxLen + '<small> modules</small>') : '—<small> no valid length in range</small>';
-    recEl.style.color = valid ? 'var(--pass)' : 'var(--fail)';
+    if (!valid) {
+      recEl.innerHTML = '—<small> no valid length in range</small>';
+      recEl.style.color = 'var(--fail)';
+    } else if (recommended === null) {
+      recEl.innerHTML = '—<small> none reach ' + MPPT_LIFE_TARGET_YEARS + ' yr MPPT life</small>';
+      recEl.style.color = 'var(--fail)';
+    } else {
+      recEl.innerHTML = recommended + '<small> modules</small>';
+      recEl.style.color = 'var(--pass)';
+    }
+    const recLifeEl = document.getElementById('stringLenRecommendedLife');
+    const recLife = recommended === null ? null : mpptLifeYears(recommended, r);
+    recLifeEl.innerHTML = recLife === null ? '—<small> yr</small>' : recLife.toFixed(2) + '<small> yr</small>';
+    recLifeEl.style.color = recLife === null ? 'var(--fail)' : 'var(--pass)';
 
     const rangeStart = Math.max(1, r.minLen - 1);
     const rangeEnd = Math.max(rangeStart + 1, r.maxLen + 1);
+    selectedStringLengths = selectedStringLengths.filter(n => n >= rangeStart && n <= rangeEnd);
+
     const body = document.getElementById('stringLenBody');
     body.innerHTML = '';
     for (let n = rangeStart; n <= rangeEnd; n++) {
       const voc = r.vocPerModuleCold * n;
       const vmp = r.vmpPerModuleHot * n;
       const withinWindow = voc <= r.mpptVMax && voc <= r.maxSystemV && vmp >= r.mpptVMin;
-      const isRecommended = valid && n === r.maxLen;
+      const life = mpptLifeYears(n, r);
+      const lifeOk = life >= MPPT_LIFE_TARGET_YEARS;
+      const isRecommended = n === recommended;
       const row = document.createElement('tr');
       row.innerHTML =
+        '<td><input type="checkbox" data-string-len="' + n + '"' + (selectedStringLengths.includes(n) ? ' checked' : '') + ' style="width:auto;"></td>' +
         '<td>' + n + (isRecommended ? ' <span class="chip chip-pass" style="margin-left:6px;">Recommended</span>' : '') + '</td>' +
         '<td style="text-align:right;">' + voc.toFixed(1) + '</td>' +
         '<td style="text-align:right;">' + vmp.toFixed(1) + '</td>' +
+        '<td style="text-align:right; color:' + (lifeOk ? 'var(--pass)' : 'var(--fail)') + ';">' + (Number.isFinite(life) ? life.toFixed(1) : '∞') + '</td>' +
         '<td><span class="status-chip ' + (withinWindow ? 'status-extracted' : 'status-fail') + '"><span class="p"></span>' + (withinWindow ? 'Pass' : 'Fail') + '</span></td>';
       body.appendChild(row);
     }
+    updateSelectedStringLengths();
   }
+
+  document.getElementById('stringLenBody').addEventListener('change', e => {
+    const len = e.target.dataset.stringLen;
+    if (len === undefined) return;
+    const n = Number(len);
+    if (e.target.checked) {
+      if (!selectedStringLengths.includes(n)) selectedStringLengths.push(n);
+    } else {
+      selectedStringLengths = selectedStringLengths.filter(v => v !== n);
+    }
+    updateSelectedStringLengths();
+  });
+
   [document.getElementById('ashraeMinTemp'), document.getElementById('ashraeAvgHighTemp'),
    document.getElementById('invMpptVMin'), document.getElementById('invMpptVMax'),
-   document.getElementById('modMaxSystemVoltage')].forEach(el => el.addEventListener('input', recomputeStringLength));
+   document.getElementById('modMaxSystemVoltage'), document.getElementById('vdTotalDc'),
+   document.getElementById('modFirstYearDegradation'), document.getElementById('modAnnualDegradation')]
+    .forEach(el => el.addEventListener('input', recomputeStringLength));
   recomputeStringLength();
+
+  // ---- Inverter Design: per-inverter model / power / strings / switchboard ----
+  // One row per inverter on site. Rows are keyed by position, so growing or
+  // shrinking the quantity keeps whatever the designer already set on the rows
+  // that survive.
+  var inverterDesignReady = false;
+  const invDesignQuantityEl = document.getElementById('invDesignQuantity');
+  const invDesignSwitchboardCountEl = document.getElementById('invDesignSwitchboardCount');
+  const invDesignBody = document.getElementById('invDesignBody');
+
+  function defaultInverterDesignRow() {
+    return { model: invModel.value, powerMode: 'full', deratedKw: '', strings: '', switchboard: 'SWBD-1', selected: false };
+  }
+  let inverterDesignRows = [];
+
+  function switchboardTags() {
+    const n = Math.max(1, Math.min(50, parseInt(invDesignSwitchboardCountEl.value, 10) || 1));
+    return Array.from({ length: n }, (_, i) => 'SWBD-' + (i + 1));
+  }
+
+  function inverterRowAcKw(row) {
+    if (row.powerMode === 'derated') return parseNum(row.deratedKw) || 0;
+    const d = INVERTER_MODELS[row.model];
+    return d ? d.acRatingW / 1000 : 0;
+  }
+
+  function syncInverterDesignRowCount() {
+    const want = Math.max(0, Math.min(500, parseInt(parseNum(invDesignQuantityEl.value), 10) || 0));
+    while (inverterDesignRows.length < want) inverterDesignRows.push(defaultInverterDesignRow());
+    if (inverterDesignRows.length > want) inverterDesignRows.length = want;
+    const tags = switchboardTags();
+    inverterDesignRows.forEach(r => { if (!tags.includes(r.switchboard)) r.switchboard = tags[0]; });
+  }
+
+  function renderInverterDesign() {
+    const tags = switchboardTags();
+    const modelOptions = Object.keys(INVERTER_MODELS);
+    invDesignBody.innerHTML = inverterDesignRows.map((row, i) => {
+      const kw = inverterRowAcKw(row);
+      const modelSel = '<select data-inv-row="' + i + '" data-inv-field="model">' + modelOptions.map(k =>
+        '<option value="' + k + '"' + (row.model === k ? ' selected' : '') + '>' + INVERTER_MODELS[k].model + '</option>').join('') + '</select>';
+      const powerSel = '<select data-inv-row="' + i + '" data-inv-field="powerMode">' +
+        '<option value="full"' + (row.powerMode === 'full' ? ' selected' : '') + '>Full rating</option>' +
+        '<option value="derated"' + (row.powerMode === 'derated' ? ' selected' : '') + '>Derated</option></select>';
+      const kwCell = row.powerMode === 'derated'
+        ? '<input type="text" data-inv-row="' + i + '" data-inv-field="deratedKw" value="' + escapeAttr(row.deratedKw) + '" placeholder="kW">'
+        : '<span class="mono">' + kw.toFixed(0) + '</span>';
+      const sbSel = '<select data-inv-row="' + i + '" data-inv-field="switchboard">' + tags.map(t =>
+        '<option value="' + t + '"' + (row.switchboard === t ? ' selected' : '') + '>' + t + '</option>').join('') + '</select>';
+      return '<tr>' +
+        '<td><input type="checkbox" data-inv-select="' + i + '"' + (row.selected ? ' checked' : '') + ' style="width:auto;"></td>' +
+        '<td class="mono">INV-' + (i + 1) + '</td>' +
+        '<td>' + modelSel + '</td>' +
+        '<td>' + powerSel + '</td>' +
+        '<td style="text-align:right;">' + kwCell + '</td>' +
+        '<td style="text-align:right;"><input type="text" data-inv-row="' + i + '" data-inv-field="strings" value="' + escapeAttr(row.strings) + '" placeholder="—"></td>' +
+        '<td>' + sbSel + '</td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  function recomputeInverterDesign() {
+    syncInverterDesignRowCount();
+    renderInverterDesign();
+
+    const available = totalStringsOnSite();
+    const assigned = inverterDesignRows.reduce((sum, r) => sum + (parseNum(r.strings) || 0), 0);
+    const totalKw = inverterDesignRows.reduce((sum, r) => sum + inverterRowAcKw(r), 0);
+    const evenSplit = inverterDesignRows.length ? Math.floor(available / inverterDesignRows.length) : 0;
+
+    document.getElementById('invDesignStringsAvailable').innerHTML = available + '<small> strings</small>';
+    document.getElementById('invDesignEvenSplit').innerHTML = evenSplit + '<small> per inverter</small>';
+    document.getElementById('invDesignTotalAc').innerHTML = fmt(totalKw) + '<small> kW</small>';
+
+    const assignedEl = document.getElementById('invDesignStringsAssigned');
+    assignedEl.innerHTML = assigned + '<small> strings</small>';
+    assignedEl.style.color = assigned === available ? 'var(--pass)' : 'var(--warn)';
+
+    const hint = document.getElementById('invDesignBalanceHint');
+    const dot = document.getElementById('inverterDesignDot');
+    if (!available) {
+      hint.textContent = 'No strings available yet — pick a string length on PV String Design (08) first.';
+      dot.className = 'rail-dot dot-warn';
+    } else if (assigned === available) {
+      hint.textContent = 'All ' + available + ' strings are assigned across ' + inverterDesignRows.length + ' inverters.';
+      dot.className = 'rail-dot dot-pass';
+    } else {
+      const delta = available - assigned;
+      hint.textContent = delta > 0
+        ? delta + ' string(s) still unassigned (' + assigned + ' of ' + available + ').'
+        : Math.abs(delta) + ' string(s) over-assigned (' + assigned + ' assigned, only ' + available + ' available).';
+      dot.className = 'rail-dot dot-warn';
+    }
+  }
+
+  function refreshInverterBulkOptions() {
+    const modelSel = document.getElementById('invBulkModel');
+    const keep = modelSel.value;
+    modelSel.innerHTML = '<option value="">— no change —</option>' + Object.keys(INVERTER_MODELS).map(k =>
+      '<option value="' + k + '">' + INVERTER_MODELS[k].model + '</option>').join('');
+    modelSel.value = keep;
+    const sbSel = document.getElementById('invBulkSwitchboard');
+    const keepSb = sbSel.value;
+    sbSel.innerHTML = '<option value="">— no change —</option>' + switchboardTags().map(t =>
+      '<option value="' + t + '">' + t + '</option>').join('');
+    sbSel.value = switchboardTags().includes(keepSb) ? keepSb : '';
+  }
+
+  invDesignBody.addEventListener('input', e => {
+    const idx = e.target.dataset.invRow;
+    const field = e.target.dataset.invField;
+    if (idx === undefined || !field) return;
+    inverterDesignRows[Number(idx)][field] = e.target.value;
+    recomputeInverterDesign();
+  });
+  invDesignBody.addEventListener('change', e => {
+    const selIdx = e.target.dataset.invSelect;
+    if (selIdx !== undefined) {
+      inverterDesignRows[Number(selIdx)].selected = e.target.checked;
+      return;
+    }
+    const idx = e.target.dataset.invRow;
+    const field = e.target.dataset.invField;
+    if (idx === undefined || !field) return;
+    inverterDesignRows[Number(idx)][field] = e.target.value;
+    recomputeInverterDesign();
+  });
+
+  // No ticked rows means "every inverter" — the common case is a uniform design.
+  function targetedInverterRows() {
+    const ticked = inverterDesignRows.filter(r => r.selected);
+    return ticked.length ? ticked : inverterDesignRows;
+  }
+
+  document.getElementById('invBulkApplyBtn').addEventListener('click', () => {
+    const model = document.getElementById('invBulkModel').value;
+    const strings = document.getElementById('invBulkStrings').value.trim();
+    const switchboard = document.getElementById('invBulkSwitchboard').value;
+    const derate = document.getElementById('invBulkDerate').value.trim();
+    targetedInverterRows().forEach(r => {
+      if (model) r.model = model;
+      if (strings) r.strings = strings;
+      if (switchboard) r.switchboard = switchboard;
+      if (derate) { r.powerMode = 'derated'; r.deratedKw = derate; }
+    });
+    recomputeInverterDesign();
+  });
+
+  document.getElementById('invBulkEvenSplitBtn').addEventListener('click', () => {
+    const rows = inverterDesignRows;
+    if (!rows.length) return;
+    const available = totalStringsOnSite();
+    const base = Math.floor(available / rows.length);
+    let remainder = available - base * rows.length;
+    rows.forEach(r => {
+      r.strings = String(base + (remainder > 0 ? 1 : 0));
+      if (remainder > 0) remainder--;
+    });
+    recomputeInverterDesign();
+  });
+
+  document.getElementById('invSelectAllBtn').addEventListener('click', () => {
+    inverterDesignRows.forEach(r => { r.selected = true; });
+    renderInverterDesign();
+  });
+  document.getElementById('invSelectNoneBtn').addEventListener('click', () => {
+    inverterDesignRows.forEach(r => { r.selected = false; });
+    renderInverterDesign();
+  });
+
+  [invDesignQuantityEl, invDesignSwitchboardCountEl].forEach(el => el.addEventListener('input', () => {
+    refreshInverterBulkOptions();
+    recomputeInverterDesign();
+  }));
+  document.getElementById('modQuantity').addEventListener('input', recomputeInverterDesign);
+
+  inverterDesignReady = true;
+  refreshInverterBulkOptions();
+  recomputeInverterDesign();
 
   document.getElementById('ivValidateBtn').addEventListener('click', () => {
     const exp = computeExpectedIV();
@@ -3435,6 +3799,8 @@
     'combDisconnect', 'combDisconnectAmpRating', 'combSurgeSuppression', 'combSurgeSuppressionSize',
     'xfmrKva', 'xfmrPrimaryV', 'xfmrSecondaryV', 'xfmrPrimaryWinding', 'xfmrSecondaryWinding',
     'ashraeStationId', 'ashraeMinTemp', 'ashraeMaxTemp', 'ashraeAvgHighTemp', 'modMaxSystemVoltage',
+    'modManufacturer', 'modFirstYearDegradation', 'modAnnualDegradation',
+    'invDesignQuantity', 'invDesignSwitchboardCount',
     'ampCircuitType', 'ampParallelStrings', 'ampInsulationRating', 'ampConductorCount',
     'ocpdCircuit', 'ocpdContinuousCurrent',
     'sbBusbarRating', 'sbMainRating',
@@ -3479,6 +3845,11 @@
       combinerRows: combinerRowsOut, directoryContacts: directoryContactsOut,
       extraInverters: extraInverters.map(inv => ({ model: inv.model, dcVoltage: inv.dcVoltage, acVoltage: inv.acVoltage, phases: inv.phases })),
       sysArchBreakers: sysArchBreakers.map(b => ({ order: b.order, type: b.type, size: b.size })),
+      selectedStringLengths: selectedStringLengths.slice(),
+      inverterDesignRows: inverterDesignRows.map(r => ({
+        model: r.model, powerMode: r.powerMode, deratedKw: r.deratedKw,
+        strings: r.strings, switchboard: r.switchboard,
+      })),
     };
   }
 
@@ -3506,6 +3877,19 @@
       sysArchBreakers = project.sysArchBreakers.map(b => ({ order: b.order || '', type: b.type || '', size: b.size || '' }));
       renderSysArchBreakers();
     }
+    if (Array.isArray(project.selectedStringLengths)) {
+      selectedStringLengths = project.selectedStringLengths.map(Number).filter(n => Number.isFinite(n));
+    }
+    if (typeof syncPvStringModuleMfg === 'function') syncPvStringModuleMfg();
+    if (typeof recomputeStringLength === 'function') recomputeStringLength();
+    if (Array.isArray(project.inverterDesignRows)) {
+      inverterDesignRows = project.inverterDesignRows.map(r => ({
+        model: r.model || invModel.value, powerMode: r.powerMode || 'full', deratedKw: r.deratedKw || '',
+        strings: r.strings || '', switchboard: r.switchboard || 'SWBD-1', selected: false,
+      }));
+    }
+    if (typeof refreshInverterBulkOptions === 'function') refreshInverterBulkOptions();
+    if (typeof recomputeInverterDesign === 'function') recomputeInverterDesign();
 
     if (Array.isArray(project.contacts) && project.contacts.length) {
       contactList.innerHTML = '';
@@ -3662,6 +4046,9 @@
         max_series_fuse_rating_a: parseNum(modMaxFuse.value),
         quantity: parseNum(modQuantity.value),
         max_system_voltage_v: parseNum(document.getElementById('modMaxSystemVoltage').value),
+        manufacturer: document.getElementById('modManufacturer').value,
+        first_year_degradation_pct: parseNum(document.getElementById('modFirstYearDegradation').value),
+        annual_degradation_pct: parseNum(document.getElementById('modAnnualDegradation').value),
       },
       inverter: {
         model: document.getElementById('invModel').value,
@@ -3791,6 +4178,7 @@
       ['PV String Design', 'Recommended string length (modules)', document.getElementById('stringLenRecommended').textContent, data.string_design.recommended_string_length == null ? '—' : String(data.string_design.recommended_string_length)],
       ['PV String Design', 'Max string length (modules)', document.getElementById('stringLenMax').textContent, data.string_design.max_string_length],
       ['PV String Design', 'Min string length (modules)', document.getElementById('stringLenMin').textContent, data.string_design.min_string_length],
+      ['PV String Design', 'Recommended MPPT life (yr)', document.getElementById('stringLenRecommendedLife').textContent, data.string_design.recommended_mppt_life_years == null ? '—' : String(data.string_design.recommended_mppt_life_years)],
     ];
 
     const body = document.getElementById('backendCompareBody');
