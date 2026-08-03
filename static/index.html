@@ -177,6 +177,20 @@
   .computed .v { font-family: var(--font-mono); font-size: 20px; margin-top: 3px; color: var(--ink); }
   .computed .v small { font-size: 12px; color: var(--ink-muted); font-family: var(--font-body); }
 
+  /* Inverter Design: one bulk-edit group per editable column */
+  .bulk-group { border-top: 1px solid var(--line); margin-top: 16px; padding-top: 16px; }
+  .bulk-btns { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+  .inv-expand { background: none; border: none; cursor: pointer; color: var(--accent); font-size: 13px; padding: 2px 6px; }
+  .inv-strings-row > td { background: var(--accent-soft); padding: 12px 16px; }
+  .inv-strings-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+  .inv-string-cell { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+  .inv-string-cell span { font-family: var(--font-mono); color: var(--ink-muted); white-space: nowrap; }
+  .inv-string-cell input { width: 100%; }
+  .summary-block { margin-bottom: 14px; }
+  .summary-block .h { font-size: 12.5px; font-weight: 600; color: var(--ink); margin-bottom: 4px; }
+  .summary-block ul { margin: 0; padding-left: 18px; }
+  .summary-block li { font-size: 12.5px; color: var(--ink-muted); line-height: 1.7; }
+
   /* ---------- Upload ---------- */
   .dropzone {
     border: 2px dashed var(--border); border-radius: 10px; padding: 34px 20px; text-align: center;
@@ -962,53 +976,136 @@
               <label for="invDesignSwitchboardCount">Number of switchboards</label>
               <input type="text" id="invDesignSwitchboardCount" value="1">
             </div>
+            <div class="field wide">
+              <label for="invNamingConvention">Inverter naming convention</label>
+              <select id="invNamingConvention">
+                <option value="sequential" selected>INV-N — sequential across site (INV-1, INV-2, INV-3)</option>
+                <option value="switchboard">INV-(switchboard)-(N) — INV-1-2 is the 2nd inverter on switchboard 1</option>
+              </select>
+            </div>
           </div>
           <div class="computed-row" style="margin-top:14px;">
             <div class="computed"><div class="k">Strings available</div><div class="v" id="invDesignStringsAvailable">—<small> strings</small></div></div>
             <div class="computed"><div class="k">Strings assigned</div><div class="v" id="invDesignStringsAssigned">—<small> strings</small></div></div>
-            <div class="computed"><div class="k">Even split</div><div class="v" id="invDesignEvenSplit">—<small> per inverter</small></div></div>
-            <div class="computed"><div class="k">Total AC capacity</div><div class="v" id="invDesignTotalAc">—<small> kW</small></div></div>
+            <div class="computed"><div class="k">Target DC : AC</div><div class="v" id="invDesignTargetRatio">—</div></div>
+            <div class="computed"><div class="k">Actual DC : AC</div><div class="v" id="invDesignActualRatio">—</div></div>
           </div>
           <p class="desc" style="margin-top:12px;" id="invDesignBalanceHint">—</p>
         </div>
 
         <div class="card">
+          <p class="card-title">Summary</p>
+          <div class="computed-row">
+            <div class="computed"><div class="k">Actual AC power</div><div class="v" id="invSummaryAc">—<small> kW</small></div></div>
+            <div class="computed"><div class="k">Actual DC power</div><div class="v" id="invSummaryDc">—<small> kW</small></div></div>
+          </div>
+          <div id="invSummaryBreakdown" style="margin-top:16px;"></div>
+        </div>
+
+        <div class="card">
           <p class="card-title">Bulk edit</p>
-          <p class="desc" style="margin-bottom:14px;">Applies to the ticked rows below, or to every inverter when none are ticked. Leave a field blank to leave that column alone.</p>
-          <div class="field-grid">
-            <div class="field wide">
-              <label for="invBulkModel">Set model</label>
-              <select id="invBulkModel"><option value="">— no change —</option></select>
+          <p class="desc" style="margin-bottom:0;">Every group applies to the ticked rows below, or to all inverters when none are ticked.</p>
+
+          <div class="bulk-group">
+            <div class="field-grid">
+              <div class="field">
+                <label for="invBulkStrings">Strings per inverter</label>
+                <input type="text" id="invBulkStrings" placeholder="e.g. 26">
+              </div>
             </div>
-            <div class="field">
-              <label for="invBulkStrings">Set strings per inverter</label>
-              <input type="text" id="invBulkStrings" placeholder="e.g. 26">
-            </div>
-            <div class="field">
-              <label for="invBulkSwitchboard">Set switchboard</label>
-              <select id="invBulkSwitchboard"><option value="">— no change —</option></select>
-            </div>
-            <div class="field">
-              <label for="invBulkDerate">Set derated power <span class="unit">kW</span></label>
-              <input type="text" id="invBulkDerate" placeholder="blank = full rating">
+            <div class="bulk-btns">
+              <button class="btn btn-primary" data-bulk-apply="strings" type="button">Apply to selected</button>
+              <button class="btn" id="invDistributeBtn" type="button">Distribute by AC &amp; DC:AC</button>
+              <button class="btn" data-bulk-selectall type="button">Select all</button>
+              <button class="btn" data-bulk-selectnone type="button">Clear selection</button>
             </div>
           </div>
-          <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:14px;">
-            <button class="btn btn-primary" id="invBulkApplyBtn" type="button">Apply to selected</button>
-            <button class="btn" id="invBulkEvenSplitBtn" type="button">Distribute strings evenly</button>
-            <button class="btn" id="invSelectAllBtn" type="button">Select all</button>
-            <button class="btn" id="invSelectNoneBtn" type="button">Clear selection</button>
+
+          <div class="bulk-group">
+            <div class="field-grid">
+              <div class="field">
+                <label for="invBulkModulesPerString">Modules per string <span class="unit">from PV String Design</span></label>
+                <select id="invBulkModulesPerString"></select>
+              </div>
+            </div>
+            <div class="bulk-btns">
+              <button class="btn btn-primary" data-bulk-apply="modulesPerString" type="button">Apply to selected</button>
+              <button class="btn" data-bulk-selectall type="button">Select all</button>
+              <button class="btn" data-bulk-selectnone type="button">Clear selection</button>
+            </div>
+          </div>
+
+          <div class="bulk-group">
+            <div class="field-grid">
+              <div class="field wide">
+                <label for="invBulkModel">Model</label>
+                <select id="invBulkModel"></select>
+              </div>
+            </div>
+            <div class="bulk-btns">
+              <button class="btn btn-primary" data-bulk-apply="model" type="button">Apply to selected</button>
+              <button class="btn" data-bulk-selectall type="button">Select all</button>
+              <button class="btn" data-bulk-selectnone type="button">Clear selection</button>
+            </div>
+          </div>
+
+          <div class="bulk-group">
+            <div class="field-grid">
+              <div class="field">
+                <label for="invBulkSwitchboard">Switchboard</label>
+                <select id="invBulkSwitchboard"></select>
+              </div>
+            </div>
+            <div class="bulk-btns">
+              <button class="btn btn-primary" data-bulk-apply="switchboard" type="button">Apply to selected</button>
+              <button class="btn" data-bulk-selectall type="button">Select all</button>
+              <button class="btn" data-bulk-selectnone type="button">Clear selection</button>
+            </div>
+          </div>
+
+          <div class="bulk-group">
+            <div class="field-grid">
+              <div class="field">
+                <label for="invBulkDerate">Derated power <span class="unit">kW</span></label>
+                <input type="text" id="invBulkDerate" placeholder="blank = full rating">
+              </div>
+            </div>
+            <div class="bulk-btns">
+              <button class="btn btn-primary" data-bulk-apply="derate" type="button">Apply to selected</button>
+              <button class="btn" data-bulk-apply="fullrating" type="button">Reset to full rating</button>
+              <button class="btn" data-bulk-selectall type="button">Select all</button>
+              <button class="btn" data-bulk-selectnone type="button">Clear selection</button>
+            </div>
           </div>
         </div>
 
         <div class="card">
           <p class="card-title">Inverter schedule</p>
+          <p class="desc" style="margin-bottom:14px;">Use the ▸ toggle to open an inverter and edit the module count of individual strings on it.</p>
           <div style="overflow-x:auto;">
             <table class="etap">
-              <thead><tr><th>Edit</th><th>Inverter</th><th>Model (from Inverter Spec)</th><th>Power</th><th style="text-align:right;">AC kW</th><th style="text-align:right;">Strings</th><th>Switchboard</th></tr></thead>
+              <thead><tr><th></th><th>Edit</th><th>Inverter</th><th>Model (from Inverter Spec)</th><th>Power</th><th style="text-align:right;">AC kW</th><th style="text-align:right;">Strings</th><th style="text-align:right;">DC kW</th><th>Switchboard</th></tr></thead>
               <tbody id="invDesignBody"></tbody>
             </table>
           </div>
+        </div>
+
+        <div class="card">
+          <p class="card-title">PVCase BOM import</p>
+          <p class="desc" style="margin-bottom:14px;">Drop a PVCase bill of materials to override the schedule above with the as-laid-out inverter and string counts. Upload tracking is scaffolded — parsing and override are not wired up yet.</p>
+          <div class="dropzone" id="invBomDropzone" tabindex="0" role="button" aria-label="Upload PVCase BOM">
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
+              <path d="M12 3v12m0-12 4 4m-4-4-4 4"/>
+              <path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/>
+            </svg>
+            <div class="cta">Drop the PVCase BOM here, or click to browse</div>
+            <div class="sub">PVCase BOM (.csv / .xlsx) · Layout export · String schedule · Other Uploads</div>
+            <input type="file" id="invBomInput" multiple style="display:none;">
+          </div>
+          <table class="manifest" style="margin-top:14px;">
+            <thead><tr><th>File</th><th>Detected type</th><th>Status</th></tr></thead>
+            <tbody id="invBomManifestBody"><tr class="empty"><td colspan="3">No BOM uploaded yet</td></tr></tbody>
+          </table>
         </div>
       </section>
 
@@ -2511,16 +2608,19 @@
   recomputeStringLength();
 
   // ---- Inverter Design: per-inverter model / power / strings / switchboard ----
-  // One row per inverter on site. Rows are keyed by position, so growing or
-  // shrinking the quantity keeps whatever the designer already set on the rows
-  // that survive.
+  // One row per inverter on site. A row owns its strings as an explicit list of
+  // module counts (stringModules), so the string count is just its length and a
+  // single string can be re-sized without disturbing its neighbours. Rows are
+  // keyed by position, so changing the quantity keeps whatever was already set
+  // on the rows that survive.
   var inverterDesignReady = false;
   const invDesignQuantityEl = document.getElementById('invDesignQuantity');
   const invDesignSwitchboardCountEl = document.getElementById('invDesignSwitchboardCount');
+  const invNamingConventionEl = document.getElementById('invNamingConvention');
   const invDesignBody = document.getElementById('invDesignBody');
 
   function defaultInverterDesignRow() {
-    return { model: invModel.value, powerMode: 'full', deratedKw: '', strings: '', switchboard: 'SWBD-1', selected: false };
+    return { model: invModel.value, powerMode: 'full', deratedKw: '', switchboard: 'SWBD-1', stringModules: [], expanded: false, selected: false };
   }
   let inverterDesignRows = [];
 
@@ -2529,10 +2629,39 @@
     return Array.from({ length: n }, (_, i) => 'SWBD-' + (i + 1));
   }
 
+  // INV-N across the whole site, or INV-(switchboard)-(N within that switchboard).
+  function inverterTags() {
+    const perBoard = {};
+    return inverterDesignRows.map((row, i) => {
+      if (invNamingConventionEl.value !== 'switchboard') return 'INV-' + (i + 1);
+      const boardNum = (row.switchboard.match(/(\d+)$/) || [null, '1'])[1];
+      perBoard[boardNum] = (perBoard[boardNum] || 0) + 1;
+      return 'INV-' + boardNum + '-' + perBoard[boardNum];
+    });
+  }
+
   function inverterRowAcKw(row) {
     if (row.powerMode === 'derated') return parseNum(row.deratedKw) || 0;
     const d = INVERTER_MODELS[row.model];
     return d ? d.acRatingW / 1000 : 0;
+  }
+  function inverterRowDcKw(row) {
+    return row.stringModules.reduce((sum, n) => sum + (n || 0), 0) * MODULE_W / 1000;
+  }
+  function targetDcAcRatio() {
+    const ac = parseNum(targetAc.value);
+    return ac > 0 ? parseNum(targetDc.value) / ac : 0;
+  }
+  // The module count a fresh string on this row should get.
+  function rowDefaultStringLength(row) {
+    if (row.stringModules.length) return row.stringModules[row.stringModules.length - 1];
+    return primaryStringLength() || 0;
+  }
+  function resizeStringModules(row, count) {
+    const want = Math.max(0, Math.min(2000, count));
+    const fill = rowDefaultStringLength(row);
+    while (row.stringModules.length < want) row.stringModules.push(fill);
+    if (row.stringModules.length > want) row.stringModules.length = want;
   }
 
   function syncInverterDesignRowCount() {
@@ -2545,6 +2674,7 @@
 
   function renderInverterDesign() {
     const tags = switchboardTags();
+    const names = inverterTags();
     const modelOptions = Object.keys(INVERTER_MODELS);
     invDesignBody.innerHTML = inverterDesignRows.map((row, i) => {
       const kw = inverterRowAcKw(row);
@@ -2558,30 +2688,109 @@
         : '<span class="mono">' + kw.toFixed(0) + '</span>';
       const sbSel = '<select data-inv-row="' + i + '" data-inv-field="switchboard">' + tags.map(t =>
         '<option value="' + t + '"' + (row.switchboard === t ? ' selected' : '') + '>' + t + '</option>').join('') + '</select>';
-      return '<tr>' +
+
+      let html = '<tr>' +
+        '<td><button type="button" class="inv-expand" data-inv-expand="' + i + '">' + (row.expanded ? '&#9662;' : '&#9656;') + '</button></td>' +
         '<td><input type="checkbox" data-inv-select="' + i + '"' + (row.selected ? ' checked' : '') + ' style="width:auto;"></td>' +
-        '<td class="mono">INV-' + (i + 1) + '</td>' +
+        '<td class="mono">' + names[i] + '</td>' +
         '<td>' + modelSel + '</td>' +
         '<td>' + powerSel + '</td>' +
         '<td style="text-align:right;">' + kwCell + '</td>' +
-        '<td style="text-align:right;"><input type="text" data-inv-row="' + i + '" data-inv-field="strings" value="' + escapeAttr(row.strings) + '" placeholder="—"></td>' +
+        '<td style="text-align:right;"><input type="text" data-inv-row="' + i + '" data-inv-field="stringCount" value="' + row.stringModules.length + '"></td>' +
+        '<td style="text-align:right;" class="mono">' + inverterRowDcKw(row).toFixed(0) + '</td>' +
         '<td>' + sbSel + '</td>' +
       '</tr>';
+
+      if (row.expanded) {
+        const cells = row.stringModules.map((n, s) =>
+          '<div class="inv-string-cell"><span>' + names[i] + '-STR-' + (s + 1) + '</span>' +
+          '<input type="text" data-inv-row="' + i + '" data-inv-string="' + s + '" value="' + n + '"></div>').join('');
+        html += '<tr class="inv-strings-row"><td colspan="9">' +
+          (cells ? '<div class="inv-strings-grid">' + cells + '</div>'
+                 : '<span class="desc">No strings assigned to this inverter yet.</span>') +
+          '</td></tr>';
+      }
+      return html;
     }).join('');
+  }
+
+  // "100 strings - 90 of 26 modules, 10 of 24 modules" style rollups.
+  function summarizeRows(rows) {
+    const byModel = {};
+    rows.forEach(r => {
+      const d = INVERTER_MODELS[r.model];
+      const name = (d ? d.model : r.model) + (r.powerMode === 'derated' ? ' (derated ' + (parseNum(r.deratedKw) || 0) + ' kW)' : '');
+      byModel[name] = (byModel[name] || 0) + 1;
+    });
+    const byLength = {};
+    let strings = 0;
+    rows.forEach(r => r.stringModules.forEach(n => { byLength[n] = (byLength[n] || 0) + 1; strings++; }));
+    return {
+      inverters: rows.length,
+      byModel,
+      strings,
+      byLength,
+      acKw: rows.reduce((s, r) => s + inverterRowAcKw(r), 0),
+      dcKw: rows.reduce((s, r) => s + inverterRowDcKw(r), 0),
+    };
+  }
+
+  function summaryBlockHtml(title, rows) {
+    const s = summarizeRows(rows);
+    const modelKeys = Object.keys(s.byModel);
+    const lengthKeys = Object.keys(s.byLength).map(Number).sort((a, b) => b - a);
+    const head = title + ' — ' + s.inverters + ' inverter' + (s.inverters === 1 ? '' : 's') +
+      ', ' + fmt(s.acKw) + ' kW AC / ' + fmt(s.dcKw) + ' kW DC';
+    let items = modelKeys.map(k => '<li>' + s.byModel[k] + ' &times; ' + k + '</li>').join('');
+    items += '<li>' + s.strings + ' string' + (s.strings === 1 ? '' : 's') +
+      (lengthKeys.length ? '<ul>' + lengthKeys.map(n =>
+        '<li>' + s.byLength[n] + ' string' + (s.byLength[n] === 1 ? '' : 's') + ' of ' + n + ' modules</li>').join('') + '</ul>' : '') +
+      '</li>';
+    return '<div class="summary-block"><div class="h">' + head + '</div><ul>' + items + '</ul></div>';
+  }
+
+  function renderInverterSummary() {
+    const site = summarizeRows(inverterDesignRows);
+    document.getElementById('invSummaryAc').innerHTML = fmt(site.acKw) + '<small> kW</small>';
+    document.getElementById('invSummaryDc').innerHTML = fmt(site.dcKw) + '<small> kW</small>';
+    let html = summaryBlockHtml('Site summary', inverterDesignRows);
+    switchboardTags().forEach(tag => {
+      const rows = inverterDesignRows.filter(r => r.switchboard === tag);
+      if (rows.length) html += summaryBlockHtml(tag, rows);
+    });
+    document.getElementById('invSummaryBreakdown').innerHTML = html;
+  }
+
+  // Editing one string's module count must not re-render the grid the user is
+  // typing in, so refresh only the derived numbers around it.
+  function recomputeInverterDesignTotalsOnly() {
+    const available = totalStringsOnSite();
+    const assigned = inverterDesignRows.reduce((sum, r) => sum + r.stringModules.length, 0);
+    const acKw = inverterDesignRows.reduce((sum, r) => sum + inverterRowAcKw(r), 0);
+    const dcKw = inverterDesignRows.reduce((sum, r) => sum + inverterRowDcKw(r), 0);
+    document.getElementById('invDesignActualRatio').textContent = acKw > 0 ? (dcKw / acKw).toFixed(2) : '—';
+    const mainRows = invDesignBody.querySelectorAll('tr:not(.inv-strings-row)');
+    inverterDesignRows.forEach((r, i) => {
+      if (mainRows[i]) mainRows[i].children[7].textContent = inverterRowDcKw(r).toFixed(0);
+    });
+    const assignedEl = document.getElementById('invDesignStringsAssigned');
+    assignedEl.innerHTML = assigned + '<small> strings</small>';
+    assignedEl.style.color = assigned === available ? 'var(--pass)' : 'var(--warn)';
   }
 
   function recomputeInverterDesign() {
     syncInverterDesignRowCount();
     renderInverterDesign();
+    renderInverterSummary();
 
     const available = totalStringsOnSite();
-    const assigned = inverterDesignRows.reduce((sum, r) => sum + (parseNum(r.strings) || 0), 0);
-    const totalKw = inverterDesignRows.reduce((sum, r) => sum + inverterRowAcKw(r), 0);
-    const evenSplit = inverterDesignRows.length ? Math.floor(available / inverterDesignRows.length) : 0;
+    const assigned = inverterDesignRows.reduce((sum, r) => sum + r.stringModules.length, 0);
+    const acKw = inverterDesignRows.reduce((sum, r) => sum + inverterRowAcKw(r), 0);
+    const dcKw = inverterDesignRows.reduce((sum, r) => sum + inverterRowDcKw(r), 0);
 
     document.getElementById('invDesignStringsAvailable').innerHTML = available + '<small> strings</small>';
-    document.getElementById('invDesignEvenSplit').innerHTML = evenSplit + '<small> per inverter</small>';
-    document.getElementById('invDesignTotalAc').innerHTML = fmt(totalKw) + '<small> kW</small>';
+    document.getElementById('invDesignTargetRatio').textContent = targetDcAcRatio().toFixed(2);
+    document.getElementById('invDesignActualRatio').textContent = acKw > 0 ? (dcKw / acKw).toFixed(2) : '—';
 
     const assignedEl = document.getElementById('invDesignStringsAssigned');
     assignedEl.innerHTML = assigned + '<small> strings</small>';
@@ -2607,23 +2816,48 @@
   function refreshInverterBulkOptions() {
     const modelSel = document.getElementById('invBulkModel');
     const keep = modelSel.value;
-    modelSel.innerHTML = '<option value="">— no change —</option>' + Object.keys(INVERTER_MODELS).map(k =>
+    modelSel.innerHTML = Object.keys(INVERTER_MODELS).map(k =>
       '<option value="' + k + '">' + INVERTER_MODELS[k].model + '</option>').join('');
-    modelSel.value = keep;
+    if (keep) modelSel.value = keep;
+
     const sbSel = document.getElementById('invBulkSwitchboard');
     const keepSb = sbSel.value;
-    sbSel.innerHTML = '<option value="">— no change —</option>' + switchboardTags().map(t =>
-      '<option value="' + t + '">' + t + '</option>').join('');
-    sbSel.value = switchboardTags().includes(keepSb) ? keepSb : '';
+    sbSel.innerHTML = switchboardTags().map(t => '<option value="' + t + '">' + t + '</option>').join('');
+    if (switchboardTags().includes(keepSb)) sbSel.value = keepSb;
+
+    // Only the lengths the designer ticked as "used" on PV String Design.
+    const mpsSel = document.getElementById('invBulkModulesPerString');
+    const keepMps = mpsSel.value;
+    const lengths = selectedStringLengths.length ? selectedStringLengths.slice().sort((a, b) => a - b)
+      : (recommendedStringLength ? [recommendedStringLength] : []);
+    mpsSel.innerHTML = lengths.length
+      ? lengths.map(n => '<option value="' + n + '">' + n + ' modules</option>').join('')
+      : '<option value="">— tick a length on PV String Design —</option>';
+    if (lengths.map(String).includes(keepMps)) mpsSel.value = keepMps;
   }
 
   invDesignBody.addEventListener('input', e => {
     const idx = e.target.dataset.invRow;
+    if (idx === undefined) return;
+    const row = inverterDesignRows[Number(idx)];
+    const strIdx = e.target.dataset.invString;
+    if (strIdx !== undefined) {
+      row.stringModules[Number(strIdx)] = parseInt(parseNum(e.target.value), 10) || 0;
+      renderInverterSummary();
+      recomputeInverterDesignTotalsOnly();
+      return;
+    }
     const field = e.target.dataset.invField;
-    if (idx === undefined || !field) return;
-    inverterDesignRows[Number(idx)][field] = e.target.value;
+    if (!field) return;
+    if (field === 'stringCount') {
+      resizeStringModules(row, parseInt(parseNum(e.target.value), 10) || 0);
+      recomputeInverterDesign();
+      return;
+    }
+    row[field] = e.target.value;
     recomputeInverterDesign();
   });
+
   invDesignBody.addEventListener('change', e => {
     const selIdx = e.target.dataset.invSelect;
     if (selIdx !== undefined) {
@@ -2632,9 +2866,17 @@
     }
     const idx = e.target.dataset.invRow;
     const field = e.target.dataset.invField;
-    if (idx === undefined || !field) return;
+    if (idx === undefined || !field || field === 'stringCount') return;
     inverterDesignRows[Number(idx)][field] = e.target.value;
     recomputeInverterDesign();
+  });
+
+  invDesignBody.addEventListener('click', e => {
+    const idx = e.target.dataset.invExpand;
+    if (idx === undefined) return;
+    const row = inverterDesignRows[Number(idx)];
+    row.expanded = !row.expanded;
+    renderInverterDesign();
   });
 
   // No ticked rows means "every inverter" — the common case is a uniform design.
@@ -2643,47 +2885,73 @@
     return ticked.length ? ticked : inverterDesignRows;
   }
 
-  document.getElementById('invBulkApplyBtn').addEventListener('click', () => {
-    const model = document.getElementById('invBulkModel').value;
-    const strings = document.getElementById('invBulkStrings').value.trim();
-    const switchboard = document.getElementById('invBulkSwitchboard').value;
-    const derate = document.getElementById('invBulkDerate').value.trim();
-    targetedInverterRows().forEach(r => {
-      if (model) r.model = model;
-      if (strings) r.strings = strings;
-      if (switchboard) r.switchboard = switchboard;
-      if (derate) { r.powerMode = 'derated'; r.deratedKw = derate; }
+  document.querySelectorAll('[data-bulk-apply]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const what = btn.dataset.bulkApply;
+      const rows = targetedInverterRows();
+      if (what === 'strings') {
+        const v = parseInt(parseNum(document.getElementById('invBulkStrings').value), 10);
+        if (!Number.isFinite(v)) return;
+        rows.forEach(r => resizeStringModules(r, v));
+      } else if (what === 'modulesPerString') {
+        const v = parseInt(document.getElementById('invBulkModulesPerString').value, 10);
+        if (!Number.isFinite(v)) return;
+        rows.forEach(r => { r.stringModules = r.stringModules.map(() => v); });
+      } else if (what === 'model') {
+        const v = document.getElementById('invBulkModel').value;
+        if (v) rows.forEach(r => { r.model = v; });
+      } else if (what === 'switchboard') {
+        const v = document.getElementById('invBulkSwitchboard').value;
+        if (v) rows.forEach(r => { r.switchboard = v; });
+      } else if (what === 'derate') {
+        const v = document.getElementById('invBulkDerate').value.trim();
+        if (v) rows.forEach(r => { r.powerMode = 'derated'; r.deratedKw = v; });
+      } else if (what === 'fullrating') {
+        rows.forEach(r => { r.powerMode = 'full'; r.deratedKw = ''; });
+      }
+      recomputeInverterDesign();
     });
-    recomputeInverterDesign();
   });
 
-  document.getElementById('invBulkEvenSplitBtn').addEventListener('click', () => {
-    const rows = inverterDesignRows;
-    if (!rows.length) return;
-    const available = totalStringsOnSite();
-    const base = Math.floor(available / rows.length);
-    let remainder = available - base * rows.length;
-    rows.forEach(r => {
-      r.strings = String(base + (remainder > 0 ? 1 : 0));
-      if (remainder > 0) remainder--;
-    });
-    recomputeInverterDesign();
-  });
-
-  document.getElementById('invSelectAllBtn').addEventListener('click', () => {
+  document.querySelectorAll('[data-bulk-selectall]').forEach(btn => btn.addEventListener('click', () => {
     inverterDesignRows.forEach(r => { r.selected = true; });
     renderInverterDesign();
-  });
-  document.getElementById('invSelectNoneBtn').addEventListener('click', () => {
+  }));
+  document.querySelectorAll('[data-bulk-selectnone]').forEach(btn => btn.addEventListener('click', () => {
     inverterDesignRows.forEach(r => { r.selected = false; });
     renderInverterDesign();
+  }));
+
+  // Each inverter carries the DC its own AC rating asks for at the site's target
+  // DC:AC ratio, so a derated unit gets proportionally fewer strings. Any
+  // shortfall or excess against the strings actually on site shows in the hint.
+  document.getElementById('invDistributeBtn').addEventListener('click', () => {
+    const ratio = targetDcAcRatio();
+    if (!ratio) return;
+    inverterDesignRows.forEach(row => {
+      const len = rowDefaultStringLength(row) || primaryStringLength();
+      if (!len) return;
+      const targetDcW = inverterRowAcKw(row) * 1000 * ratio;
+      resizeStringModules(row, Math.round(targetDcW / (len * MODULE_W)));
+    });
+    recomputeInverterDesign();
   });
 
   [invDesignQuantityEl, invDesignSwitchboardCountEl].forEach(el => el.addEventListener('input', () => {
     refreshInverterBulkOptions();
     recomputeInverterDesign();
   }));
+  invNamingConventionEl.addEventListener('change', renderInverterDesign);
   document.getElementById('modQuantity').addEventListener('input', recomputeInverterDesign);
+
+  initDocTracker({
+    dropzoneId: 'invBomDropzone', inputId: 'invBomInput', manifestBodyId: 'invBomManifestBody',
+    types: [
+      { label: 'PVCase BOM', keywords: ['bom', 'bill of material', 'pvcase'] },
+      { label: 'Layout export', keywords: ['layout', 'export'] },
+      { label: 'String schedule', keywords: ['string', 'schedule'] },
+    ],
+  });
 
   inverterDesignReady = true;
   refreshInverterBulkOptions();
@@ -3800,7 +4068,7 @@
     'xfmrKva', 'xfmrPrimaryV', 'xfmrSecondaryV', 'xfmrPrimaryWinding', 'xfmrSecondaryWinding',
     'ashraeStationId', 'ashraeMinTemp', 'ashraeMaxTemp', 'ashraeAvgHighTemp', 'modMaxSystemVoltage',
     'modManufacturer', 'modFirstYearDegradation', 'modAnnualDegradation',
-    'invDesignQuantity', 'invDesignSwitchboardCount',
+    'invDesignQuantity', 'invDesignSwitchboardCount', 'invNamingConvention',
     'ampCircuitType', 'ampParallelStrings', 'ampInsulationRating', 'ampConductorCount',
     'ocpdCircuit', 'ocpdContinuousCurrent',
     'sbBusbarRating', 'sbMainRating',
@@ -3848,7 +4116,7 @@
       selectedStringLengths: selectedStringLengths.slice(),
       inverterDesignRows: inverterDesignRows.map(r => ({
         model: r.model, powerMode: r.powerMode, deratedKw: r.deratedKw,
-        strings: r.strings, switchboard: r.switchboard,
+        switchboard: r.switchboard, stringModules: r.stringModules.slice(),
       })),
     };
   }
@@ -3885,7 +4153,9 @@
     if (Array.isArray(project.inverterDesignRows)) {
       inverterDesignRows = project.inverterDesignRows.map(r => ({
         model: r.model || invModel.value, powerMode: r.powerMode || 'full', deratedKw: r.deratedKw || '',
-        strings: r.strings || '', switchboard: r.switchboard || 'SWBD-1', selected: false,
+        switchboard: r.switchboard || 'SWBD-1',
+        stringModules: Array.isArray(r.stringModules) ? r.stringModules.map(Number) : [],
+        expanded: false, selected: false,
       }));
     }
     if (typeof refreshInverterBulkOptions === 'function') refreshInverterBulkOptions();
