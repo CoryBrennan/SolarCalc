@@ -272,7 +272,20 @@
   .status-parsing .p { background: var(--warn); animation: pulse 1s ease-in-out infinite; }
   .status-extracted { background: var(--pass-soft); color: var(--pass); }
   .status-extracted .p { background: var(--pass); }
+  .status-uploaded { background: var(--surface-2); color: var(--ink-muted); }
+  .status-uploaded .p { background: var(--ink-muted); }
+  .status-approved { background: var(--pass-soft); color: var(--pass); }
+  .status-approved .p { background: var(--pass); }
+  .status-fail { background: var(--fail-soft); color: var(--fail); }
+  .status-fail .p { background: var(--fail); }
+  .status-archived { background: var(--surface-2); color: var(--ink-muted); }
+  .status-archived .p { background: var(--ink-muted); }
   @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+  table.manifest tr.archived-row td { color: var(--ink-muted); }
+  table.manifest tr.archived-row .fname { text-decoration: line-through; }
+  table.manifest .doc-actions { display: flex; gap: 6px; flex-wrap: wrap; white-space: nowrap; }
+  table.manifest tr.review-row > td { background: var(--accent-soft); padding: 14px 16px; }
+  .doc-review-form { display: flex; flex-direction: column; gap: 12px; }
 
   .note {
     display: flex; gap: 10px; background: var(--surface-2); border-radius: 8px; padding: 12px 14px;
@@ -490,8 +503,8 @@
     <div class="rail-mark">HMI · Draft<small>Solar EE Calc Engine</small></div>
     <ul class="rail-nav" id="railNav">
       <li><button class="rail-btn active" data-target="sec-site"><span><span class="rail-num">01</span> Site Config</span><span class="rail-dot dot-pass"></span></button></li>
-      <li><button class="rail-btn" data-target="sec-client"><span><span class="rail-num">02</span> Client Directory</span><span class="rail-dot dot-warn" id="clientDot"></span></button></li>
-      <li><button class="rail-btn" data-target="sec-directory"><span><span class="rail-num">03</span> Project Directory</span><span class="rail-dot dot-warn" id="directoryDot"></span></button></li>
+      <li><button class="rail-btn" data-target="sec-directory"><span><span class="rail-num">02</span> Project Directory</span><span class="rail-dot dot-warn" id="directoryDot"></span></button></li>
+      <li><button class="rail-btn" data-target="sec-jurisdiction"><span><span class="rail-num">03</span> Jurisdiction</span><span class="rail-dot dot-warn"></span></button></li>
       <li><button class="rail-btn" data-target="sec-ashrae"><span><span class="rail-num">04</span> ASHRAE Site Data</span><span class="rail-dot dot-warn"></span></button></li>
       <li><button class="rail-btn" data-target="sec-module"><span><span class="rail-num">05</span> Module Spec</span><span class="rail-dot dot-pass"></span></button></li>
       <li><button class="rail-btn" data-target="sec-inverter"><span><span class="rail-num">06</span> Inverter Spec</span><span class="rail-dot dot-pass"></span></button></li>
@@ -506,12 +519,11 @@
       <li><button class="rail-btn" data-target="sec-switchboard"><span><span class="rail-num">15</span> Switchboard 120%</span><span class="rail-dot dot-pass" id="switchboardDot"></span></button></li>
       <li><button class="rail-btn" data-target="sec-bonding"><span><span class="rail-num">16</span> Bonding &amp; Grounding</span><span class="rail-dot dot-warn" id="bondingDot"></span></button></li>
       <li><button class="rail-btn" data-target="sec-vdrop"><span><span class="rail-num">17</span> Voltage Drop Limits</span><span class="rail-dot dot-pass" id="vdropDot"></span></button></li>
-      <li><button class="rail-btn" data-target="sec-jurisdiction"><span><span class="rail-num">18</span> Jurisdiction</span><span class="rail-dot dot-warn"></span></button></li>
-      <li><button class="rail-btn" data-target="sec-upload"><span><span class="rail-num">19</span> Document Intake</span><span class="rail-dot dot-warn" id="uploadDot"></span></button></li>
-      <li><button class="rail-btn" data-target="sec-placards"><span><span class="rail-num">20</span> Placarding</span><span class="rail-dot dot-pass"></span></button></li>
-      <li><button class="rail-btn" data-target="sec-etap"><span><span class="rail-num">21</span> ETAP Export</span><span class="rail-dot dot-pass"></span></button></li>
-      <li><button class="rail-btn" data-target="sec-fluke"><span><span class="rail-num">22</span> I-V Curve Field Prep</span><span class="rail-dot dot-warn"></span></button></li>
-      <li><button class="rail-btn" data-target="sec-backend"><span><span class="rail-num">23</span> Backend Verification</span><span class="rail-dot dot-neutral" id="backendDot"></span></button></li>
+      <li><button class="rail-btn" data-target="sec-upload"><span><span class="rail-num">18</span> Document Intake</span><span class="rail-dot dot-warn" id="uploadDot"></span></button></li>
+      <li><button class="rail-btn" data-target="sec-placards"><span><span class="rail-num">19</span> Placarding</span><span class="rail-dot dot-pass"></span></button></li>
+      <li><button class="rail-btn" data-target="sec-etap"><span><span class="rail-num">20</span> ETAP Export</span><span class="rail-dot dot-pass"></span></button></li>
+      <li><button class="rail-btn" data-target="sec-fluke"><span><span class="rail-num">21</span> I-V Curve Field Prep</span><span class="rail-dot dot-warn"></span></button></li>
+      <li><button class="rail-btn" data-target="sec-backend"><span><span class="rail-num">22</span> Backend Verification</span><span class="rail-dot dot-neutral" id="backendDot"></span></button></li>
     </ul>
     <div class="rail-foot">
       NEC edition resolved from <b>jurisdiction_lookup.py</b><br>
@@ -549,10 +561,6 @@
             <div class="field wide">
               <label for="projectName">Project name</label>
               <input class="prose" type="text" id="projectName" placeholder="e.g. Depot Ave Solar">
-            </div>
-            <div class="field wide">
-              <label for="utilityName">Utility</label>
-              <input class="prose" type="text" id="utilityName" placeholder="e.g. Ameren Illinois">
             </div>
             <div class="field wide">
               <label for="projectType">Project type</label>
@@ -673,22 +681,22 @@
             <input type="file" id="e911DocInput" multiple style="display:none;">
           </div>
           <table class="manifest" style="margin-top:14px;">
-            <thead><tr><th>File</th><th>Detected type</th><th>Status</th></tr></thead>
-            <tbody id="e911DocManifestBody"><tr class="empty"><td colspan="3">No E911 documentation uploaded yet</td></tr></tbody>
+            <thead><tr><th>File</th><th>Detected type</th><th>Status</th><th></th></tr></thead>
+            <tbody id="e911DocManifestBody"><tr class="empty"><td colspan="4">No E911 documentation uploaded yet</td></tr></tbody>
           </table>
         </div>
       </section>
 
-      <!-- 02 CLIENT INPUTS -->
-      <section class="panel" id="sec-client">
+      <!-- 02 PROJECT DIRECTORY -->
+      <section class="panel" id="sec-directory">
         <div class="panel-head">
           <div>
             <p class="eyebrow">Project intake — not part of the NEC calc engine</p>
-            <h2>Client Directory</h2>
+            <h2>Project Directory</h2>
           </div>
-          <span class="chip chip-muted" id="clientContactCount">3 contacts</span>
+          <span class="chip chip-warn" id="directoryCompletionChip">checking…</span>
         </div>
-        <p class="desc">Client-side project contacts, business information, and branding — collected once per project so the same data goes on the cover sheet and title block of <b>every</b> output document (calc report, drawing set, quote) instead of being re-entered per document. Maps directly to <span class="mono">models.ClientInfo</span> and <span class="mono">document_header.build_document_header()</span>.</p>
+        <p class="desc">Client-side project contacts, business information, and branding at the top — collected once so the same data goes on the cover sheet and title block of every output document instead of being re-entered per document. Below that, points of contact for every discipline and vendor this project touches — the list a PE actually reaches for when routing an RFI or chasing a submittal.</p>
 
         <div class="card">
           <p class="card-title">Business information</p>
@@ -709,7 +717,7 @@
         </div>
 
         <div class="card">
-          <p class="card-title">Primary contacts</p>
+          <p class="card-title">Primary contacts <span class="chip chip-muted" id="clientContactCount">3 contacts</span></p>
           <div id="contactList"></div>
           <button class="btn" id="addContactBtn" style="margin-top: 6px;">+ Add another contact</button>
         </div>
@@ -743,18 +751,6 @@
             <span class="chip chip-muted" id="headerGapsChip">checking…</span>
           </div>
         </div>
-      </section>
-
-      <!-- 03 PROJECT DIRECTORY -->
-      <section class="panel" id="sec-directory">
-        <div class="panel-head">
-          <div>
-            <p class="eyebrow">Project intake — not part of the NEC calc engine</p>
-            <h2>Project Directory</h2>
-          </div>
-          <span class="chip chip-warn" id="directoryCompletionChip">checking…</span>
-        </div>
-        <p class="desc">Points of contact for every discipline and vendor this project touches — the list a PE actually reaches for when routing an RFI or chasing a submittal. Separate from Client Directory (02), which is the client's own business/branding info, not the project team.</p>
 
         <div class="card">
           <p class="card-title">Engineering &amp; consultants</p>
@@ -785,6 +781,84 @@
           <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
             <button class="btn" id="exportDirectoryBtn">Download project_directory.json →</button>
           </div>
+        </div>
+      </section>
+
+      <!-- 03 JURISDICTION -->
+      <section class="panel" id="sec-jurisdiction">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">jurisdiction_lookup.py → resolve_nec_edition()</p>
+            <h2>Jurisdiction</h2>
+          </div>
+          <span class="chip chip-fail">IL not in stub table</span>
+        </div>
+        <p class="desc">Resolves NEC edition and serving utility from state (+ optional county). Both underlying tables are placeholders — anything outside the handful of states covered falls back to "confirm," which is exactly what happens for this Illinois site.</p>
+
+        <div class="card">
+          <p class="card-title">Site address <span class="unit">sourced from Site Config, Panel 01 — edit there</span></p>
+          <div class="computed-row">
+            <div class="computed">
+              <div class="k">state</div>
+              <div class="v" id="jurisStateDisplay" style="font-size:15px;">IL</div>
+            </div>
+            <div class="computed">
+              <div class="k">county</div>
+              <div class="v" id="jurisCountyDisplay" style="font-size:15px;">St. Clair</div>
+            </div>
+            <div class="computed">
+              <div class="k">ahj_override</div>
+              <div class="v" id="jurisAhjDisplay" style="font-size:15px;">—</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <p class="card-title">Resolved</p>
+          <div class="computed-row">
+            <div class="computed">
+              <div class="k">nec_edition</div>
+              <div class="v" id="resolvedEdition" style="font-size:15px; color: var(--fail);">UNKNOWN — confirm with AHJ</div>
+            </div>
+            <div class="computed">
+              <div class="k">ahj_name</div>
+              <div class="v" id="resolvedAhj" style="font-size:15px;">Unresolved — IL</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <p class="card-title">Utility</p>
+          <p class="desc" style="margin-bottom:14px;">The serving utility is an output of this panel, not a typed field on Site Config — resolved the same honest, stub-table way as the NEC edition above: looked up by state, overridable when the lookup is wrong or the state isn't covered.</p>
+          <div class="field-grid">
+            <div class="field readonly">
+              <label for="utilityName">Resolved utility</label>
+              <input class="prose" type="text" id="utilityName" readonly>
+            </div>
+            <div class="field wide">
+              <label for="utilityNameOverride">Override <span class="unit">optional</span></label>
+              <input class="prose" type="text" id="utilityNameOverride" placeholder="e.g. Ameren Illinois">
+            </div>
+          </div>
+          <p class="desc" id="utilityResolutionNote" style="margin-top:12px;">—</p>
+        </div>
+
+        <div class="card">
+          <p class="card-title">Utility interconnection application</p>
+          <p class="desc" style="margin-bottom:14px;">The application package filed with the utility above — application form, one-line, site plan, equipment cut sheets, whatever the utility's portal asked for — plus anything that comes back (approval letter, comments, system impact study).</p>
+          <div class="dropzone" id="utilityDocDropzone" tabindex="0" role="button" aria-label="Upload utility interconnection documents">
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
+              <path d="M12 3v12m0-12 4 4m-4-4-4 4"/>
+              <path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/>
+            </svg>
+            <div class="cta">Drop the interconnection application (or anything the utility sent back) here, or click to browse</div>
+            <div class="sub">Interconnection application form · Utility approval / permission-to-operate letter · System impact study · One-line submitted · Meter spec · Other Uploads</div>
+            <input type="file" id="utilityDocInput" multiple style="display:none;">
+          </div>
+          <table class="manifest" style="margin-top:14px;">
+            <thead><tr><th>File</th><th>Detected type</th><th>Status</th><th></th></tr></thead>
+            <tbody id="utilityDocManifestBody"><tr class="empty"><td colspan="4">No documents uploaded yet</td></tr></tbody>
+          </table>
         </div>
       </section>
 
@@ -933,7 +1007,7 @@
           </div>
           <span class="chip chip-pass">Extracted from datasheet</span>
         </div>
-        <p class="desc">STC electrical characteristics used by <span class="mono">voltage_calc.py</span> and <span class="mono">ampacity_calc.py</span>. Pulled from the ReneSola RS9 bifacial series datasheet — pick the SKU actually being installed and the electrical fields recompute per wattage class.</p>
+        <p class="desc">STC electrical characteristics used by <span class="mono">voltage_calc.py</span> and <span class="mono">ampacity_calc.py</span>. Every module in the dropdown below — the five ReneSola RS9 SKUs and anything added since — comes from a datasheet dropped in Document tracking: drop it, review what got extracted, approve it, and it joins the list. There is no manual entry form; if a value is wrong, fix it on the datasheet's review card and re-approve, or archive the document to remove the module it produced.</p>
 
         <div class="card">
           <p class="card-title">Document tracking</p>
@@ -942,13 +1016,13 @@
               <path d="M12 3v12m0-12 4 4m-4-4-4 4"/>
               <path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/>
             </svg>
-            <div class="cta">Drop PDFs here, or click to browse</div>
-            <div class="sub">Module datasheet · Installation Manual · Warranty · PVSyst .PAN File · Quote · Other Uploads (e.g. Wind Rating documents, Flash Test data)</div>
+            <div class="cta">Drop a module datasheet PDF here, or click to browse</div>
+            <div class="sub">Module datasheet (adds it to the module list once approved) · Installation Manual · Warranty · PVSyst .PAN File · Quote · Other Uploads (e.g. Wind Rating documents, Flash Test data)</div>
             <input type="file" id="modDocInput" accept="application/pdf" multiple style="display:none;">
           </div>
           <table class="manifest" style="margin-top:14px;">
-            <thead><tr><th>File</th><th>Detected type</th><th>Status</th></tr></thead>
-            <tbody id="modDocManifestBody"><tr class="empty"><td colspan="3">No documents uploaded yet</td></tr></tbody>
+            <thead><tr><th>File</th><th>Detected type</th><th>Status</th><th></th></tr></thead>
+            <tbody id="modDocManifestBody"><tr class="empty"><td colspan="4">No documents uploaded yet</td></tr></tbody>
           </table>
         </div>
 
@@ -988,34 +1062,6 @@
           </div>
         </div>
 
-        <div class="card">
-          <p class="card-title">Add a module from another datasheet</p>
-          <p class="desc" style="margin-bottom:14px;">Modules from any manufacturer join the same list above — the design only ever picks from one dropdown. Drop the datasheet in Document tracking, then transcribe its STC values here. Everything below the electrical block is optional.</p>
-          <div class="field-grid">
-            <div class="field"><label for="modNewManufacturer">Manufacturer</label><input class="prose" type="text" id="modNewManufacturer" placeholder="e.g. Trina Solar"></div>
-            <div class="field"><label for="modNewModel">Model</label><input class="prose" type="text" id="modNewModel" placeholder="e.g. TSM-NEG21C.20"></div>
-            <div class="field"><label for="modNewPmax">P<sub>max</sub> <span class="unit">W</span></label><input type="text" id="modNewPmax" placeholder="700"></div>
-            <div class="field"><label for="modNewVoc">V<sub>oc</sub> <span class="unit">V</span></label><input type="text" id="modNewVoc" placeholder="48.60"></div>
-            <div class="field"><label for="modNewVmp">V<sub>mp</sub> <span class="unit">V</span></label><input type="text" id="modNewVmp" placeholder="40.50"></div>
-            <div class="field"><label for="modNewIsc">I<sub>sc</sub> <span class="unit">A</span></label><input type="text" id="modNewIsc" placeholder="18.32"></div>
-            <div class="field"><label for="modNewImp">I<sub>mp</sub> <span class="unit">A</span></label><input type="text" id="modNewImp" placeholder="17.29"></div>
-            <div class="field"><label for="modNewTempCoeffVoc">Temp coeff. V<sub>oc</sub> <span class="unit">%/°C</span></label><input type="text" id="modNewTempCoeffVoc" placeholder="-0.24"></div>
-            <div class="field"><label for="modNewTempCoeffIsc">Temp coeff. I<sub>sc</sub> <span class="unit">%/°C</span></label><input type="text" id="modNewTempCoeffIsc" placeholder="+0.04"></div>
-            <div class="field"><label for="modNewMaxSystemVoltage">Max system voltage <span class="unit">V</span></label><input type="text" id="modNewMaxSystemVoltage" placeholder="1500"></div>
-            <div class="field"><label for="modNewMaxFuse">Max series fuse <span class="unit">A</span></label><input type="text" id="modNewMaxFuse" placeholder="35"></div>
-            <div class="field"><label for="modNewFirstYear">First-year degradation <span class="unit">%</span></label><input type="text" id="modNewFirstYear" placeholder="1.0"></div>
-            <div class="field"><label for="modNewAnnual">Annual degradation <span class="unit">%/yr</span></label><input type="text" id="modNewAnnual" placeholder="0.4"></div>
-            <div class="field wide"><label for="modNewCellType">Cell type <span class="unit">optional</span></label><input class="prose" type="text" id="modNewCellType" placeholder="e.g. Mono N-Type, 132 (6×22) half-cut"></div>
-            <div class="field"><label for="modNewDims">Dimensions L×W×D <span class="unit">mm, optional</span></label><input class="prose" type="text" id="modNewDims" placeholder="2384 × 1303 × 33"></div>
-            <div class="field"><label for="modNewWeight">Weight <span class="unit">kg, optional</span></label><input type="text" id="modNewWeight" placeholder="38.7"></div>
-            <div class="field wide"><label for="modNewSource">Datasheet filename <span class="unit">optional</span></label><input class="prose" type="text" id="modNewSource" placeholder="e.g. TSM-NEG21C.20.pdf"></div>
-          </div>
-          <div class="bulk-btns">
-            <button class="btn btn-primary" id="modAddBtn" type="button">Add to module list</button>
-            <button class="btn btn-quiet" id="modRemoveBtn" type="button">Remove selected module</button>
-          </div>
-          <p class="desc" id="modAddStatus" style="margin-top:12px;"></p>
-        </div>
       </section>
 
       <!-- 06 INVERTER SPEC -->
@@ -1027,7 +1073,7 @@
           </div>
           <span class="chip chip-pass">Extracted from datasheet</span>
         </div>
-        <p class="desc">Feeds OCPD sizing (<span class="mono">ocpd_calc.py</span>) and the 120% busbar check (<span class="mono">switchboard_calc.py</span>). Pulled from the CPS SCH-DO/US-800 datasheet — <span class="mono">max_output_current_a</span> is given directly rather than derived.</p>
+        <p class="desc">Feeds OCPD sizing (<span class="mono">ocpd_calc.py</span>) and the 120% busbar check (<span class="mono">switchboard_calc.py</span>). Every model in the dropdown below — the three CPS SCH-DO/US-800 ratings and anything added since — comes from a datasheet dropped in Document tracking: drop it, review what got extracted (DC input topology isn't in a datasheet in parseable form, so that's a judgement call you make during review), approve it, and it joins the list. There is no manual entry form; archive the source document to remove the model it produced.</p>
 
         <div class="card">
           <p class="card-title">Document tracking</p>
@@ -1036,13 +1082,13 @@
               <path d="M12 3v12m0-12 4 4m-4-4-4 4"/>
               <path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/>
             </svg>
-            <div class="cta">Drop PDFs here, or click to browse</div>
-            <div class="sub">Datasheet · Installation Manual · Warranty · PVSyst .OND File · Quote · Other Uploads (e.g. Modbus Map documents, CAD file)</div>
+            <div class="cta">Drop an inverter datasheet PDF here, or click to browse</div>
+            <div class="sub">Datasheet (adds it to the inverter list once approved) · Installation Manual · Warranty · PVSyst .OND File · Quote · Other Uploads (e.g. Modbus Map documents, CAD file)</div>
             <input type="file" id="invDocInput" accept="application/pdf" multiple style="display:none;">
           </div>
           <table class="manifest" style="margin-top:14px;">
-            <thead><tr><th>File</th><th>Detected type</th><th>Status</th></tr></thead>
-            <tbody id="invDocManifestBody"><tr class="empty"><td colspan="3">No documents uploaded yet</td></tr></tbody>
+            <thead><tr><th>File</th><th>Detected type</th><th>Status</th><th></th></tr></thead>
+            <tbody id="invDocManifestBody"><tr class="empty"><td colspan="4">No documents uploaded yet</td></tr></tbody>
           </table>
         </div>
 
@@ -1070,14 +1116,12 @@
           <p class="card-title">DC input configuration</p>
           <div class="field-grid">
             <div class="field wide">
-              <label for="invDcTopology">DC input topology</label>
-              <select id="invDcTopology">
-                <option value="combiner" selected>Requires external DC combiner — PV output circuit into inverter</option>
-                <option value="direct">Accepts PV source circuits directly — no combiner</option>
-              </select>
+              <label>DC input topology</label>
+              <input class="prose" type="text" id="invDcTopologyDisplay" readonly>
             </div>
           </div>
-          <p class="desc" style="margin-top:12px;">A central inverter this size almost always takes recombined DC output circuits rather than raw strings, so <b>combiner</b> is the realistic default — but the toggle exists because the same engine needs to model string inverters with integrated fused string inputs too. Drives whether DC Combiner Design applies, and which inverters show a combiner on Inverter Design.</p>
+          <input type="hidden" id="invDcTopology" value="combiner">
+          <p class="desc" style="margin-top:12px;">Not a separate setting — it's a property of the inverter model selected above, fixed for the datasheet models and chosen when a model is approved from an ingested datasheet. Drives whether DC Combiner Design applies, and which inverters show a combiner on Inverter Design (per row, off that row's own model — a mixed fleet can have both).</p>
         </div>
 
         <div class="card">
@@ -1096,35 +1140,6 @@
           </div>
         </div>
 
-        <div class="card">
-          <p class="card-title">Add an inverter model</p>
-          <p class="desc" style="margin-bottom:14px;">Added models are first-class — they join the same dropdown as the datasheet models above and can be picked per inverter on Inverter Design, summed into Actual AC capacity, and sized against. Drop the datasheet in Document tracking, then transcribe its ratings here.</p>
-          <div class="field-grid">
-            <div class="field"><label for="invNewManufacturer">Manufacturer</label><input class="prose" type="text" id="invNewManufacturer" placeholder="e.g. Sungrow"></div>
-            <div class="field"><label for="invNewModel">Model</label><input class="prose" type="text" id="invNewModel" placeholder="e.g. SG350HX-US"></div>
-            <div class="field"><label for="invNewAcRating">AC power rating <span class="unit">VA</span></label><input type="text" id="invNewAcRating" placeholder="350,000"></div>
-            <div class="field"><label for="invNewNominalV">Nominal AC voltage <span class="unit">V</span></label><input type="text" id="invNewNominalV" placeholder="800"></div>
-            <div class="field"><label for="invNewPhases">Phases</label><input type="text" id="invNewPhases" placeholder="3"></div>
-            <div class="field"><label for="invNewMaxOutputCurrent">Max output current <span class="unit">A</span></label><input type="text" id="invNewMaxOutputCurrent" placeholder="253"></div>
-            <div class="field"><label for="invNewMaxOcpd">Manufacturer max OCPD <span class="unit">A</span></label><input type="text" id="invNewMaxOcpd" placeholder="400"></div>
-            <div class="field"><label for="invNewMpptVMin">MPPT V min <span class="unit">V</span></label><input type="text" id="invNewMpptVMin" placeholder="500"></div>
-            <div class="field"><label for="invNewMpptVMax">MPPT V max <span class="unit">V</span></label><input type="text" id="invNewMpptVMax" placeholder="1500"></div>
-            <div class="field"><label for="invNewMaxDcInput">Max DC input current <span class="unit">optional</span></label><input class="prose" type="text" id="invNewMaxDcInput" placeholder="600 — 40 A × 15 MPPTs"></div>
-            <div class="field"><label for="invNewMpptCount">MPPTs <span class="unit">optional</span></label><input type="text" id="invNewMpptCount" placeholder="15"></div>
-            <div class="field"><label for="invNewMpptWindow">Full-power MPPT window <span class="unit">optional</span></label><input class="prose" type="text" id="invNewMpptWindow" placeholder="880 – 1300"></div>
-            <div class="field"><label for="invNewMaxPvIsc">Max PV I<sub>sc</sub> <span class="unit">optional</span></label><input class="prose" type="text" id="invNewMaxPvIsc" placeholder="975 A total / 65 A per MPPT"></div>
-            <div class="field"><label for="invNewTerminalRange">Terminal wire range <span class="unit">optional</span></label><input class="prose" type="text" id="invNewTerminalRange" placeholder="4/0 – 750 kcmil"></div>
-            <div class="field"><label for="invNewDims">Dimensions W×H×D <span class="unit">mm, optional</span></label><input class="prose" type="text" id="invNewDims" placeholder="1150 × 700 × 363"></div>
-            <div class="field"><label for="invNewWeight">Weight <span class="unit">kg, optional</span></label><input type="text" id="invNewWeight" placeholder="95.0"></div>
-            <div class="field"><label for="invNewEnclosure">Enclosure <span class="unit">optional</span></label><input class="prose" type="text" id="invNewEnclosure" placeholder="NEMA 4X"></div>
-            <div class="field wide"><label for="invNewSource">Datasheet filename <span class="unit">optional</span></label><input class="prose" type="text" id="invNewSource" placeholder="e.g. SG350HX-US-datasheet.pdf"></div>
-          </div>
-          <div class="bulk-btns">
-            <button class="btn btn-primary" id="invAddBtn" type="button">Add to inverter list</button>
-            <button class="btn btn-quiet" id="invRemoveBtn" type="button">Remove selected model</button>
-          </div>
-          <p class="desc" id="invAddStatus" style="margin-top:12px;"></p>
-        </div>
       </section>
 
       <!-- 07 PV STRING DESIGN -->
@@ -1159,13 +1174,7 @@
 
         <div class="card">
           <p class="card-title">String length range — max system voltage &amp; MPPT window</p>
-          <div class="field-grid" style="margin-bottom:14px;">
-            <div class="field wide">
-              <label for="stringRangeModule">Module to detail <span class="unit">from Module Spec</span></label>
-              <select id="stringRangeModule"></select>
-            </div>
-          </div>
-          <p class="desc" style="margin-bottom:14px;">For each candidate string length (modules in series): V<sub>oc</sub> at ASHRAE extreme low (cold — must clear both the module's max system voltage and the inverter's MPPT max) and V<sub>mp</sub> at ASHRAE average high (hot — must not sag below the inverter's MPPT min). MPPT life is how many years the hot string V<sub>mp</sub> stays above the MPPT minimum once module degradation (first-year, then annual, both from the module) and the Total DC voltage drop limit are applied — a length is only recommended at <span class="mono">&ge; 15</span> years. Tick the lengths this design will actually use.</p>
+          <p class="desc" style="margin-bottom:14px;">Details the module currently selected on Module Spec — click <b>Use this</b> in the table above to detail a different one. For each candidate string length (modules in series): V<sub>oc</sub> at ASHRAE extreme low (cold — must clear both the module's max system voltage and the inverter's MPPT max) and V<sub>mp</sub> at ASHRAE average high (hot — must not sag below the inverter's MPPT min). MPPT life is how many years the hot string V<sub>mp</sub> stays above the MPPT minimum once module degradation (first-year, then annual, both from the module) and the Total DC voltage drop limit are applied — a length is only recommended at <span class="mono">&ge; 15</span> years. Tick the lengths this design will actually use.</p>
           <div class="computed-row">
             <div class="computed"><div class="k">Min string length</div><div class="v" id="stringLenMin">—<small> modules</small></div></div>
             <div class="computed"><div class="k">Max string length</div><div class="v" id="stringLenMax">—<small> modules</small></div></div>
@@ -1404,8 +1413,8 @@
             <input type="file" id="invBomInput" multiple style="display:none;">
           </div>
           <table class="manifest" style="margin-top:14px;">
-            <thead><tr><th>File</th><th>Detected type</th><th>Status</th></tr></thead>
-            <tbody id="invBomManifestBody"><tr class="empty"><td colspan="3">No BOM uploaded yet</td></tr></tbody>
+            <thead><tr><th>File</th><th>Detected type</th><th>Status</th><th></th></tr></thead>
+            <tbody id="invBomManifestBody"><tr class="empty"><td colspan="4">No BOM uploaded yet</td></tr></tbody>
           </table>
         </div>
       </section>
@@ -1604,8 +1613,8 @@
             <input type="file" id="combDocInput" accept="application/pdf" multiple style="display:none;">
           </div>
           <table class="manifest" style="margin-top:14px;">
-            <thead><tr><th>File</th><th>Detected type</th><th>Status</th></tr></thead>
-            <tbody id="combDocManifestBody"><tr class="empty"><td colspan="3">No documents uploaded yet</td></tr></tbody>
+            <thead><tr><th>File</th><th>Detected type</th><th>Status</th><th></th></tr></thead>
+            <tbody id="combDocManifestBody"><tr class="empty"><td colspan="4">No documents uploaded yet</td></tr></tbody>
           </table>
         </div>
       </section>
@@ -1739,8 +1748,8 @@
             <input type="file" id="xfmrDocInput" multiple style="display:none;">
           </div>
           <table class="manifest" style="margin-top:14px;">
-            <thead><tr><th>File</th><th>Detected type</th><th>Status</th></tr></thead>
-            <tbody id="xfmrDocManifestBody"><tr class="empty"><td colspan="3">No documents uploaded yet</td></tr></tbody>
+            <thead><tr><th>File</th><th>Detected type</th><th>Status</th><th></th></tr></thead>
+            <tbody id="xfmrDocManifestBody"><tr class="empty"><td colspan="4">No documents uploaded yet</td></tr></tbody>
           </table>
         </div>
       </section>
@@ -1817,8 +1826,8 @@
             <input type="file" id="mvDocInput" multiple style="display:none;">
           </div>
           <table class="manifest" style="margin-top:14px;">
-            <thead><tr><th>File</th><th>Detected type</th><th>Status</th></tr></thead>
-            <tbody id="mvDocManifestBody"><tr class="empty"><td colspan="3">No documents uploaded yet</td></tr></tbody>
+            <thead><tr><th>File</th><th>Detected type</th><th>Status</th><th></th></tr></thead>
+            <tbody id="mvDocManifestBody"><tr class="empty"><td colspan="4">No documents uploaded yet</td></tr></tbody>
           </table>
         </div>
       </section>
@@ -2048,51 +2057,7 @@
         </div>
       </section>
 
-      <!-- 18 JURISDICTION -->
-      <section class="panel" id="sec-jurisdiction">
-        <div class="panel-head">
-          <div>
-            <p class="eyebrow">jurisdiction_lookup.py → resolve_nec_edition()</p>
-            <h2>Jurisdiction</h2>
-          </div>
-          <span class="chip chip-fail">IL not in stub table</span>
-        </div>
-        <p class="desc">Resolves NEC edition from state (+ optional county). The underlying table is a placeholder — anything outside CA / TX / AZ / NV falls back to "confirm with AHJ," which is exactly what happens for this Illinois site.</p>
-
-        <div class="card">
-          <p class="card-title">Site address <span class="unit">sourced from Site Config, Panel 01 — edit there</span></p>
-          <div class="computed-row">
-            <div class="computed">
-              <div class="k">state</div>
-              <div class="v" id="jurisStateDisplay" style="font-size:15px;">IL</div>
-            </div>
-            <div class="computed">
-              <div class="k">county</div>
-              <div class="v" id="jurisCountyDisplay" style="font-size:15px;">St. Clair</div>
-            </div>
-            <div class="computed">
-              <div class="k">ahj_override</div>
-              <div class="v" id="jurisAhjDisplay" style="font-size:15px;">—</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="card">
-          <p class="card-title">Resolved</p>
-          <div class="computed-row">
-            <div class="computed">
-              <div class="k">nec_edition</div>
-              <div class="v" id="resolvedEdition" style="font-size:15px; color: var(--fail);">UNKNOWN — confirm with AHJ</div>
-            </div>
-            <div class="computed">
-              <div class="k">ahj_name</div>
-              <div class="v" id="resolvedAhj" style="font-size:15px;">Unresolved — IL</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- 19 DOCUMENT INTAKE -->
+      <!-- 18 DOCUMENT INTAKE -->
       <section class="panel" id="sec-upload">
         <div class="panel-head">
           <div>
@@ -2149,7 +2114,7 @@
         </div>
       </section>
 
-      <!-- 20 PLACARDING -->
+      <!-- 19 PLACARDING -->
       <section class="panel" id="sec-placards">
         <div class="panel-head">
           <div>
@@ -2186,7 +2151,7 @@
         </div>
       </section>
 
-      <!-- 21 ETAP EXPORT -->
+      <!-- 20 ETAP EXPORT -->
       <section class="panel" id="sec-etap">
         <div class="panel-head">
           <div>
@@ -2236,7 +2201,7 @@
         </div>
       </section>
 
-      <!-- 22 I-V CURVE FIELD PREP -->
+      <!-- 21 I-V CURVE FIELD PREP -->
       <section class="panel" id="sec-fluke">
         <div class="panel-head">
           <div>
@@ -2324,7 +2289,7 @@
         </div>
       </section>
 
-      <!-- 23 BACKEND VERIFICATION -->
+      <!-- 22 BACKEND VERIFICATION -->
       <section class="panel" id="sec-backend">
         <div class="panel-head">
           <div>
@@ -2381,7 +2346,7 @@
 <script>
   // ---- nav switching ----
   const WIDE_PANELS = [
-    'sec-site', 'sec-client', 'sec-directory', 'sec-inverter-design',
+    'sec-site', 'sec-directory', 'sec-inverter-design',
     'sec-combiner', 'sec-switchboard-design', 'sec-mv-design', 'sec-backend',
   ];
   const railBtns = document.querySelectorAll('.rail-btn');
@@ -3020,67 +2985,135 @@
   document.querySelectorAll('input[name="modUnitSystem"]').forEach(el =>
     el.addEventListener('change', applyModuleMechanicalUnits));
 
-  // ---- add / remove a module ----
-  let customModuleSeq = 0;
-  document.getElementById('modAddBtn').addEventListener('click', () => {
-    const status = document.getElementById('modAddStatus');
-    const val = id => document.getElementById(id).value.trim();
-    const num = id => parseFloat(val(id).replace(/,/g, ''));
-    const manufacturer = val('modNewManufacturer');
-    const model = val('modNewModel');
-    const required = { 'P<sub>max</sub>': num('modNewPmax'), 'V<sub>oc</sub>': num('modNewVoc'),
-      'V<sub>mp</sub>': num('modNewVmp'), 'I<sub>sc</sub>': num('modNewIsc'), 'I<sub>mp</sub>': num('modNewImp') };
-    const missing = Object.keys(required).filter(k => !Number.isFinite(required[k]));
+  // ---- module catalog from datasheet ingest ----
+  // Every module beyond the five ReneSola SKUs comes from Document tracking's
+  // review card, not a typed form: pull whatever the extraction found,
+  // require a human to confirm or fill in the five electrical values (the
+  // ones every downstream calc reads), and Approve is what actually adds it
+  // to MODULE_SKUS. Archiving the source document (in initDocTracker's
+  // onArchive) removes the catalog entry it produced.
+  function moduleFieldsFromText(text) {
+    // The separator between a label and its number deliberately excludes +/-:
+    // a greedy \D{0,N} would otherwise swallow a leading minus sign as part
+    // of "eat non-digits", leaving the capture group an unsigned number and
+    // silently flipping a negative temperature coefficient positive.
+    const num = re => { const m = text.match(re); return m ? parseFloat(m[1]) : null; };
+    const dimsMatch = text.match(/Dimensions?[^\d]{0,10}([\d.]+)\s*[x×]\s*([\d.]+)\s*[x×]\s*([\d.]+)/i);
+    return {
+      pmax: num(/(?:Pmax|Maximum Power|Rated Power)[^\d+-]{0,15}([+-]?[\d.]+)\s*W\b/i),
+      voc: num(/(?:Voc|Open[- ]Circuit Voltage)[^\d+-]{0,15}([+-]?[\d.]+)\s*V\b/i),
+      vmp: num(/(?:Vmp|V\s?pm|Voltage at (?:Pmax|Maximum Power))[^\d+-]{0,15}([+-]?[\d.]+)\s*V\b/i),
+      isc: num(/(?:Isc|Short[- ]Circuit Current)[^\d+-]{0,15}([+-]?[\d.]+)\s*A\b/i),
+      imp: num(/(?:Imp|I\s?pm|Current at (?:Pmax|Maximum Power))[^\d+-]{0,15}([+-]?[\d.]+)\s*A\b/i),
+      tempCoeffVoc: num(/Temperature Coefficient of Voc[^\d+-]{0,10}([+-]?[\d.]+)\s*%/i),
+      tempCoeffIsc: num(/Temperature Coefficient of Isc[^\d+-]{0,10}([+-]?[\d.]+)\s*%/i),
+      maxSystemV: num(/Maximum System Voltage[^\d+-]{0,10}([+-]?[\d.]+)\s*V/i),
+      maxFuse: num(/(?:Series Fuse Rating|Max(?:imum)? Series Fuse)[^\d+-]{0,10}([+-]?[\d.]+)\s*A/i),
+      firstYearDeg: num(/First[- ]?[Yy]ear [Dd]egradation[^\d+-]{0,10}([+-]?[\d.]+)\s*%/),
+      annualDeg: num(/Annual [Dd]egradation[^\d+-]{0,10}([+-]?[\d.]+)\s*%/),
+      weightKg: num(/Weight[^\d+-]{0,10}([+-]?[\d.]+)\s*kg/i),
+      cellType: (text.match(/Cell Type[:\s]*([^\n]+)/i) || [])[1] || '',
+      dims: dimsMatch ? [parseFloat(dimsMatch[1]), parseFloat(dimsMatch[2]), parseFloat(dimsMatch[3])] : [],
+    };
+  }
+
+  const MODULE_ELECTRICAL_FIELDS = [
+    ['pmax', 'P<sub>max</sub>', 'W'], ['voc', 'V<sub>oc</sub>', 'V'], ['vmp', 'V<sub>mp</sub>', 'V'],
+    ['isc', 'I<sub>sc</sub>', 'A'], ['imp', 'I<sub>mp</sub>', 'A'],
+  ];
+
+  function moduleDocReviewHtml(doc) {
+    if (!doc.formValues) {
+      const p = moduleFieldsFromText(doc.text || '');
+      doc.formValues = {
+        manufacturer: '', model: '', pmax: p.pmax, voc: p.voc, vmp: p.vmp, isc: p.isc, imp: p.imp,
+        tempCoeffVoc: p.tempCoeffVoc != null ? p.tempCoeffVoc : -0.24,
+        tempCoeffIsc: p.tempCoeffIsc != null ? p.tempCoeffIsc : 0.04,
+        maxSystemV: p.maxSystemV != null ? p.maxSystemV : 1500,
+        maxFuse: p.maxFuse != null ? p.maxFuse : 35,
+        firstYearDeg: p.firstYearDeg != null ? p.firstYearDeg : 1.0,
+        annualDeg: p.annualDeg != null ? p.annualDeg : 0.4,
+        weightKg: p.weightKg, cellType: p.cellType,
+        dims: p.dims.length === 3 ? p.dims.join(' × ') : '',
+      };
+      doc.parsedElectricalCount = MODULE_ELECTRICAL_FIELDS.filter(([k]) => p[k] != null).length;
+    }
+    const fv = doc.formValues;
+    const inputHtml = (key, label, unit, wide) => {
+      const v = fv[key] == null ? '' : fv[key];
+      const isElectrical = MODULE_ELECTRICAL_FIELDS.some(([k]) => k === key);
+      return '<div class="field' + (wide ? ' wide' : '') + '"><label>' + label + (unit ? ' <span class="unit">' + unit + '</span>' : '') + '</label>' +
+        '<input ' + (wide ? 'class="prose" ' : '') + 'type="text" data-doc-id="' + doc.id + '" data-doc-field="' + key + '" value="' + escapeAttr(v) + '"' +
+        (isElectrical && v === '' ? ' placeholder="not found — enter it"' : '') + '></div>';
+    };
+    return '<div class="doc-review-form">' +
+      '<p class="desc" style="margin:0;">' + (doc.parsedElectricalCount >= 5
+        ? 'All five electrical values were found in the extracted text below — check them against the datasheet before approving.'
+        : doc.parsedElectricalCount + ' of 5 electrical values were found in the extracted text — fill in the rest by hand before approving.') + '</p>' +
+      '<div class="field-grid">' +
+        inputHtml('manufacturer', 'Manufacturer', '', true) + inputHtml('model', 'Model', '', true) +
+        MODULE_ELECTRICAL_FIELDS.map(([k, l, u]) => inputHtml(k, l, u)).join('') +
+        inputHtml('tempCoeffVoc', 'Temp coeff. V<sub>oc</sub>', '%/°C') + inputHtml('tempCoeffIsc', 'Temp coeff. I<sub>sc</sub>', '%/°C') +
+        inputHtml('maxSystemV', 'Max system voltage', 'V') + inputHtml('maxFuse', 'Max series fuse', 'A') +
+        inputHtml('firstYearDeg', 'First-year degradation', '%') + inputHtml('annualDeg', 'Annual degradation', '%/yr') +
+        inputHtml('cellType', 'Cell type', 'optional', true) + inputHtml('dims', 'Dimensions L×W×D', 'mm, optional', true) +
+        inputHtml('weightKg', 'Weight', 'kg, optional') +
+      '</div>' +
+      '<details><summary style="cursor:pointer; color:var(--ink-muted); font-size:12.5px;">Extracted text (' + (doc.pages || 0) + ' page' + (doc.pages === 1 ? '' : 's') + ')</summary>' +
+        '<pre class="capture" style="max-height:220px; margin-top:8px;">' + escapeText(doc.text || '(no text extracted)') + '</pre></details>' +
+      '<div class="bulk-btns" style="margin-top:0;"><button type="button" class="btn btn-primary" data-doc-approve="' + doc.id + '">' +
+        (doc.status === 'approved' ? 'Re-approve with edits' : 'Approve — add to module list') + '</button></div>' +
+      (doc.approveError ? '<p class="desc" style="color:var(--fail); margin:0;">' + escapeText(doc.approveError) + '</p>' : '') +
+    '</div>';
+  }
+
+  function approveModuleDoc(doc) {
+    const fv = doc.formValues || {};
+    const num = v => { const n = parseFloat(String(v).replace(/,/g, '')); return Number.isFinite(n) ? n : null; };
+    const manufacturer = (fv.manufacturer || '').trim();
+    const model = (fv.model || '').trim();
+    const required = { Pmax: num(fv.pmax), Voc: num(fv.voc), Vmp: num(fv.vmp), Isc: num(fv.isc), Imp: num(fv.imp) };
+    const missing = Object.keys(required).filter(k => required[k] === null);
     if (!manufacturer || !model) {
-      status.innerHTML = 'Manufacturer and model are both needed — they are what the module is called in the list.';
-      status.style.color = 'var(--fail)';
+      doc.approveError = 'Manufacturer and model are both needed — they are what the module is called in the list.';
+      modDocTracker.render();
       return;
     }
     if (missing.length) {
-      status.innerHTML = 'Missing or unreadable: ' + missing.join(', ') + '. The electrical block is what every downstream calc reads, so it can’t be partial.';
-      status.style.color = 'var(--fail)';
+      doc.approveError = 'Missing or unreadable: ' + missing.join(', ') + '. Fill these in from the datasheet before approving.';
+      modDocTracker.render();
       return;
     }
-    const dims = val('modNewDims').split(/[×x,]/).map(t => parseFloat(t.trim())).filter(Number.isFinite);
-    const pmax = required['P<sub>max</sub>'];
-    const key = 'custom-' + (++customModuleSeq) + '-' + String(pmax);
+    doc.approveError = '';
+    const dims = (fv.dims || '').split(/[×x,]/).map(t => parseFloat(t.trim())).filter(Number.isFinite);
+    const key = doc.catalogKey || ('doc-' + doc.id);
     MODULE_SKUS[key] = {
-      manufacturer: manufacturer, model: model, pmax: pmax,
-      voc: required['V<sub>oc</sub>'], vmp: required['V<sub>mp</sub>'],
-      isc: required['I<sub>sc</sub>'], imp: required['I<sub>mp</sub>'],
-      bifacial: Math.round(pmax * 1.1),
-      tempCoeffVoc: Number.isFinite(num('modNewTempCoeffVoc')) ? num('modNewTempCoeffVoc') : -0.24,
-      tempCoeffIsc: Number.isFinite(num('modNewTempCoeffIsc')) ? num('modNewTempCoeffIsc') : 0.04,
-      maxSystemV: Number.isFinite(num('modNewMaxSystemVoltage')) ? num('modNewMaxSystemVoltage') : 1500,
-      maxFuse: Number.isFinite(num('modNewMaxFuse')) ? num('modNewMaxFuse') : 35,
-      firstYearDeg: Number.isFinite(num('modNewFirstYear')) ? num('modNewFirstYear') : 1.0,
-      annualDeg: Number.isFinite(num('modNewAnnual')) ? num('modNewAnnual') : 0.4,
-      cellType: val('modNewCellType'), dimensionsMm: dims.length === 3 ? dims : [],
-      weightKg: Number.isFinite(num('modNewWeight')) ? num('modNewWeight') : null,
-      source: val('modNewSource'), custom: true,
+      manufacturer: manufacturer, model: model, pmax: required.Pmax,
+      voc: required.Voc, vmp: required.Vmp, isc: required.Isc, imp: required.Imp,
+      bifacial: Math.round(required.Pmax * 1.1),
+      tempCoeffVoc: num(fv.tempCoeffVoc) != null ? num(fv.tempCoeffVoc) : -0.24,
+      tempCoeffIsc: num(fv.tempCoeffIsc) != null ? num(fv.tempCoeffIsc) : 0.04,
+      maxSystemV: num(fv.maxSystemV) != null ? num(fv.maxSystemV) : 1500,
+      maxFuse: num(fv.maxFuse) != null ? num(fv.maxFuse) : 35,
+      firstYearDeg: num(fv.firstYearDeg) != null ? num(fv.firstYearDeg) : 1.0,
+      annualDeg: num(fv.annualDeg) != null ? num(fv.annualDeg) : 0.4,
+      cellType: (fv.cellType || '').trim(), dimensionsMm: dims.length === 3 ? dims : [],
+      weightKg: num(fv.weightKg), source: doc.name, custom: true,
     };
+    doc.catalogKey = key;
+    doc.catalogLabel = moduleLabel(key);
+    doc.status = 'approved';
+    doc.reviewOpen = false;
     refreshModuleSkuOptions();
     modSku.value = key;
     applyModuleSku();
     if (typeof renderCombinerRows === 'function') renderCombinerRows();
-    ['modNewManufacturer', 'modNewModel', 'modNewPmax', 'modNewVoc', 'modNewVmp', 'modNewIsc', 'modNewImp',
-     'modNewTempCoeffVoc', 'modNewTempCoeffIsc', 'modNewMaxSystemVoltage', 'modNewMaxFuse', 'modNewFirstYear',
-     'modNewAnnual', 'modNewCellType', 'modNewDims', 'modNewWeight', 'modNewSource']
-      .forEach(id => { document.getElementById(id).value = ''; });
-    status.innerHTML = 'Added <b>' + escapeText(moduleLabel(key)) + '</b> and selected it. ' +
-      'Backend Verification can’t check this one — the Python catalog only knows the five datasheet SKUs.';
-    status.style.color = 'var(--ink-muted)';
-  });
+    modDocTracker.render();
+  }
 
-  document.getElementById('modRemoveBtn').addEventListener('click', () => {
-    const status = document.getElementById('modAddStatus');
-    const key = modSku.value;
-    if (!MODULE_SKUS[key] || !MODULE_SKUS[key].custom) {
-      status.innerHTML = 'Only modules added here can be removed — the five datasheet SKUs are the built-in catalog.';
-      status.style.color = 'var(--fail)';
-      return;
-    }
-    const label = moduleLabel(key);
+  function removeModuleCatalogEntry(key) {
+    if (!MODULE_SKUS[key]) return;
+    const wasSelected = modSku.value === key;
     delete MODULE_SKUS[key];
     // Any combiner row pointing at the removed module has to be re-pointed, or
     // its fuse sizing would read off a module that no longer exists.
@@ -3088,10 +3121,22 @@
       combinerRows.forEach(r => { if (!MODULE_SKUS[r.moduleSku]) r.moduleSku = '720'; });
     }
     refreshModuleSkuOptions();
-    applyModuleSku();
+    if (wasSelected) { modSku.value = '720'; applyModuleSku(); }
     if (typeof renderCombinerRows === 'function') renderCombinerRows();
-    status.innerHTML = 'Removed <b>' + escapeText(label) + '</b>.';
-    status.style.color = 'var(--ink-muted)';
+  }
+
+  document.getElementById('modDocManifestBody').addEventListener('input', e => {
+    const docId = e.target.dataset.docId;
+    const field = e.target.dataset.docField;
+    if (docId === undefined || !field) return;
+    const doc = modDocTracker.docById(docId);
+    if (doc && doc.formValues) doc.formValues[field] = e.target.value;
+  });
+  document.getElementById('modDocManifestBody').addEventListener('click', e => {
+    const docId = e.target.dataset.docApprove;
+    if (docId === undefined) return;
+    const doc = modDocTracker.docById(docId);
+    if (doc) approveModuleDoc(doc);
   });
 
   refreshModuleSkuOptions();
@@ -3113,6 +3158,9 @@
       mpptWindow: '880 – 1300', maxPvIsc: '975 A total / 65 A per MPPT',
       terminalRange: '4/0 – 750 kcmil',
       dimensionsMm: [1150, 700, 363], weightKg: 95.0, enclosure: 'NEMA 4X',
+      // This large a central inverter always takes recombined DC output
+      // circuits rather than raw strings.
+      dcTopology: 'combiner',
       source: CPS_SOURCE,
     };
   }
@@ -3156,6 +3204,16 @@
     set('invMpptWindow', d.mpptWindow || '—');
     set('invMaxPvIsc', d.maxPvIsc || '—');
     set('invEnclosure', d.enclosure || '—');
+    const topology = d.dcTopology === 'direct' ? 'direct' : 'combiner';
+    document.getElementById('invDcTopology').value = topology;
+    set('invDcTopologyDisplay', topology === 'combiner'
+      ? 'Requires external DC combiner — PV output circuit into inverter'
+      : 'Accepts PV source circuits directly — no combiner');
+    // combOutputReady is a `var` (hoisted-undefined, not TDZ) belonging to the
+    // DC Combiner block further down — this stays false until that block has
+    // finished its own init, so the applicability refresh is safe to call
+    // whenever the model changes, including from the very first init pass.
+    if (combOutputReady) refreshCombinerSummary();
     document.getElementById('invSourceNote').innerHTML = d.source
       ? 'Source: <span class="mono">' + escapeText(d.source) + '</span>. Every field here is derived from the model above — pick the datasheet variant actually being installed rather than editing values in place.'
       : 'Added by hand — no datasheet on file. Every field here is derived from the model above.';
@@ -3188,7 +3246,7 @@
   document.querySelectorAll('input[name="invUnitSystem"]').forEach(el =>
     el.addEventListener('change', applyInverterMechanicalUnits));
 
-  initDocTracker({
+  const invDocTracker = initDocTracker({
     dropzoneId: 'invDocDropzone', inputId: 'invDocInput', manifestBodyId: 'invDocManifestBody',
     types: [
       { label: 'Datasheet', keywords: ['datasheet', 'spec'] },
@@ -3197,69 +3255,144 @@
       { label: 'PVSyst .OND File', keywords: ['.ond', 'pvsyst'] },
       { label: 'Quote', keywords: ['quote'] },
     ],
+    renderReview: doc => inverterDocReviewHtml(doc),
+    onArchive: doc => { if (doc.catalogKey) removeInverterCatalogEntry(doc.catalogKey); },
   });
 
-  // ---- add / remove an inverter model ----
-  let customInverterSeq = 0;
-  document.getElementById('invAddBtn').addEventListener('click', () => {
-    const status = document.getElementById('invAddStatus');
-    const val = id => document.getElementById(id).value.trim();
-    const num = id => parseFloat(val(id).replace(/,/g, ''));
-    const manufacturer = val('invNewManufacturer');
-    const model = val('invNewModel');
-    const required = {
-      'AC power rating': num('invNewAcRating'), 'Nominal AC voltage': num('invNewNominalV'),
-      'Phases': num('invNewPhases'), 'Max output current': num('invNewMaxOutputCurrent'),
-      'Max OCPD': num('invNewMaxOcpd'), 'MPPT V min': num('invNewMpptVMin'), 'MPPT V max': num('invNewMpptVMax'),
+  // ---- inverter catalog from datasheet ingest ----
+  // Same pattern as the module catalog: every model beyond the three CPS
+  // ratings comes from Document tracking's review card. DC input topology is
+  // the one field the review form asks for directly rather than extracting —
+  // no datasheet states it in a parseable way, and it's a real engineering
+  // judgement call (central vs. string inverter), not a transcription.
+  function inverterFieldsFromText(text) {
+    const num = re => { const m = text.match(re); return m ? parseFloat(m[1].replace(/,/g, '')) : null; };
+    function acRatingW() {
+      const m = text.match(/(?:Rated AC Power|AC Power Rating|Rated Power|Nominal (?:AC )?Power|Max(?:imum)? (?:AC )?Output Power)[^\d+-]{0,15}([+-]?[\d.,]+)\s*(k?VA|k?W)\b/i);
+      if (!m) return null;
+      const v = parseFloat(m[1].replace(/,/g, ''));
+      return /^k/i.test(m[2]) ? v * 1000 : v;
+    }
+    function mpptRange() {
+      const m = text.match(/(?:MPPT Voltage Range|MPPT Operating (?:Voltage )?Range|Voltage Range)[^\d+-]{0,15}([+-]?[\d.]+)\s*(?:[-–—]|to)\s*([+-]?[\d.]+)\s*V/i);
+      return m ? [parseFloat(m[1]), parseFloat(m[2])] : [null, null];
+    }
+    const dimsMatch = text.match(/Dimensions?[^\d]{0,10}([\d.]+)\s*[x×]\s*([\d.]+)\s*[x×]\s*([\d.]+)/i);
+    const [mpptVMin, mpptVMax] = mpptRange();
+    return {
+      acRatingW: acRatingW(),
+      nominalAcV: num(/(?:Nominal AC Voltage|Rated AC Voltage|Grid Voltage)[^\d+-]{0,15}([+-]?[\d.]+)\s*V\b/i),
+      phases: num(/Phases?[^\d+-]{0,10}([+-]?\d+)/i),
+      maxOutputCurrentA: num(/Max(?:imum)? (?:AC )?Output Current[^\d+-]{0,15}([+-]?[\d.]+)\s*A/i),
+      maxOcpdA: num(/Max(?:imum)? (?:Backfeed|OCPD|Overcurrent Protection)[^\d+-]{0,15}([+-]?[\d.]+)\s*A/i),
+      mpptVMin: mpptVMin, mpptVMax: mpptVMax,
+      maxDcInputA: num(/Max(?:imum)? DC Input Current[^\d+-]{0,15}([+-]?[\d.]+)\s*A/i),
+      mpptCount: num(/(?:Number of MPPTs?|MPP Trackers?|MPPTs?)[^\d+-]{0,15}([+-]?\d+)/i),
+      weightKg: num(/Weight[^\d+-]{0,10}([+-]?[\d.]+)\s*kg/i),
+      enclosure: (text.match(/Enclosure(?: (?:Rating|Type))?[:\s]*([^\n]+)/i) || [])[1] || '',
+      dims: dimsMatch ? [parseFloat(dimsMatch[1]), parseFloat(dimsMatch[2]), parseFloat(dimsMatch[3])] : [],
     };
-    const missing = Object.keys(required).filter(k => !Number.isFinite(required[k]));
+  }
+
+  const INVERTER_REQUIRED_FIELDS = [
+    ['acRatingW', 'AC power rating', 'VA'], ['nominalAcV', 'Nominal AC voltage', 'V'], ['phases', 'Phases', ''],
+    ['maxOutputCurrentA', 'Max output current', 'A'], ['maxOcpdA', 'Manufacturer max OCPD', 'A'],
+    ['mpptVMin', 'MPPT V min', 'V'], ['mpptVMax', 'MPPT V max', 'V'],
+  ];
+
+  function inverterDocReviewHtml(doc) {
+    if (!doc.formValues) {
+      const p = inverterFieldsFromText(doc.text || '');
+      doc.formValues = {
+        manufacturer: '', model: '', dcTopology: 'combiner',
+        acRatingW: p.acRatingW, nominalAcV: p.nominalAcV, phases: p.phases,
+        maxOutputCurrentA: p.maxOutputCurrentA, maxOcpdA: p.maxOcpdA,
+        mpptVMin: p.mpptVMin, mpptVMax: p.mpptVMax,
+        maxDcInputA: p.maxDcInputA, mpptCount: p.mpptCount, weightKg: p.weightKg,
+        enclosure: p.enclosure, dims: p.dims.length === 3 ? p.dims.join(' × ') : '',
+      };
+      doc.parsedRequiredCount = INVERTER_REQUIRED_FIELDS.filter(([k]) => p[k] != null).length;
+    }
+    const fv = doc.formValues;
+    const inputHtml = (key, label, unit, wide) => {
+      const v = fv[key] == null ? '' : fv[key];
+      const isRequired = INVERTER_REQUIRED_FIELDS.some(([k]) => k === key);
+      return '<div class="field' + (wide ? ' wide' : '') + '"><label>' + label + (unit ? ' <span class="unit">' + unit + '</span>' : '') + '</label>' +
+        '<input ' + (wide ? 'class="prose" ' : '') + 'type="text" data-doc-id="' + doc.id + '" data-doc-field="' + key + '" value="' + escapeAttr(v) + '"' +
+        (isRequired && v === '' ? ' placeholder="not found — enter it"' : '') + '></div>';
+    };
+    return '<div class="doc-review-form">' +
+      '<p class="desc" style="margin:0;">' + (doc.parsedRequiredCount >= INVERTER_REQUIRED_FIELDS.length
+        ? 'All required values were found in the extracted text below — check them against the datasheet before approving.'
+        : doc.parsedRequiredCount + ' of ' + INVERTER_REQUIRED_FIELDS.length + ' required values were found — fill in the rest by hand, and set DC input topology, before approving.') + '</p>' +
+      '<div class="field-grid">' +
+        inputHtml('manufacturer', 'Manufacturer', '', true) + inputHtml('model', 'Model', '', true) +
+        '<div class="field wide"><label>DC input topology <span class="unit">not parseable — set by hand</span></label>' +
+        '<select data-doc-id="' + doc.id + '" data-doc-field="dcTopology">' +
+          '<option value="combiner"' + (fv.dcTopology === 'combiner' ? ' selected' : '') + '>Requires external DC combiner — PV output circuit into inverter</option>' +
+          '<option value="direct"' + (fv.dcTopology === 'direct' ? ' selected' : '') + '>Accepts PV source circuits directly — no combiner</option>' +
+        '</select></div>' +
+        INVERTER_REQUIRED_FIELDS.map(([k, l, u]) => inputHtml(k, l, u)).join('') +
+        inputHtml('maxDcInputA', 'Max DC input current', 'A, optional') + inputHtml('mpptCount', 'MPPTs', 'optional') +
+        inputHtml('enclosure', 'Enclosure', 'optional', true) + inputHtml('dims', 'Dimensions W×H×D', 'mm, optional', true) +
+        inputHtml('weightKg', 'Weight', 'kg, optional') +
+      '</div>' +
+      '<details><summary style="cursor:pointer; color:var(--ink-muted); font-size:12.5px;">Extracted text (' + (doc.pages || 0) + ' page' + (doc.pages === 1 ? '' : 's') + ')</summary>' +
+        '<pre class="capture" style="max-height:220px; margin-top:8px;">' + escapeText(doc.text || '(no text extracted)') + '</pre></details>' +
+      '<div class="bulk-btns" style="margin-top:0;"><button type="button" class="btn btn-primary" data-doc-approve="' + doc.id + '">' +
+        (doc.status === 'approved' ? 'Re-approve with edits' : 'Approve — add to inverter list') + '</button></div>' +
+      (doc.approveError ? '<p class="desc" style="color:var(--fail); margin:0;">' + escapeText(doc.approveError) + '</p>' : '') +
+    '</div>';
+  }
+
+  function approveInverterDoc(doc) {
+    const fv = doc.formValues || {};
+    const num = v => { const n = parseFloat(String(v).replace(/,/g, '')); return Number.isFinite(n) ? n : null; };
+    const manufacturer = (fv.manufacturer || '').trim();
+    const model = (fv.model || '').trim();
+    const required = {};
+    INVERTER_REQUIRED_FIELDS.forEach(([k, l]) => { required[l] = num(fv[k]); });
+    const missing = Object.keys(required).filter(k => required[k] === null);
     if (!manufacturer || !model) {
-      status.textContent = 'Manufacturer and model are both needed — they are what the inverter is called in the list.';
-      status.style.color = 'var(--fail)';
+      doc.approveError = 'Manufacturer and model are both needed — they are what the inverter is called in the list.';
+      invDocTracker.render();
       return;
     }
     if (missing.length) {
-      status.textContent = 'Missing or unreadable: ' + missing.join(', ') +
+      doc.approveError = 'Missing or unreadable: ' + missing.join(', ') +
         '. These drive OCPD sizing, the 120% busbar check and the string MPPT window, so they can’t be partial.';
-      status.style.color = 'var(--fail)';
+      invDocTracker.render();
       return;
     }
-    const dims = val('invNewDims').split(/[×x,]/).map(t => parseFloat(t.trim())).filter(Number.isFinite);
-    const key = 'custom-' + (++customInverterSeq) + '-' + Math.round(required['AC power rating'] / 1000);
+    doc.approveError = '';
+    const dims = (fv.dims || '').split(/[×x,]/).map(t => parseFloat(t.trim())).filter(Number.isFinite);
+    const key = doc.catalogKey || ('doc-' + doc.id);
     INVERTER_MODELS[key] = {
       manufacturer: manufacturer, model: model,
       acRatingW: required['AC power rating'], nominalAcV: required['Nominal AC voltage'],
-      phases: required['Phases'], maxOutputCurrentA: required['Max output current'],
-      maxOcpdA: required['Max OCPD'], mpptVMin: required['MPPT V min'], mpptVMax: required['MPPT V max'],
-      maxDcInput: val('invNewMaxDcInput'), mpptCount: val('invNewMpptCount'),
-      mpptWindow: val('invNewMpptWindow'), maxPvIsc: val('invNewMaxPvIsc'),
-      terminalRange: val('invNewTerminalRange'),
+      phases: required.Phases, maxOutputCurrentA: required['Max output current'],
+      maxOcpdA: required['Manufacturer max OCPD'], mpptVMin: required['MPPT V min'], mpptVMax: required['MPPT V max'],
+      maxDcInput: num(fv.maxDcInputA) != null ? String(num(fv.maxDcInputA)) : '', mpptCount: fv.mpptCount || '',
+      mpptWindow: '', maxPvIsc: '', terminalRange: '',
       dimensionsMm: dims.length === 3 ? dims : [],
-      weightKg: Number.isFinite(num('invNewWeight')) ? num('invNewWeight') : null,
-      enclosure: val('invNewEnclosure'), source: val('invNewSource'), custom: true,
+      weightKg: num(fv.weightKg), enclosure: (fv.enclosure || '').trim(),
+      dcTopology: fv.dcTopology === 'direct' ? 'direct' : 'combiner',
+      source: doc.name, custom: true,
     };
+    doc.catalogKey = key;
+    doc.catalogLabel = inverterLabel(key);
+    doc.status = 'approved';
+    doc.reviewOpen = false;
     refreshInverterModelOptions();
     invModel.value = key;
     applyInverterModel();
     if (inverterCascadeReady) { refreshInverterBulkOptions(); recomputeInverterDesign(); }
-    ['invNewManufacturer', 'invNewModel', 'invNewAcRating', 'invNewNominalV', 'invNewPhases',
-     'invNewMaxOutputCurrent', 'invNewMaxOcpd', 'invNewMpptVMin', 'invNewMpptVMax', 'invNewMaxDcInput',
-     'invNewMpptCount', 'invNewMpptWindow', 'invNewMaxPvIsc', 'invNewTerminalRange', 'invNewDims',
-     'invNewWeight', 'invNewEnclosure', 'invNewSource'].forEach(id => { document.getElementById(id).value = ''; });
-    status.innerHTML = 'Added <b>' + escapeText(inverterLabel(key)) + '</b> and selected it. ' +
-      'It is now pickable per inverter on Inverter Design. Backend Verification can’t check this one — the Python catalog only knows the three datasheet models.';
-    status.style.color = 'var(--ink-muted)';
-  });
+    invDocTracker.render();
+  }
 
-  document.getElementById('invRemoveBtn').addEventListener('click', () => {
-    const status = document.getElementById('invAddStatus');
-    const key = invModel.value;
-    if (!INVERTER_MODELS[key] || !INVERTER_MODELS[key].custom) {
-      status.textContent = 'Only models added here can be removed — the three datasheet models are the built-in catalog.';
-      status.style.color = 'var(--fail)';
-      return;
-    }
-    const label = inverterLabel(key);
+  function removeInverterCatalogEntry(key) {
+    if (!INVERTER_MODELS[key]) return;
+    const wasSelected = invModel.value === key;
     delete INVERTER_MODELS[key];
     // Inverter Design rows pointing at the removed model would compute an AC
     // rating of zero, so they fall back to the current selection.
@@ -3267,10 +3400,32 @@
       inverterDesignRows.forEach(r => { if (!INVERTER_MODELS[r.model]) r.model = '350'; });
     }
     refreshInverterModelOptions();
-    applyInverterModel();
+    if (wasSelected) { invModel.value = '350'; applyInverterModel(); }
     if (inverterCascadeReady) { refreshInverterBulkOptions(); recomputeInverterDesign(); }
-    status.innerHTML = 'Removed <b>' + escapeText(label) + '</b>.';
-    status.style.color = 'var(--ink-muted)';
+  }
+
+  document.getElementById('invDocManifestBody').addEventListener('input', e => {
+    const docId = e.target.dataset.docId;
+    const field = e.target.dataset.docField;
+    if (docId === undefined || !field) return;
+    const doc = invDocTracker.docById(docId);
+    if (doc && doc.formValues) doc.formValues[field] = e.target.value;
+  });
+  document.getElementById('invDocManifestBody').addEventListener('change', e => {
+    // The topology <select> needs the same write-without-render as the text
+    // inputs (its own change already re-renders nothing on its own, so this
+    // just keeps the two consistent); Approve is handled by the click below.
+    const docId = e.target.dataset.docId;
+    const field = e.target.dataset.docField;
+    if (docId === undefined || !field || e.target.tagName !== 'SELECT') return;
+    const doc = invDocTracker.docById(docId);
+    if (doc && doc.formValues) doc.formValues[field] = e.target.value;
+  });
+  document.getElementById('invDocManifestBody').addEventListener('click', e => {
+    const docId = e.target.dataset.docApprove;
+    if (docId === undefined) return;
+    const doc = invDocTracker.docById(docId);
+    if (doc) approveInverterDoc(doc);
   });
 
   refreshInverterModelOptions();
@@ -3681,12 +3836,23 @@
     AZ: 'NEC 2020',
     NV: 'NEC 2023',
   };
+  // Same stub-table honesty as NEC_TABLE above: a small reference set, not a
+  // real utility-territory lookup (that's genuinely ambiguous by ZIP/address
+  // in states with multiple utilities, e.g. Texas's competitive TDSPs) — the
+  // override field is how the designer corrects or fills in what the table
+  // can't know.
+  const UTILITY_TABLE = {
+    IL: 'Ameren Illinois', MO: 'Ameren Missouri', CA: 'confirm — PG&E / SCE / SDG&E by service address',
+    TX: 'confirm — Oncor / CenterPoint / AEP (competitive TDSP by address)',
+    AZ: 'confirm — Arizona Public Service (APS) / Salt River Project', NV: 'NV Energy',
+  };
   // State/county/AHJ live on Site Config (Panel 01) — single source of truth,
   // this panel just resolves against them and displays a read-only mirror.
   const siteState = document.getElementById('siteState');
   const siteCounty = document.getElementById('siteCounty');
   const siteAhjOverride = document.getElementById('siteAhjOverride');
   const jurisdictionPill = document.getElementById('jurisdictionPill');
+  const utilityNameOverride = document.getElementById('utilityNameOverride');
 
   function resolveJurisdiction() {
     const state = siteState.value;
@@ -3714,19 +3880,55 @@
       jurisdictionPill.textContent = edition.split(' (')[0] + ' · ' + state;
       jurisdictionPill.className = 'pill pill-warn';
     }
+
+    // Utility: same override-wins-over-lookup pattern as AHJ above.
+    const override = utilityNameOverride.value.trim();
+    const suggestion = UTILITY_TABLE[state] || '';
+    const utilityEl = document.getElementById('utilityName');
+    const noteEl = document.getElementById('utilityResolutionNote');
+    utilityEl.value = override || suggestion || '';
+    if (override) {
+      noteEl.innerHTML = 'Source: <b>override</b>.';
+      noteEl.style.color = 'var(--ink-muted)';
+    } else if (suggestion) {
+      noteEl.innerHTML = 'Source: <b>stub table</b>, by state (' + state + ') — a real lookup would need the service address, not just the state. Override above if this is wrong.';
+      noteEl.style.color = 'var(--ink-muted)';
+    } else {
+      noteEl.innerHTML = state
+        ? 'No stub-table entry for ' + state + ' — enter the utility above.'
+        : 'No state set on Site Config yet — enter the utility above, or set the state.';
+      noteEl.style.color = 'var(--warn)';
+    }
   }
-  [siteState, siteCounty, siteAhjOverride].forEach(el => el.addEventListener('input', resolveJurisdiction));
+  [siteState, siteCounty, siteAhjOverride, utilityNameOverride].forEach(el => el.addEventListener('input', resolveJurisdiction));
   resolveJurisdiction();
 
+  const utilityDocTracker = initDocTracker({
+    dropzoneId: 'utilityDocDropzone', inputId: 'utilityDocInput', manifestBodyId: 'utilityDocManifestBody',
+    types: [
+      { label: 'Interconnection application form', keywords: ['application', 'interconnection'] },
+      { label: 'Utility approval / PTO letter', keywords: ['approval', 'pto', 'permission to operate', 'authorization'] },
+      { label: 'System impact study', keywords: ['impact', 'study'] },
+      { label: 'One-line submitted', keywords: ['one-line', 'oneline', 'sld', 'single'] },
+      { label: 'Meter spec', keywords: ['meter', 'metering'] },
+    ],
+  });
+
   // ---- reusable per-panel document tracker (Module/Inverter/DC Combiner ingest) ----
-  // Same simulated classify → queued → parsing → extracted flow as Document
-  // Intake below, scoped to one panel's own expected document types instead
-  // of the whole-project manifest.
+  // Real backend text extraction for PDFs (POST to /extract/pdf, same origin
+  // as the page — this endpoint isn't reachable cross-host the way
+  // Backend Verification's configurable URL is). Field-level parsing stays in
+  // JS, using the same label/value regex approach the ASHRAE panel's pasted
+  // data-set parser already uses, so there is one parsing style rather than
+  // two. Every document can be archived regardless of status; archiving one
+  // that produced a catalog entry (module, inverter) removes that entry too.
   function initDocTracker(opts) {
     const dz = document.getElementById(opts.dropzoneId);
     const input = document.getElementById(opts.inputId);
     const body = document.getElementById(opts.manifestBodyId);
-    let count = 0;
+    const emptyMessage = body.querySelector('.empty') ? body.querySelector('.empty td').textContent : 'No documents uploaded yet';
+    let seq = 0;
+    const docs = [];
 
     function classify(name) {
       const n = name.toLowerCase();
@@ -3736,33 +3938,162 @@
       return 'Other Uploads';
     }
 
-    function addFile(name) {
-      if (body.querySelector('.empty')) body.innerHTML = '';
-      count++;
-      const statusId = opts.dropzoneId + '-status-' + count;
-      const row = document.createElement('tr');
-      row.innerHTML =
-        '<td class="fname">' + name + '</td>' +
-        '<td>' + classify(name) + '</td>' +
-        '<td><span class="status-chip status-queued" id="' + statusId + '"><span class="p"></span>Queued</span></td>';
-      body.appendChild(row);
-      const chip = () => document.getElementById(statusId);
-      setTimeout(() => { chip().className = 'status-chip status-parsing'; chip().innerHTML = '<span class="p"></span>Parsing'; }, 700);
-      setTimeout(() => { chip().className = 'status-chip status-extracted'; chip().innerHTML = '<span class="p"></span>Extracted — needs review'; }, 2200);
+    function statusChipHtml(doc) {
+      const map = {
+        queued: ['status-queued', 'Queued'],
+        uploading: ['status-parsing', 'Uploading'],
+        parsing: ['status-parsing', 'Parsing'],
+        uploaded: ['status-uploaded', 'Uploaded — not a PDF, nothing to parse'],
+        extracted: ['status-extracted', 'Extracted — needs review'],
+        reviewed: ['status-approved', 'Reviewed'],
+        approved: ['status-approved', 'Approved — ' + escapeText(doc.catalogLabel || 'added to the list')],
+        failed: ['status-fail', 'Extraction failed'],
+      };
+      if (doc.archived) return '<span class="status-chip status-archived"><span class="p"></span>Archived</span>';
+      const [cls, label] = map[doc.status] || ['status-queued', doc.status];
+      return '<span class="status-chip ' + cls + '"><span class="p"></span>' + label + (doc.status === 'failed' && doc.error ? ' — ' + escapeText(doc.error) : '') + '</span>';
     }
+
+    function actionsHtml(doc) {
+      const btns = [];
+      const canReview = doc.isPdf && !doc.archived && ['extracted', 'reviewed', 'approved'].includes(doc.status);
+      if (canReview) {
+        btns.push('<button type="button" class="contact-remove" data-doc-review="' + doc.id + '">' + (doc.reviewOpen ? 'Close' : 'Review') + '</button>');
+      }
+      if (!doc.archived) {
+        btns.push('<button type="button" class="contact-remove" data-doc-archive="' + doc.id + '">Archive</button>');
+      } else {
+        btns.push('<button type="button" class="contact-remove" data-doc-restore="' + doc.id + '">Restore</button>');
+      }
+      return '<div class="doc-actions">' + btns.join('') + '</div>';
+    }
+
+    function defaultReviewHtml(doc) {
+      return '<div class="doc-review-form">' +
+        '<pre class="capture" style="max-height:260px;">' + escapeText(doc.text || '(no text extracted)') + '</pre>' +
+        (doc.status !== 'reviewed' && doc.status !== 'approved'
+          ? '<div class="bulk-btns" style="margin-top:0;"><button type="button" class="btn btn-primary" data-doc-mark-reviewed="' + doc.id + '">Mark reviewed</button></div>'
+          : '<p class="desc" style="margin:0;">Marked reviewed.</p>') +
+        '</div>';
+    }
+
+    function render() {
+      if (!docs.length) {
+        body.innerHTML = '<tr class="empty"><td colspan="4">' + emptyMessage + '</td></tr>';
+        return;
+      }
+      body.innerHTML = docs.map(doc => {
+        let rows = '<tr class="' + (doc.archived ? 'archived-row' : '') + '">' +
+          '<td class="fname">' + escapeText(doc.name) + '</td>' +
+          '<td>' + escapeText(doc.type) + '</td>' +
+          '<td>' + statusChipHtml(doc) + '</td>' +
+          '<td>' + actionsHtml(doc) + '</td>' +
+        '</tr>';
+        if (doc.reviewOpen) {
+          const inner = opts.renderReview ? opts.renderReview(doc) : defaultReviewHtml(doc);
+          rows += '<tr class="review-row"><td colspan="4">' + inner + '</td></tr>';
+        }
+        return rows;
+      }).join('');
+      if (opts.afterRender) opts.afterRender(docs, body);
+    }
+
+    async function extractOne(doc) {
+      doc.status = 'uploading';
+      render();
+      const form = new FormData();
+      form.append('file', doc.file, doc.name);
+      let res;
+      try {
+        res = await fetch('/extract/pdf', { method: 'POST', body: form });
+      } catch (err) {
+        doc.status = 'failed';
+        doc.error = 'network error — ' + err.message;
+        render();
+        return;
+      }
+      if (!res.ok) {
+        let detail = res.status + ' ' + res.statusText;
+        try { const j = await res.json(); if (j && j.detail) detail = j.detail; } catch (e) { /* not JSON */ }
+        doc.status = 'failed';
+        doc.error = detail;
+        render();
+        return;
+      }
+      doc.status = 'parsing';
+      render();
+      const data = await res.json();
+      doc.text = data.text || '';
+      doc.pages = data.pages || 0;
+      doc.status = 'extracted';
+      render();
+    }
+
+    function addFile(file) {
+      if (opts.beforeAdd && opts.beforeAdd(file, docs) === false) return;
+      seq++;
+      const isPdf = /\.pdf$/i.test(file.name);
+      const doc = {
+        id: opts.dropzoneId + '-' + seq, name: file.name, type: classify(file.name), file: file,
+        isPdf: isPdf, status: isPdf ? 'queued' : 'uploaded', archived: false, reviewOpen: false,
+        text: '', pages: 0, fields: null, catalogKey: null, catalogLabel: '', error: '',
+      };
+      docs.push(doc);
+      render();
+      if (isPdf) extractOne(doc);
+      if (opts.onAdd) opts.onAdd(doc);
+    }
+
+    function docById(id) { return docs.find(d => d.id === id); }
+
+    function archive(id) {
+      const doc = docById(id);
+      if (!doc) return;
+      doc.archived = true;
+      doc.reviewOpen = false;
+      if (opts.onArchive) opts.onArchive(doc);
+      render();
+    }
+    function restore(id) {
+      const doc = docById(id);
+      if (!doc) return;
+      doc.archived = false;
+      render();
+    }
+
+    body.addEventListener('click', e => {
+      const reviewId = e.target.dataset.docReview;
+      if (reviewId !== undefined) {
+        const doc = docById(reviewId);
+        if (doc) { doc.reviewOpen = !doc.reviewOpen; render(); }
+        return;
+      }
+      const archiveId = e.target.dataset.docArchive;
+      if (archiveId !== undefined) { archive(archiveId); return; }
+      const restoreId = e.target.dataset.docRestore;
+      if (restoreId !== undefined) { restore(restoreId); return; }
+      const reviewedId = e.target.dataset.docMarkReviewed;
+      if (reviewedId !== undefined) {
+        const doc = docById(reviewedId);
+        if (doc) { doc.status = 'reviewed'; render(); }
+        return;
+      }
+    });
 
     dz.addEventListener('click', () => input.click());
     dz.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') input.click(); });
     input.addEventListener('change', () => {
-      Array.from(input.files).forEach(f => addFile(f.name));
+      Array.from(input.files).forEach(addFile);
       input.value = '';
     });
     ['dragenter', 'dragover'].forEach(evt => dz.addEventListener(evt, e => { e.preventDefault(); dz.classList.add('drag'); }));
     ['dragleave', 'drop'].forEach(evt => dz.addEventListener(evt, e => { e.preventDefault(); dz.classList.remove('drag'); }));
-    dz.addEventListener('drop', e => { Array.from(e.dataTransfer.files).forEach(f => addFile(f.name)); });
+    dz.addEventListener('drop', e => { Array.from(e.dataTransfer.files).forEach(addFile); });
+
+    return { docs, render, docById, archive };
   }
 
-  initDocTracker({
+  const modDocTracker = initDocTracker({
     dropzoneId: 'modDocDropzone', inputId: 'modDocInput', manifestBodyId: 'modDocManifestBody',
     types: [
       { label: 'Module datasheet', keywords: ['datasheet', 'spec'] },
@@ -3771,6 +4102,8 @@
       { label: 'PVSyst .PAN File', keywords: ['.pan', 'pvsyst'] },
       { label: 'Quote', keywords: ['quote'] },
     ],
+    renderReview: doc => moduleDocReviewHtml(doc),
+    onArchive: doc => { if (doc.catalogKey) removeModuleCatalogEntry(doc.catalogKey); },
   });
 
   initDocTracker({
@@ -4113,19 +4446,6 @@
     }
   }
 
-  // Which module the detail table below is showing. Defaults to the one
-  // selected on Module Spec, but can be pointed at any module in the catalog
-  // without changing what the rest of the design is built from.
-  const stringRangeModuleEl = document.getElementById('stringRangeModule');
-  function refreshStringRangeModuleOptions() {
-    const keep = stringRangeModuleEl.value;
-    stringRangeModuleEl.innerHTML = Object.keys(MODULE_SKUS).map(k =>
-      '<option value="' + escapeAttr(k) + '">' + escapeText(moduleLabel(k)) +
-      (k === modSku.value ? ' — selected on Module Spec' : '') + '</option>').join('');
-    stringRangeModuleEl.value = MODULE_SKUS[keep] ? keep : modSku.value;
-  }
-  stringRangeModuleEl.addEventListener('change', recomputeStringLength);
-
   // Min / max / recommended for the whole catalog at once, so a module can be
   // picked on what it does to the string rather than on wattage alone.
   function renderModuleRangeSummary() {
@@ -4166,16 +4486,15 @@
   });
 
   function recomputeStringLength() {
-    refreshStringRangeModuleOptions();
     renderModuleRangeSummary();
-    const r = computeStringLengthRange(stringRangeModuleEl.value);
+    // The detail table below always follows the module selected on Module
+    // Spec — click "Use this" above to point both the design and this table
+    // at a different module in one action, rather than detailing one module
+    // while designing around another.
+    const r = computeStringLengthRange(modSku.value);
     if (!r) return;
-    const detailKey = stringRangeModuleEl.value;
-    const isSelectedModule = detailKey === modSku.value;
-    document.getElementById('stringRangeNote').innerHTML = isSelectedModule
-      ? 'Detailing <b>' + escapeText(moduleLabel(detailKey)) + '</b>, which is the module the rest of the design uses.'
-      : 'Detailing <b>' + escapeText(moduleLabel(detailKey)) + '</b> — the design is still built from <b>' +
-        escapeText(moduleLabel(modSku.value)) + '</b>. Ticked lengths apply to the design regardless of which module is being detailed.';
+    document.getElementById('stringRangeNote').innerHTML =
+      'Detailing <b>' + escapeText(moduleLabel(modSku.value)) + '</b>, the module selected on Module Spec.';
     const valid = r.maxLen >= r.minLen && r.minLen > 0;
 
     document.getElementById('stringLenMin').innerHTML = r.minLen + '<small> modules</small>';
@@ -4184,9 +4503,7 @@
     // Longer strings sit higher above the MPPT floor, so the longest length that
     // still clears the cold-Voc ceiling is also the longest-lived one.
     const recommended = recommendedLengthFor(r);
-    // Only the module the design is actually built from sets the length the
-    // rest of the app counts on.
-    if (isSelectedModule) recommendedStringLength = recommended;
+    recommendedStringLength = recommended;
     const recEl = document.getElementById('stringLenRecommended');
     if (!valid) {
       recEl.innerHTML = '—<small> no valid length in range</small>';
@@ -4322,10 +4639,11 @@
   // Inverter Spec, so the schedule states it per row rather than leaving the
   // designer to remember which panel it was set on.
   function inverterRowHasCombiner(row) {
-    // Read the element, not the `invDcTopology` const — that binding belongs to
-    // the DC Combiner block further down and isn't initialized during this
-    // panel's first render.
-    return document.getElementById('invDcTopology').value === 'combiner';
+    // A property of the row's own model, not a page-level setting — a mixed
+    // fleet (e.g. a string inverter added alongside the central CPS units)
+    // can have some rows that need a combiner and some that don't.
+    const d = INVERTER_MODELS[row.model];
+    return !!d && d.dcTopology !== 'direct';
   }
   function combinerCellHtml(row) {
     const yes = inverterRowHasCombiner(row);
@@ -5191,7 +5509,6 @@
   // ---- client inputs: contacts ----
   const contactList = document.getElementById('contactList');
   const clientContactCount = document.getElementById('clientContactCount');
-  const clientDot = document.getElementById('clientDot');
   const MIN_CONTACTS = 1;
   const INITIAL_CONTACT_COUNT = 3;
   let contactSeq = 0;
@@ -5230,7 +5547,7 @@
       removeBtn.style.display = blocks.length > MIN_CONTACTS ? 'inline-block' : 'none';
     });
     clientContactCount.textContent = blocks.length + (blocks.length === 1 ? ' contact' : ' contacts');
-    clientDot.className = 'rail-dot ' + (blocks.length >= MIN_CONTACTS ? 'dot-warn' : 'dot-fail');
+    clientContactCount.className = 'chip ' + (blocks.length >= MIN_CONTACTS ? 'chip-muted' : 'chip-fail');
   }
 
   for (let i = 0; i < INITIAL_CONTACT_COUNT; i++) addContact();
@@ -6637,17 +6954,20 @@
 
   // ---- save / load project state ----
   const PROJECT_FIELD_IDS = [
-    'projectName', 'utilityName', 'projectType', 'projectTypeOther', 'targetAc', 'targetDc',
+    // utilityName isn't listed — it's derived by resolveJurisdiction() from
+    // state + utilityNameOverride, never its own saved state.
+    'projectName', 'utilityNameOverride', 'projectType', 'projectTypeOther', 'targetAc', 'targetDc',
     'siteStreet', 'siteCity', 'siteState', 'siteZip', 'siteCounty', 'siteAhjOverride',
     'siteLatitude', 'siteLongitude',
     'clientBusinessName', 'clientAddress', 'clientWebsite',
-    'modSku', 'invModel', 'invDcTopology',
+    // invDcTopology isn't listed — it's derived from whichever inverter model
+    // is selected (applyInverterModel() sets it), never its own saved state.
+    'modSku', 'invModel',
     'sysArchInterconnectionType', 'sysArchPanelboardTag', 'sysArchBusSize', 'sysArchAcVoltage',
     'sysArchFeederSize', 'sysArchFeederType', 'sysArchFeederQuantity', 'sysArchServiceSize',
     'mvExpectedPoints', 'mvExpectedTransformers', 'mvExpectedSwitchboards', 'mvInvertersPerSwitchboard',
     'mvLoadBreakerQty', 'mvLoadBreakerSize',
     'mvNominalVoltage', 'mvBil', 'mvContinuousCurrent', 'mvInterruptingRating', 'mvGrounding', 'mvCableType',
-    'stringRangeModule',
     'combManufacturer', 'combModel', 'combVdcRating',
     'combDisconnect', 'combDisconnectAmpRating', 'combSurgeSuppression', 'combSurgeSuppressionSize',
     'combDisconnectType', 'combDisconnectVdcRating',
@@ -6749,33 +7069,42 @@
       }
     });
     if (Array.isArray(project.customInverters)) {
+      // As with custom modules: the ingested document itself isn't part of
+      // the save, so a reloaded custom inverter can't be re-reviewed or
+      // archived-by-source until it's re-ingested — only the catalog entry
+      // an approval already produced comes back.
       Object.keys(INVERTER_MODELS).forEach(k => { if (INVERTER_MODELS[k].custom) delete INVERTER_MODELS[k]; });
       project.customInverters.forEach(m => {
         if (!m || !m.key) return;
         const key = String(m.key);
         INVERTER_MODELS[key] = Object.assign({}, m, { custom: true });
         delete INVERTER_MODELS[key].key;
-        const n = parseInt((key.match(/^custom-(\d+)/) || [])[1], 10);
-        if (Number.isFinite(n) && n > customInverterSeq) customInverterSeq = n;
       });
       refreshInverterModelOptions();
       if (fields.invModel && INVERTER_MODELS[fields.invModel]) invModel.value = fields.invModel;
       applyInverterModel();
     }
     if (Array.isArray(project.customModules)) {
+      // Restores the catalog entries an ingest approved; the source documents
+      // and their extracted text are not part of the save (doc trackers are
+      // session state, not project state), so a reloaded custom module can't
+      // be re-reviewed or archived-by-source until it's re-ingested.
       Object.keys(MODULE_SKUS).forEach(k => { if (MODULE_SKUS[k].custom) delete MODULE_SKUS[k]; });
       project.customModules.forEach(m => {
         if (!m || !m.key) return;
         const key = String(m.key);
         MODULE_SKUS[key] = Object.assign({}, m, { custom: true });
         delete MODULE_SKUS[key].key;
-        const n = parseInt((key.match(/^custom-(\d+)/) || [])[1], 10);
-        if (Number.isFinite(n) && n > customModuleSeq) customModuleSeq = n;
       });
       refreshModuleSkuOptions();
       if (fields.modSku && MODULE_SKUS[fields.modSku]) modSku.value = fields.modSku;
       applyModuleSku();
     }
+    // Unconditional, not just inside the customInverters branch above — an
+    // older save with no custom inverters still needs invDcTopology's hidden
+    // value and display re-derived from whichever invModel just got restored,
+    // since that field is never itself part of the save.
+    applyInverterModel();
     updateProjectTypeOtherVisibility();
     // The GPS editors are derived views of the hidden canonical lat/lng that
     // PROJECT_FIELD_IDS just restored, so they have to be re-rendered from it.

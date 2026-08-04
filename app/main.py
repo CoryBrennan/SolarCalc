@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -31,6 +31,7 @@ from app import (
 from app.changeset_routes import router as changeset_router
 from app.db import create_db_and_tables
 from app.models import ProjectInput
+from app.pdf_extract import PdfExtractionError, extract_pdf_text
 from app.project_calc import compute_actual_capacity, compute_combiner_ocpd_switchboard, validate_module_skus
 
 app = FastAPI(title="Solar Calc Engine", version="0.1.0")
@@ -59,6 +60,30 @@ app.mount("/img", StaticFiles(directory=_STATIC_DIR / "img"), name="img")
 @app.get("/health")
 def health() -> dict:
     return {"status": "ok"}
+
+
+# Datasheet ingest is same-origin only (the HMI is served by this same app),
+# so unlike /calculate — which the HMI can point at any backend URL via
+# Backend Verification's URL field — this deliberately isn't reachable from a
+# different host and needs no auth beyond that.
+_MAX_UPLOAD_BYTES = 25 * 1024 * 1024
+
+
+@app.post("/extract/pdf")
+async def extract_pdf(file: UploadFile = File(...)) -> dict:
+    """Text extraction only — no field parsing. The HMI's JS pulls Pmax, Voc,
+    an AC rating, etc. out of the returned text with the same label/value
+    regex approach the ASHRAE panel already uses on pasted station data, so
+    there's one parsing style instead of two, and a designer can see exactly
+    what the extraction produced before any field is pulled from it."""
+    data = await file.read()
+    if len(data) > _MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="PDF exceeds 25 MB")
+    try:
+        text, pages = extract_pdf_text(data)
+    except PdfExtractionError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"filename": file.filename, "pages": pages, "text": text}
 
 
 @app.get("/")
