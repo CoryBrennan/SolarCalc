@@ -2061,56 +2061,37 @@
       <section class="panel" id="sec-upload">
         <div class="panel-head">
           <div>
-            <p class="eyebrow">Document-extraction pipeline (planned)</p>
+            <p class="eyebrow">Every document uploaded anywhere in this project</p>
             <h2>Document Intake</h2>
           </div>
-          <span class="chip chip-pass" id="manifestCount">2 of 4 expected types received</span>
+          <span class="chip chip-pass" id="manifestCount">0 documents</span>
         </div>
-        <p class="desc">Drop datasheets, PVCase exports, or ASHRAE lookups here. Each file is classified by type and routed to the section it will fill. The module and inverter datasheets below were parsed for real (values now populate Module Spec / Inverter Spec above) — <b>anything you drop below this point is a simulated parse only</b>, no PDF is actually read client-side.</p>
+        <p class="desc">One ledger across the whole project — every PDF dropped on Module Spec, Inverter Spec, DC Combiner Design, Switchboard/Transformer/MV Design, Jurisdiction's utility section, Site Config's E911 card, or Inverter Design's PVCase BOM shows up here too, live, because this table reads the same document objects those panels do rather than a copy. Extraction is real: PDFs go to the backend's text extractor, and review/approve happens on the panel that owns the document — use <b>Open</b> to jump there.</p>
 
-        <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Upload PDF documents">
+        <div class="dropzone" id="genericDocDropzone" tabindex="0" role="button" aria-label="Upload other project documents">
           <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
             <path d="M12 3v12m0-12 4 4m-4-4-4 4"/>
             <path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/>
           </svg>
-          <div class="cta">Drop PDFs here, or click to browse</div>
-          <div class="sub">Module datasheet · Inverter datasheet · ASHRAE site data · PVCase export</div>
-          <input type="file" id="fileInput" accept="application/pdf" multiple style="display:none;">
+          <div class="cta">Drop other project documents here, or click to browse</div>
+          <div class="sub">Anything without a dedicated panel — permits, correspondence, misc. reports. Datasheets belong on their own spec panel, where they also drive the catalog.</div>
+          <input type="file" id="genericDocInput" multiple style="display:none;">
         </div>
-
         <div class="card">
-          <p class="card-title">Expected document types</p>
-          <div class="expect-grid">
-            <div class="expect"><div class="ico">M</div><div class="t">Module datasheet<span class="sub">→ fills Module Spec</span></div></div>
-            <div class="expect"><div class="ico">I</div><div class="t">Inverter datasheet<span class="sub">→ fills Inverter Spec</span></div></div>
-            <div class="expect"><div class="ico">A</div><div class="t">ASHRAE weather data<span class="sub">→ fills ASHRAE Site Data</span></div></div>
-            <div class="expect"><div class="ico">P</div><div class="t">PVCase export<span class="sub">→ fills conductor lengths</span></div></div>
-          </div>
-        </div>
-
-        <div class="card">
-          <p class="card-title">Manifest</p>
+          <p class="card-title">Other project documents</p>
           <table class="manifest">
-            <thead>
-              <tr><th>File</th><th>Detected type</th><th>Status</th></tr>
-            </thead>
-            <tbody id="manifestBody">
-              <tr>
-                <td class="fname">ReneSola RS9-700~720NBG-E1 2384+1303+33.pdf</td>
-                <td>Module datasheet</td>
-                <td><span class="status-chip status-extracted"><span class="p"></span>Extracted</span></td>
-              </tr>
-              <tr>
-                <td class="fname">CPS-SCH350KTL-DO-US-800-Datasheet-1-6-2025.pdf</td>
-                <td>Inverter datasheet</td>
-                <td><span class="status-chip status-extracted"><span class="p"></span>Extracted</span></td>
-              </tr>
-            </tbody>
+            <thead><tr><th>File</th><th>Detected type</th><th>Status</th><th></th></tr></thead>
+            <tbody id="genericDocManifestBody"><tr class="empty"><td colspan="4">No documents uploaded yet</td></tr></tbody>
           </table>
-          <div class="note" style="margin-top:14px;">
-            <span>ⓘ</span>
-            <span><b>Not connected to a backend.</b> In the real pipeline, "Extracted" would populate the placeholder fields in Module Spec / Inverter Spec / ASHRAE Site Data above and flag anything the parser wasn't confident about for manual review.</span>
-          </div>
+        </div>
+
+        <div class="card">
+          <p class="card-title">All project documents</p>
+          <div class="expect-grid" id="documentIntakeSummary" style="margin-bottom:16px;"></div>
+          <table class="manifest">
+            <thead><tr><th>File</th><th>Section</th><th>Detected type</th><th>Status</th><th></th></tr></thead>
+            <tbody id="documentIntakeBody"><tr class="empty"><td colspan="5">No documents uploaded anywhere yet</td></tr></tbody>
+          </table>
         </div>
       </section>
 
@@ -2374,6 +2355,111 @@
     };
   }
 
+  // ---- labeled-number extraction (shared by module/inverter datasheet parsing) ----
+  // Real datasheets don't agree on layout: some put "Voc  48.60V" with the unit
+  // stuck to the number, others put the unit in a column header so a row reads
+  // "Voc | V | 48.60", and pypdf's text order for a table can interleave labels
+  // and values in ways that don't match the visual grid at all. A regex that
+  // requires "label, then immediately the number, then immediately the unit"
+  // — the first version of this — only ever matched prose-style datasheets and
+  // came back nearly empty on tabular ones, which is the common case.
+  //
+  // This instead: finds every occurrence of a label, scans a wide window past
+  // it for numbers, and accepts a number if it's in a sane range for that
+  // field (rejecting stray digits like page numbers or an unrelated
+  // dimension) and — when a unit is given — the unit appears either right
+  // after the number or right before it within a few characters.
+  function findLabeledNumber(text, labels, opts) {
+    opts = opts || {};
+    const unit = opts.unit;
+    const min = opts.min;
+    const max = opts.max;
+    const window = opts.window || 100;
+    for (const label of labels) {
+      const labelRe = new RegExp(label, 'ig');
+      let lm;
+      while ((lm = labelRe.exec(text))) {
+        const from = lm.index + lm[0].length;
+        const chunk = text.slice(from, from + window);
+        const numRe = /[+-]?\d[\d,]*\.?\d*/g;
+        let nm;
+        while ((nm = numRe.exec(chunk))) {
+          const val = parseFloat(nm[0].replace(/,/g, ''));
+          if (!Number.isFinite(val)) continue;
+          if (min != null && val < min) continue;
+          if (max != null && val > max) continue;
+          if (unit) {
+            // Prose datasheets glue the unit to the number ("18.32A"); table
+            // layouts put it in a header column, arbitrarily far to the left
+            // with column-alignment whitespace (or a "(W)" parenthetical) in
+            // between. So: unit immediately after the number, OR unit present
+            // anywhere in the window between the label and this number —
+            // there's nothing else in that window to false-positive against
+            // since it's already scoped to one label's own match. Word
+            // boundaries only make sense for alphabetic units — "%" has no
+            // word character on either side to anchor to, ever.
+            const boundary = /^[A-Za-z]+$/.test(unit) ? '\\b' : '';
+            const after = chunk.slice(nm.index + nm[0].length, nm.index + nm[0].length + 6);
+            const before = chunk.slice(0, nm.index);
+            const unitAfter = new RegExp('^\\s*' + unit + boundary, 'i').test(after);
+            const unitBefore = new RegExp(boundary + unit + boundary, 'i').test(before);
+            if (!unitAfter && !unitBefore) continue;
+          }
+          return val;
+        }
+      }
+    }
+    return null;
+  }
+  function findLabeledText(text, labels) {
+    for (const label of labels) {
+      const m = text.match(new RegExp(label + '[:\\s]*([^\\n]+)', 'i'));
+      if (m && m[1].trim()) return m[1].trim();
+    }
+    return '';
+  }
+  function findLabeledDims(text, labels) {
+    for (const label of labels) {
+      const m = text.match(new RegExp(label + '[^\\d]{0,12}([\\d.]+)\\s*[x×]\\s*([\\d.]+)\\s*[x×]\\s*([\\d.]+)', 'i'));
+      if (m) return [parseFloat(m[1]), parseFloat(m[2]), parseFloat(m[3])];
+    }
+    return [];
+  }
+  // Below this many characters of extracted text, treat the PDF as having
+  // little or no real text layer (scanned, or characters drawn as vector
+  // paths pypdf can't recover) rather than "our regexes just missed it" —
+  // those need a different message and a manual-paste fallback, not a bigger
+  // regex.
+  const THIN_TEXT_CHARS = 400;
+
+  // Shared between every per-panel document tracker and Document Intake's
+  // aggregate view, so a status reads the same way no matter which table
+  // it's shown in.
+  function docStatusChipHtml(doc) {
+    const map = {
+      queued: ['status-queued', 'Queued'],
+      uploading: ['status-parsing', 'Uploading'],
+      parsing: ['status-parsing', 'Parsing'],
+      uploaded: ['status-uploaded', 'Uploaded — not a PDF, nothing to parse'],
+      extracted: ['status-extracted', 'Extracted — needs review'],
+      reviewed: ['status-approved', 'Reviewed'],
+      approved: ['status-approved', 'Approved — ' + escapeText(doc.catalogLabel || 'added to the list')],
+      failed: ['status-fail', 'Extraction failed'],
+    };
+    if (doc.archived) return '<span class="status-chip status-archived"><span class="p"></span>Archived</span>';
+    const [cls, label] = map[doc.status] || ['status-queued', doc.status];
+    return '<span class="status-chip ' + cls + '"><span class="p"></span>' + label + (doc.status === 'failed' && doc.error ? ' — ' + escapeText(doc.error) : '') + '</span>';
+  }
+  // Higher sorts first in the aggregate table: things that still need a human
+  // ahead of things that don't, archived documents pushed to the bottom.
+  function docStatusPriority(doc) {
+    if (doc.archived) return 0;
+    if (doc.status === 'failed') return 3;
+    if (doc.status === 'extracted') return 2;
+    if (['queued', 'uploading', 'parsing'].includes(doc.status)) return 2;
+    return 1;
+  }
+
   const targetAc = document.getElementById('targetAc');
   const targetDc = document.getElementById('targetDc');
   const modQuantity = document.getElementById('modQuantity');
@@ -2390,6 +2476,18 @@
   // recompute() reaches forward into ETAP/switchboard bindings, so the module
   // cascade stays off until those exist.
   var moduleCascadeReady = false;
+
+  // Every initDocTracker() call below registers itself here, so Document
+  // Intake can show one manifest across every panel's ingest rather than
+  // duplicating the upload/parse/review machinery a second time. Declared
+  // this early (as a `var`, hoisted-undefined rather than TDZ'd) because the
+  // first tracker registers during this same script's initial run, long
+  // before Document Intake's own block further down exists.
+  var DOC_TRACKERS = [];
+  var documentIntakeReady = false;
+  function notifyDocRegistryChanged() {
+    if (documentIntakeReady) renderDocumentIntake();
+  }
 
   // Composes the site address from Site Config's separate fields — used by the
   // topbar (city/state, compact) and the document header (full mailing address).
@@ -2993,27 +3091,23 @@
   // to MODULE_SKUS. Archiving the source document (in initDocTracker's
   // onArchive) removes the catalog entry it produced.
   function moduleFieldsFromText(text) {
-    // The separator between a label and its number deliberately excludes +/-:
-    // a greedy \D{0,N} would otherwise swallow a leading minus sign as part
-    // of "eat non-digits", leaving the capture group an unsigned number and
-    // silently flipping a negative temperature coefficient positive.
-    const num = re => { const m = text.match(re); return m ? parseFloat(m[1]) : null; };
-    const dimsMatch = text.match(/Dimensions?[^\d]{0,10}([\d.]+)\s*[x×]\s*([\d.]+)\s*[x×]\s*([\d.]+)/i);
     return {
-      pmax: num(/(?:Pmax|Maximum Power|Rated Power)[^\d+-]{0,15}([+-]?[\d.]+)\s*W\b/i),
-      voc: num(/(?:Voc|Open[- ]Circuit Voltage)[^\d+-]{0,15}([+-]?[\d.]+)\s*V\b/i),
-      vmp: num(/(?:Vmp|V\s?pm|Voltage at (?:Pmax|Maximum Power))[^\d+-]{0,15}([+-]?[\d.]+)\s*V\b/i),
-      isc: num(/(?:Isc|Short[- ]Circuit Current)[^\d+-]{0,15}([+-]?[\d.]+)\s*A\b/i),
-      imp: num(/(?:Imp|I\s?pm|Current at (?:Pmax|Maximum Power))[^\d+-]{0,15}([+-]?[\d.]+)\s*A\b/i),
-      tempCoeffVoc: num(/Temperature Coefficient of Voc[^\d+-]{0,10}([+-]?[\d.]+)\s*%/i),
-      tempCoeffIsc: num(/Temperature Coefficient of Isc[^\d+-]{0,10}([+-]?[\d.]+)\s*%/i),
-      maxSystemV: num(/Maximum System Voltage[^\d+-]{0,10}([+-]?[\d.]+)\s*V/i),
-      maxFuse: num(/(?:Series Fuse Rating|Max(?:imum)? Series Fuse)[^\d+-]{0,10}([+-]?[\d.]+)\s*A/i),
-      firstYearDeg: num(/First[- ]?[Yy]ear [Dd]egradation[^\d+-]{0,10}([+-]?[\d.]+)\s*%/),
-      annualDeg: num(/Annual [Dd]egradation[^\d+-]{0,10}([+-]?[\d.]+)\s*%/),
-      weightKg: num(/Weight[^\d+-]{0,10}([+-]?[\d.]+)\s*kg/i),
-      cellType: (text.match(/Cell Type[:\s]*([^\n]+)/i) || [])[1] || '',
-      dims: dimsMatch ? [parseFloat(dimsMatch[1]), parseFloat(dimsMatch[2]), parseFloat(dimsMatch[3])] : [],
+      pmax: findLabeledNumber(text, ['P\\s?max', 'Maximum Power', 'Rated Power', 'Nominal Power', 'STC Power'], { unit: 'W', min: 50, max: 1000 }),
+      voc: findLabeledNumber(text, ['Voc\\b', 'V\\s?oc\\b', 'Open[- ]Circuit Voltage'], { unit: 'V', min: 15, max: 90 }),
+      vmp: findLabeledNumber(text, ['Vmp\\b', 'V\\s?mp\\b', 'V\\s?pm\\b', 'Vmpp\\b', 'Voltage at (?:Pmax|Maximum Power)'], { unit: 'V', min: 12, max: 75 }),
+      isc: findLabeledNumber(text, ['Isc\\b', 'I\\s?sc\\b', 'Short[- ]Circuit Current'], { unit: 'A', min: 1, max: 30 }),
+      imp: findLabeledNumber(text, ['Imp\\b', 'I\\s?mp\\b', 'I\\s?pm\\b', 'Impp\\b', 'Current at (?:Pmax|Maximum Power)'], { unit: 'A', min: 1, max: 30 }),
+      // Negative and near-zero, so the sane-range check has to allow both
+      // signs rather than assuming the datasheet always prints the minus.
+      tempCoeffVoc: findLabeledNumber(text, ['Temperature Coefficient(?:s)? of Voc', 'Temp(?:erature)?\\.? Co(?:eff)?\\.? (?:of )?Voc', 'β\\s?/?\\s?Voc', 'Voc Temp(?:erature)? Coefficient'], { unit: '%', min: -1, max: 1 }),
+      tempCoeffIsc: findLabeledNumber(text, ['Temperature Coefficient(?:s)? of Isc', 'Temp(?:erature)?\\.? Co(?:eff)?\\.? (?:of )?Isc', 'α\\s?/?\\s?Isc', 'Isc Temp(?:erature)? Coefficient'], { unit: '%', min: -1, max: 1 }),
+      maxSystemV: findLabeledNumber(text, ['Maximum System Voltage', 'Max(?:imum)? System Voltage \\(?IEC\\)?', 'System Voltage'], { unit: 'V', min: 300, max: 1500 }),
+      maxFuse: findLabeledNumber(text, ['Series Fuse Rating', 'Max(?:imum)? Series Fuse', 'Max(?:imum)? Overcurrent Protection'], { unit: 'A', min: 5, max: 50 }),
+      firstYearDeg: findLabeledNumber(text, ['First[- ]?Year Degradation', 'Year 1 Degradation', 'First[- ]?[Yy]ear Power Loss'], { unit: '%', min: 0, max: 5 }),
+      annualDeg: findLabeledNumber(text, ['Annual Degradation', 'Annual Power Loss', 'Linear Degradation'], { unit: '%', min: 0, max: 3 }),
+      weightKg: findLabeledNumber(text, ['Weight'], { unit: 'kg', min: 5, max: 60 }),
+      cellType: findLabeledText(text, ['Cell Type', 'Cell Technology']),
+      dims: findLabeledDims(text, ['Dimensions?', 'Module Dimensions?', 'Dimension \\(L\\s?[x×]\\s?W\\s?[x×]\\s?H\\)']),
     };
   }
 
@@ -3021,6 +3115,26 @@
     ['pmax', 'P<sub>max</sub>', 'W'], ['voc', 'V<sub>oc</sub>', 'V'], ['vmp', 'V<sub>mp</sub>', 'V'],
     ['isc', 'I<sub>sc</sub>', 'A'], ['imp', 'I<sub>mp</sub>', 'A'],
   ];
+
+  // Shared by the module and inverter review cards: a warning when the PDF
+  // yielded little or no text (a scan, or a datasheet that draws characters
+  // as vector paths pypdf can't recover — neither is a parsing bug, but a
+  // bigger regex can't fix either one), plus a manual paste-and-reparse
+  // fallback that runs the same field extraction against whatever text the
+  // designer copies out of a PDF viewer instead.
+  function docThinTextWarningHtml(doc) {
+    const len = (doc.text || '').trim().length;
+    if (len >= THIN_TEXT_CHARS) return '';
+    return '<div class="note" style="border:1px solid var(--warn); background:var(--warn-soft); margin:0;">' +
+      '<span>⚠</span><span>Only ' + len + ' character' + (len === 1 ? '' : 's') + ' of text came out of this PDF' +
+      (doc.pages ? ' (' + doc.pages + ' page' + (doc.pages === 1 ? '' : 's') + ')' : '') +
+      ' — likely a scanned datasheet, or one that draws its characters as vector shapes rather than embedding real text, neither of which this extractor can read. Select the electrical-characteristics table in a PDF viewer, copy it, and paste it below instead.</span></div>';
+  }
+  function docPasteReparseHtml(doc) {
+    return '<div class="field wide"><label>Paste text to parse instead <span class="unit">optional — overrides the PDF text above for this parse</span></label>' +
+      '<textarea data-doc-id="' + doc.id + '" data-doc-pastetext rows="4" placeholder="Paste the datasheet\'s electrical characteristics table here">' + escapeText(doc.pasteText || '') + '</textarea></div>' +
+      '<div class="bulk-btns" style="margin-top:0;"><button type="button" class="btn btn-quiet" data-doc-reparse="' + doc.id + '">Re-parse from pasted text</button></div>';
+  }
 
   function moduleDocReviewHtml(doc) {
     if (!doc.formValues) {
@@ -3047,9 +3161,10 @@
         (isElectrical && v === '' ? ' placeholder="not found — enter it"' : '') + '></div>';
     };
     return '<div class="doc-review-form">' +
+      docThinTextWarningHtml(doc) +
       '<p class="desc" style="margin:0;">' + (doc.parsedElectricalCount >= 5
         ? 'All five electrical values were found in the extracted text below — check them against the datasheet before approving.'
-        : doc.parsedElectricalCount + ' of 5 electrical values were found in the extracted text — fill in the rest by hand before approving.') + '</p>' +
+        : doc.parsedElectricalCount + ' of 5 electrical values were found in the extracted text — fill in the rest by hand, or paste a cleaner copy of the table below, before approving.') + '</p>' +
       '<div class="field-grid">' +
         inputHtml('manufacturer', 'Manufacturer', '', true) + inputHtml('model', 'Model', '', true) +
         MODULE_ELECTRICAL_FIELDS.map(([k, l, u]) => inputHtml(k, l, u)).join('') +
@@ -3059,12 +3174,24 @@
         inputHtml('cellType', 'Cell type', 'optional', true) + inputHtml('dims', 'Dimensions L×W×D', 'mm, optional', true) +
         inputHtml('weightKg', 'Weight', 'kg, optional') +
       '</div>' +
-      '<details><summary style="cursor:pointer; color:var(--ink-muted); font-size:12.5px;">Extracted text (' + (doc.pages || 0) + ' page' + (doc.pages === 1 ? '' : 's') + ')</summary>' +
+      '<details><summary style="cursor:pointer; color:var(--ink-muted); font-size:12.5px;">Extracted text (' + (doc.pages || 0) + ' page' + (doc.pages === 1 ? '' : 's') + ', ' + (doc.text || '').trim().length + ' characters)</summary>' +
         '<pre class="capture" style="max-height:220px; margin-top:8px;">' + escapeText(doc.text || '(no text extracted)') + '</pre></details>' +
+      docPasteReparseHtml(doc) +
       '<div class="bulk-btns" style="margin-top:0;"><button type="button" class="btn btn-primary" data-doc-approve="' + doc.id + '">' +
         (doc.status === 'approved' ? 'Re-approve with edits' : 'Approve — add to module list') + '</button></div>' +
       (doc.approveError ? '<p class="desc" style="color:var(--fail); margin:0;">' + escapeText(doc.approveError) + '</p>' : '') +
     '</div>';
+  }
+
+  function reparseModuleDoc(doc, text) {
+    const p = moduleFieldsFromText(text);
+    const fv = doc.formValues;
+    const setIf = (key, val) => { if (val != null) fv[key] = val; };
+    ['pmax', 'voc', 'vmp', 'isc', 'imp', 'tempCoeffVoc', 'tempCoeffIsc', 'maxSystemV', 'maxFuse', 'firstYearDeg', 'annualDeg', 'weightKg']
+      .forEach(k => setIf(k, p[k]));
+    if (p.cellType) fv.cellType = p.cellType;
+    if (p.dims.length === 3) fv.dims = p.dims.join(' × ');
+    doc.parsedElectricalCount = MODULE_ELECTRICAL_FIELDS.filter(([k]) => p[k] != null).length;
   }
 
   function approveModuleDoc(doc) {
@@ -3127,16 +3254,29 @@
 
   document.getElementById('modDocManifestBody').addEventListener('input', e => {
     const docId = e.target.dataset.docId;
+    if (e.target.dataset.docPastetext !== undefined) {
+      const doc = modDocTracker.docById(docId);
+      if (doc) doc.pasteText = e.target.value;
+      return;
+    }
     const field = e.target.dataset.docField;
     if (docId === undefined || !field) return;
     const doc = modDocTracker.docById(docId);
     if (doc && doc.formValues) doc.formValues[field] = e.target.value;
   });
   document.getElementById('modDocManifestBody').addEventListener('click', e => {
-    const docId = e.target.dataset.docApprove;
-    if (docId === undefined) return;
-    const doc = modDocTracker.docById(docId);
-    if (doc) approveModuleDoc(doc);
+    const approveId = e.target.dataset.docApprove;
+    if (approveId !== undefined) {
+      const doc = modDocTracker.docById(approveId);
+      if (doc) approveModuleDoc(doc);
+      return;
+    }
+    const reparseId = e.target.dataset.docReparse;
+    if (reparseId !== undefined) {
+      const doc = modDocTracker.docById(reparseId);
+      if (doc) { reparseModuleDoc(doc, doc.pasteText || doc.text || ''); modDocTracker.render(); }
+      return;
+    }
   });
 
   refreshModuleSkuOptions();
@@ -3257,6 +3397,7 @@
     ],
     renderReview: doc => inverterDocReviewHtml(doc),
     onArchive: doc => { if (doc.catalogKey) removeInverterCatalogEntry(doc.catalogKey); },
+    onRestore: doc => { if (doc.catalogKey) approveInverterDoc(doc); },
   });
 
   // ---- inverter catalog from datasheet ingest ----
@@ -3266,31 +3407,47 @@
   // no datasheet states it in a parseable way, and it's a real engineering
   // judgement call (central vs. string inverter), not a transcription.
   function inverterFieldsFromText(text) {
-    const num = re => { const m = text.match(re); return m ? parseFloat(m[1].replace(/,/g, '')) : null; };
     function acRatingW() {
-      const m = text.match(/(?:Rated AC Power|AC Power Rating|Rated Power|Nominal (?:AC )?Power|Max(?:imum)? (?:AC )?Output Power)[^\d+-]{0,15}([+-]?[\d.,]+)\s*(k?VA|k?W)\b/i);
-      if (!m) return null;
-      const v = parseFloat(m[1].replace(/,/g, ''));
-      return /^k/i.test(m[2]) ? v * 1000 : v;
+      const labels = ['Rated (?:AC )?Power', 'AC Power Rating', 'Nominal (?:AC )?Power', 'Max(?:imum)? (?:AC )?Output Power', 'Rated Output Power'];
+      for (const label of labels) {
+        const labelRe = new RegExp(label, 'ig');
+        let lm;
+        while ((lm = labelRe.exec(text))) {
+          const chunk = text.slice(lm.index + lm[0].length, lm.index + lm[0].length + 100);
+          const m = chunk.match(/([+-]?[\d.,]+)\s*(k?VA|k?W)\b/i);
+          if (!m) continue;
+          const v = parseFloat(m[1].replace(/,/g, ''));
+          if (!Number.isFinite(v)) continue;
+          return /^k/i.test(m[2]) ? v * 1000 : v;
+        }
+      }
+      return null;
     }
+    // A "500 – 1500 V" style range is common but not universal — datasheets
+    // that list min and max as separate labeled rows need their own lookup.
     function mpptRange() {
-      const m = text.match(/(?:MPPT Voltage Range|MPPT Operating (?:Voltage )?Range|Voltage Range)[^\d+-]{0,15}([+-]?[\d.]+)\s*(?:[-–—]|to)\s*([+-]?[\d.]+)\s*V/i);
-      return m ? [parseFloat(m[1]), parseFloat(m[2])] : [null, null];
+      const labels = ['MPPT Voltage Range', 'MPPT Operating (?:Voltage )?Range', 'DC Voltage Range', 'Voltage Range'];
+      for (const label of labels) {
+        const m = text.match(new RegExp(label + '[^\\d+-]{0,15}([+-]?[\\d.]+)\\s*(?:[-–—]|to)\\s*([+-]?[\\d.]+)\\s*V', 'i'));
+        if (m) return [parseFloat(m[1]), parseFloat(m[2])];
+      }
+      const min = findLabeledNumber(text, ['MPPT V(?:oltage)? Min(?:imum)?', 'Min(?:imum)? MPPT Voltage', 'Start(?:ing)? Voltage'], { unit: 'V', min: 50, max: 1000 });
+      const max = findLabeledNumber(text, ['MPPT V(?:oltage)? Max(?:imum)?', 'Max(?:imum)? MPPT Voltage', 'Max(?:imum)? (?:DC )?Input Voltage'], { unit: 'V', min: 200, max: 1600 });
+      return [min, max];
     }
-    const dimsMatch = text.match(/Dimensions?[^\d]{0,10}([\d.]+)\s*[x×]\s*([\d.]+)\s*[x×]\s*([\d.]+)/i);
     const [mpptVMin, mpptVMax] = mpptRange();
     return {
       acRatingW: acRatingW(),
-      nominalAcV: num(/(?:Nominal AC Voltage|Rated AC Voltage|Grid Voltage)[^\d+-]{0,15}([+-]?[\d.]+)\s*V\b/i),
-      phases: num(/Phases?[^\d+-]{0,10}([+-]?\d+)/i),
-      maxOutputCurrentA: num(/Max(?:imum)? (?:AC )?Output Current[^\d+-]{0,15}([+-]?[\d.]+)\s*A/i),
-      maxOcpdA: num(/Max(?:imum)? (?:Backfeed|OCPD|Overcurrent Protection)[^\d+-]{0,15}([+-]?[\d.]+)\s*A/i),
+      nominalAcV: findLabeledNumber(text, ['Nominal AC Voltage', 'Rated AC Voltage', 'Grid Voltage', 'Nominal Output Voltage'], { unit: 'V', min: 100, max: 1000 }),
+      phases: findLabeledNumber(text, ['Phases?', 'AC Phases?', 'Number of Phases'], { min: 1, max: 3 }),
+      maxOutputCurrentA: findLabeledNumber(text, ['Max(?:imum)? (?:AC )?Output Current', 'Rated Output Current'], { unit: 'A', min: 1, max: 2000 }),
+      maxOcpdA: findLabeledNumber(text, ['Max(?:imum)? (?:Backfeed|OCPD|Overcurrent Protection)', 'Max(?:imum)? AC (?:Breaker|Fuse) Size'], { unit: 'A', min: 1, max: 2500 }),
       mpptVMin: mpptVMin, mpptVMax: mpptVMax,
-      maxDcInputA: num(/Max(?:imum)? DC Input Current[^\d+-]{0,15}([+-]?[\d.]+)\s*A/i),
-      mpptCount: num(/(?:Number of MPPTs?|MPP Trackers?|MPPTs?)[^\d+-]{0,15}([+-]?\d+)/i),
-      weightKg: num(/Weight[^\d+-]{0,10}([+-]?[\d.]+)\s*kg/i),
-      enclosure: (text.match(/Enclosure(?: (?:Rating|Type))?[:\s]*([^\n]+)/i) || [])[1] || '',
-      dims: dimsMatch ? [parseFloat(dimsMatch[1]), parseFloat(dimsMatch[2]), parseFloat(dimsMatch[3])] : [],
+      maxDcInputA: findLabeledNumber(text, ['Max(?:imum)? (?:DC )?Input Current', 'Max(?:imum)? Short Circuit Current'], { unit: 'A', min: 1, max: 2000 }),
+      mpptCount: findLabeledNumber(text, ['Number of MPPTs?', 'MPP Trackers?', 'MPPTs?', 'Number of MPP Trackers?'], { min: 1, max: 40 }),
+      weightKg: findLabeledNumber(text, ['Weight'], { unit: 'kg', min: 5, max: 500 }),
+      enclosure: findLabeledText(text, ['Enclosure(?: (?:Rating|Type))?', 'Ingress Protection', 'IP Rating']),
+      dims: findLabeledDims(text, ['Dimensions?', 'Dimension \\(W\\s?[x×]\\s?H\\s?[x×]\\s?D\\)']),
     };
   }
 
@@ -3322,9 +3479,10 @@
         (isRequired && v === '' ? ' placeholder="not found — enter it"' : '') + '></div>';
     };
     return '<div class="doc-review-form">' +
+      docThinTextWarningHtml(doc) +
       '<p class="desc" style="margin:0;">' + (doc.parsedRequiredCount >= INVERTER_REQUIRED_FIELDS.length
         ? 'All required values were found in the extracted text below — check them against the datasheet before approving.'
-        : doc.parsedRequiredCount + ' of ' + INVERTER_REQUIRED_FIELDS.length + ' required values were found — fill in the rest by hand, and set DC input topology, before approving.') + '</p>' +
+        : doc.parsedRequiredCount + ' of ' + INVERTER_REQUIRED_FIELDS.length + ' required values were found — fill in the rest by hand, or paste a cleaner copy of the table below, and set DC input topology, before approving.') + '</p>' +
       '<div class="field-grid">' +
         inputHtml('manufacturer', 'Manufacturer', '', true) + inputHtml('model', 'Model', '', true) +
         '<div class="field wide"><label>DC input topology <span class="unit">not parseable — set by hand</span></label>' +
@@ -3337,12 +3495,24 @@
         inputHtml('enclosure', 'Enclosure', 'optional', true) + inputHtml('dims', 'Dimensions W×H×D', 'mm, optional', true) +
         inputHtml('weightKg', 'Weight', 'kg, optional') +
       '</div>' +
-      '<details><summary style="cursor:pointer; color:var(--ink-muted); font-size:12.5px;">Extracted text (' + (doc.pages || 0) + ' page' + (doc.pages === 1 ? '' : 's') + ')</summary>' +
+      '<details><summary style="cursor:pointer; color:var(--ink-muted); font-size:12.5px;">Extracted text (' + (doc.pages || 0) + ' page' + (doc.pages === 1 ? '' : 's') + ', ' + (doc.text || '').trim().length + ' characters)</summary>' +
         '<pre class="capture" style="max-height:220px; margin-top:8px;">' + escapeText(doc.text || '(no text extracted)') + '</pre></details>' +
+      docPasteReparseHtml(doc) +
       '<div class="bulk-btns" style="margin-top:0;"><button type="button" class="btn btn-primary" data-doc-approve="' + doc.id + '">' +
         (doc.status === 'approved' ? 'Re-approve with edits' : 'Approve — add to inverter list') + '</button></div>' +
       (doc.approveError ? '<p class="desc" style="color:var(--fail); margin:0;">' + escapeText(doc.approveError) + '</p>' : '') +
     '</div>';
+  }
+
+  function reparseInverterDoc(doc, text) {
+    const p = inverterFieldsFromText(text);
+    const fv = doc.formValues;
+    const setIf = (key, val) => { if (val != null) fv[key] = val; };
+    ['acRatingW', 'nominalAcV', 'phases', 'maxOutputCurrentA', 'maxOcpdA', 'mpptVMin', 'mpptVMax', 'maxDcInputA', 'mpptCount', 'weightKg']
+      .forEach(k => setIf(k, p[k]));
+    if (p.enclosure) fv.enclosure = p.enclosure;
+    if (p.dims.length === 3) fv.dims = p.dims.join(' × ');
+    doc.parsedRequiredCount = INVERTER_REQUIRED_FIELDS.filter(([k]) => p[k] != null).length;
   }
 
   function approveInverterDoc(doc) {
@@ -3406,6 +3576,11 @@
 
   document.getElementById('invDocManifestBody').addEventListener('input', e => {
     const docId = e.target.dataset.docId;
+    if (e.target.dataset.docPastetext !== undefined) {
+      const doc = invDocTracker.docById(docId);
+      if (doc) doc.pasteText = e.target.value;
+      return;
+    }
     const field = e.target.dataset.docField;
     if (docId === undefined || !field) return;
     const doc = invDocTracker.docById(docId);
@@ -3422,6 +3597,12 @@
     if (doc && doc.formValues) doc.formValues[field] = e.target.value;
   });
   document.getElementById('invDocManifestBody').addEventListener('click', e => {
+    const reparseId = e.target.dataset.docReparse;
+    if (reparseId !== undefined) {
+      const doc = invDocTracker.docById(reparseId);
+      if (doc) { reparseInverterDoc(doc, doc.pasteText || doc.text || ''); invDocTracker.render(); }
+      return;
+    }
     const docId = e.target.dataset.docApprove;
     if (docId === undefined) return;
     const doc = invDocTracker.docById(docId);
@@ -3938,21 +4119,7 @@
       return 'Other Uploads';
     }
 
-    function statusChipHtml(doc) {
-      const map = {
-        queued: ['status-queued', 'Queued'],
-        uploading: ['status-parsing', 'Uploading'],
-        parsing: ['status-parsing', 'Parsing'],
-        uploaded: ['status-uploaded', 'Uploaded — not a PDF, nothing to parse'],
-        extracted: ['status-extracted', 'Extracted — needs review'],
-        reviewed: ['status-approved', 'Reviewed'],
-        approved: ['status-approved', 'Approved — ' + escapeText(doc.catalogLabel || 'added to the list')],
-        failed: ['status-fail', 'Extraction failed'],
-      };
-      if (doc.archived) return '<span class="status-chip status-archived"><span class="p"></span>Archived</span>';
-      const [cls, label] = map[doc.status] || ['status-queued', doc.status];
-      return '<span class="status-chip ' + cls + '"><span class="p"></span>' + label + (doc.status === 'failed' && doc.error ? ' — ' + escapeText(doc.error) : '') + '</span>';
-    }
+    const statusChipHtml = docStatusChipHtml;
 
     function actionsHtml(doc) {
       const btns = [];
@@ -3996,6 +4163,7 @@
         return rows;
       }).join('');
       if (opts.afterRender) opts.afterRender(docs, body);
+      notifyDocRegistryChanged();
     }
 
     async function extractOne(doc) {
@@ -4058,6 +4226,10 @@
       const doc = docById(id);
       if (!doc) return;
       doc.archived = false;
+      // Archiving a module/inverter document deletes the catalog entry it
+      // produced (onArchive); restoring has to put it back, or the doc would
+      // sit there reading "Approved" while the dropdown quietly disagrees.
+      if (opts.onRestore) opts.onRestore(doc);
       render();
     }
 
@@ -4090,7 +4262,21 @@
     ['dragleave', 'drop'].forEach(evt => dz.addEventListener(evt, e => { e.preventDefault(); dz.classList.remove('drag'); }));
     dz.addEventListener('drop', e => { Array.from(e.dataTransfer.files).forEach(addFile); });
 
-    return { docs, render, docById, archive };
+    const api = { docs, render, docById, archive, restore, dropzoneId: opts.dropzoneId, manifestBodyId: opts.manifestBodyId };
+
+    // The rail already carries the numbered, human-facing name for whatever
+    // panel this dropzone sits in — reused here rather than asking every one
+    // of the (currently nine) call sites to repeat its own panel label.
+    const panelEl = dz.closest('.panel');
+    const panelId = panelEl ? panelEl.id : '';
+    const railBtn = panelId ? document.querySelector('.rail-btn[data-target="' + panelId + '"]') : null;
+    DOC_TRACKERS.push({
+      panelId: panelId,
+      panelLabel: railBtn ? railBtn.textContent.trim() : (panelId || opts.dropzoneId),
+      api: api,
+    });
+
+    return api;
   }
 
   const modDocTracker = initDocTracker({
@@ -4104,6 +4290,7 @@
     ],
     renderReview: doc => moduleDocReviewHtml(doc),
     onArchive: doc => { if (doc.catalogKey) removeModuleCatalogEntry(doc.catalogKey); },
+    onRestore: doc => { if (doc.catalogKey) approveModuleDoc(doc); },
   });
 
   initDocTracker({
@@ -4138,65 +4325,117 @@
     update();
   }
 
-  // ---- document intake simulation ----
-  const dropzone = document.getElementById('dropzone');
-  const fileInput = document.getElementById('fileInput');
-  const manifestBody = document.getElementById('manifestBody');
-  const manifestCount = document.getElementById('manifestCount');
-  const uploadDot = document.getElementById('uploadDot');
-  let fileCount = 2;
+  // ---- Document Intake: real ingest for anything without its own panel,
+  // plus a live aggregate of every document uploaded anywhere in the project ----
+  const genericDocTracker = initDocTracker({
+    dropzoneId: 'genericDocDropzone', inputId: 'genericDocInput', manifestBodyId: 'genericDocManifestBody',
+    types: [
+      { label: 'ASHRAE weather data', keywords: ['ashrae', 'weather'] },
+      { label: 'PVCase export', keywords: ['pvcase'] },
+      { label: 'Permit', keywords: ['permit'] },
+      { label: 'Correspondence', keywords: ['email', 'letter', 'correspondence'] },
+      { label: 'Report', keywords: ['report', 'study'] },
+    ],
+  });
 
-  function classify(name) {
-    const n = name.toLowerCase();
-    if (n.includes('module') || n.includes('panel')) return 'Module datasheet';
-    if (n.includes('inverter')) return 'Inverter datasheet';
-    if (n.includes('ashrae') || n.includes('weather')) return 'ASHRAE site data';
-    if (n.includes('pvcase')) return 'PVCase export';
-    return 'Unclassified';
+  function documentIntakeRows() {
+    const rows = [];
+    DOC_TRACKERS.forEach(t => { t.api.docs.forEach(doc => rows.push({ doc: doc, tracker: t })); });
+    return rows;
   }
 
-  function addFile(name) {
-    if (manifestBody.querySelector('.empty')) manifestBody.innerHTML = '';
-    fileCount++;
-    manifestCount.textContent = fileCount + ' files in manifest';
-    manifestCount.className = 'chip chip-muted';
-    uploadDot.className = 'rail-dot dot-warn';
+  function renderDocumentIntake() {
+    const rows = documentIntakeRows();
+    const active = rows.filter(r => !r.doc.archived);
+    const needsReview = active.filter(r => r.doc.status === 'extracted').length;
+    const failed = active.filter(r => r.doc.status === 'failed').length;
+    const archivedCount = rows.length - active.length;
 
-    const row = document.createElement('tr');
-    const statusId = 'status-' + fileCount;
-    row.innerHTML =
-      '<td class="fname">' + name + '</td>' +
-      '<td>' + classify(name) + '</td>' +
-      '<td><span class="status-chip status-queued" id="' + statusId + '"><span class="p"></span>Queued</span></td>';
-    manifestBody.appendChild(row);
+    const countChip = document.getElementById('manifestCount');
+    countChip.textContent = active.length + ' document' + (active.length === 1 ? '' : 's') +
+      (archivedCount ? ' (' + archivedCount + ' archived)' : '');
+    countChip.className = 'chip ' + (failed ? 'chip-fail' : needsReview ? 'chip-warn' : 'chip-pass');
+    document.getElementById('uploadDot').className = 'rail-dot ' +
+      (failed ? 'dot-fail' : needsReview ? 'dot-warn' : (active.length ? 'dot-pass' : 'dot-neutral'));
 
-    const chip = () => document.getElementById(statusId);
-    setTimeout(() => {
-      chip().className = 'status-chip status-parsing';
-      chip().innerHTML = '<span class="p"></span>Parsing';
-    }, 700);
-    setTimeout(() => {
-      chip().className = 'status-chip status-extracted';
-      chip().innerHTML = '<span class="p"></span>Extracted — needs review';
-      uploadDot.className = 'rail-dot dot-pass';
-    }, 2200);
+    // One tile per section that has at least one live document — a quick
+    // where-do-things-stand view before scrolling to the table below.
+    const bySection = {};
+    active.forEach(r => { (bySection[r.tracker.panelLabel] = bySection[r.tracker.panelLabel] || []).push(r.doc); });
+    const sections = Object.keys(bySection);
+    document.getElementById('documentIntakeSummary').innerHTML = sections.length
+      ? sections.map(label => {
+          const docs = bySection[label];
+          const pending = docs.filter(d => d.status === 'extracted').length;
+          return '<div class="expect"><div class="ico">' + docs.length + '</div><div class="t">' + escapeText(label) +
+            '<span class="sub">' + (pending ? pending + ' need' + (pending === 1 ? 's' : '') + ' review' : 'up to date') + '</span></div></div>';
+        }).join('')
+      : '<div class="expect"><div class="ico">—</div><div class="t">No documents yet<span class="sub">Upload on any panel, or below</span></div></div>';
+
+    const body = document.getElementById('documentIntakeBody');
+    if (!rows.length) {
+      body.innerHTML = '<tr class="empty"><td colspan="5">No documents uploaded anywhere yet</td></tr>';
+      return;
+    }
+    // Sorted by urgency rather than grouped by section — this table's whole
+    // point is surfacing what needs a human next, wherever it lives.
+    const sorted = rows.slice().sort((a, b) => docStatusPriority(b.doc) - docStatusPriority(a.doc));
+    body.innerHTML = sorted.map(({ doc, tracker }) => {
+      const jump = tracker.panelId
+        ? '<button type="button" class="contact-remove" data-doc-jump="' + escapeAttr(tracker.panelId) + '|' + escapeAttr(tracker.api.dropzoneId) + '|' + escapeAttr(doc.id) + '">Open</button>'
+        : '';
+      const archiveBtn = doc.archived
+        ? '<button type="button" class="contact-remove" data-doc-restore-global="' + escapeAttr(tracker.api.dropzoneId) + '|' + escapeAttr(doc.id) + '">Restore</button>'
+        : '<button type="button" class="contact-remove" data-doc-archive-global="' + escapeAttr(tracker.api.dropzoneId) + '|' + escapeAttr(doc.id) + '">Archive</button>';
+      return '<tr class="' + (doc.archived ? 'archived-row' : '') + '">' +
+        '<td class="fname">' + escapeText(doc.name) + '</td>' +
+        '<td>' + escapeText(tracker.panelLabel) + '</td>' +
+        '<td>' + escapeText(doc.type) + '</td>' +
+        '<td>' + docStatusChipHtml(doc) + '</td>' +
+        '<td><div class="doc-actions">' + jump + archiveBtn + '</div></td>' +
+      '</tr>';
+    }).join('');
   }
 
-  dropzone.addEventListener('click', () => fileInput.click());
-  dropzone.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') fileInput.click(); });
-  fileInput.addEventListener('change', () => {
-    Array.from(fileInput.files).forEach(f => addFile(f.name));
-    fileInput.value = '';
+  document.getElementById('documentIntakeBody').addEventListener('click', e => {
+    const jump = e.target.dataset.docJump;
+    if (jump !== undefined) {
+      const [panelId, dropzoneId, docId] = jump.split('|');
+      const railBtn = document.querySelector('.rail-btn[data-target="' + panelId + '"]');
+      if (railBtn) railBtn.click();
+      const tracker = DOC_TRACKERS.find(t => t.api.dropzoneId === dropzoneId);
+      if (tracker) {
+        const doc = tracker.api.docById(docId);
+        if (doc && doc.isPdf && !doc.reviewOpen && !doc.archived) { doc.reviewOpen = true; tracker.api.render(); }
+        requestAnimationFrame(() => {
+          const target = document.getElementById(tracker.api.manifestBodyId);
+          if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
+      }
+      return;
+    }
+    // Archive/restore from here operate through the document's own tracker
+    // (so a module/inverter it produced a catalog entry from is still
+    // cleaned up on archive) — renderDocumentIntake() runs automatically
+    // afterward via that tracker's own render() -> notifyDocRegistryChanged().
+    const archiveKey = e.target.dataset.docArchiveGlobal;
+    if (archiveKey !== undefined) {
+      const [dropzoneId, docId] = archiveKey.split('|');
+      const tracker = DOC_TRACKERS.find(t => t.api.dropzoneId === dropzoneId);
+      if (tracker) tracker.api.archive(docId);
+      return;
+    }
+    const restoreKey = e.target.dataset.docRestoreGlobal;
+    if (restoreKey !== undefined) {
+      const [dropzoneId, docId] = restoreKey.split('|');
+      const tracker = DOC_TRACKERS.find(t => t.api.dropzoneId === dropzoneId);
+      if (tracker) tracker.api.restore(docId);
+      return;
+    }
   });
-  ['dragenter', 'dragover'].forEach(evt =>
-    dropzone.addEventListener(evt, e => { e.preventDefault(); dropzone.classList.add('drag'); })
-  );
-  ['dragleave', 'drop'].forEach(evt =>
-    dropzone.addEventListener(evt, e => { e.preventDefault(); dropzone.classList.remove('drag'); })
-  );
-  dropzone.addEventListener('drop', e => {
-    Array.from(e.dataTransfer.files).forEach(f => addFile(f.name));
-  });
+
+  documentIntakeReady = true;
+  renderDocumentIntake();
 
   // ---- placarding (mirrors placarding_calc.determine_placard_requirements) ----
   const PLACARD_REQS = [
