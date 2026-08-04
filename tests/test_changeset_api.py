@@ -89,6 +89,52 @@ def test_refresh_creates_single_mppt_changeset_for_direct_topology(db_client):
     assert body["results"][0]["changeset"]["config"]["block_variant"] == "mppt"
 
 
+def test_refresh_creates_one_inverter_ac_changeset_per_inverter(db_client):
+    response = db_client.post("/changesets/inverter-ac/refresh")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["inverter_count"] == 15
+    assert len(body["results"]) == 15
+
+    first = body["results"][0]["changeset"]
+    assert first["target_tag"] == "INV-1"
+    assert first["block_type"] == "INVERTER_AC"
+    assert first["operation"] == "attribute_update"
+    assert first["config"]["attributes"]["KWAC"] == "350.000 KWAC"
+    assert first["config"]["ocpd_rating"] == "350 A/3"
+
+
+def test_inverter_ac_refresh_is_idempotent_until_project_changes(db_client):
+    first = db_client.post("/changesets/inverter-ac/refresh").json()["results"][0]
+    assert first["created"] is True
+
+    second = db_client.post("/changesets/inverter-ac/refresh").json()["results"][0]
+    assert second["created"] is False
+
+    db_client.put("/projects/default", json={"inverter": {"nominal_ac_voltage_v": 600}})
+    third = db_client.post("/changesets/inverter-ac/refresh").json()["results"][0]
+    assert third["created"] is True
+    assert third["changeset"]["config"]["attributes"]["VAC"] == "600 VAC"
+
+
+def test_ac_and_dc_blocks_sharing_a_tag_do_not_re_enqueue_each_other(db_client):
+    """INV-1 has both an AC and a DC block by design. Refreshing one must not
+    invalidate the other's dedup — otherwise every refresh cycle re-enqueues
+    both blocks forever."""
+    db_client.put("/projects/default", json={"inverter": {"dc_topology": "direct"}})
+
+    assert db_client.post("/changesets/inverter-ac/refresh").json()["results"][0]["created"] is True
+    assert db_client.post("/changesets/inverter-dc/refresh").json()["results"][0]["created"] is True
+
+    # Second pass: nothing changed, so neither block should enqueue again.
+    assert db_client.post("/changesets/inverter-ac/refresh").json()["results"][0]["created"] is False
+    assert db_client.post("/changesets/inverter-dc/refresh").json()["results"][0]["created"] is False
+
+    inv1 = db_client.get("/changesets", params={"target_tag": "INV-1"}).json()
+    assert {c["block_type"] for c in inv1} == {"INVERTER_AC", "INVERTER_DC"}
+    assert len(inv1) == 2  # exactly one changeset each, no duplicates
+
+
 def test_refresh_creates_transformer_attribute_update_changeset(db_client):
     response = db_client.post("/changesets/transformer/refresh")
     assert response.status_code == 200

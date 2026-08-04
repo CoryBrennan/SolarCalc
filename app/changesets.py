@@ -33,12 +33,11 @@ def create_changeset(session: Session, target_tag: str, block_type: str, operati
     return changeset
 
 
-def latest_changeset_for_tag(session: Session, target_tag: str) -> Changeset | None:
-    statement = (
-        select(Changeset)
-        .where(Changeset.target_tag == target_tag)
-        .order_by(Changeset.created_at.desc())
-    )
+def latest_changeset_for_tag(session: Session, target_tag: str, block_type: str | None = None) -> Changeset | None:
+    statement = select(Changeset).where(Changeset.target_tag == target_tag)
+    if block_type:
+        statement = statement.where(Changeset.block_type == block_type)
+    statement = statement.order_by(Changeset.created_at.desc())
     return session.exec(statement).first()
 
 
@@ -48,8 +47,14 @@ def refresh_changeset(
     """Creates a new pending changeset only if config differs from the most
     recent changeset for this tag — the "did anything actually change"
     check a real sync system needs, not just "always enqueue on every
-    call." Returns (changeset, created)."""
-    latest = latest_changeset_for_tag(session, target_tag)
+    call." Returns (changeset, created).
+
+    Scoped by block_type as well as tag: one inverter has both an AC and a DC
+    block sharing a TAG1 by design, so comparing INV-1's AC config against
+    INV-1's DC config would see a difference every single time and re-enqueue
+    both blocks on every refresh.
+    """
+    latest = latest_changeset_for_tag(session, target_tag, block_type)
     new_config_normalized = json.loads(json.dumps(config, sort_keys=True))
     if latest is not None and json.loads(latest.config) == new_config_normalized:
         return latest, False

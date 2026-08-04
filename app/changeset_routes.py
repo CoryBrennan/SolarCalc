@@ -16,7 +16,14 @@ import json
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session
 
-from app import aux_panelboard_block, changesets, inverter_dc_block, static_device_block, switchboard_block
+from app import (
+    aux_panelboard_block,
+    changesets,
+    inverter_ac_block,
+    inverter_dc_block,
+    static_device_block,
+    switchboard_block,
+)
 from app.db import get_session
 from app.db_models import Changeset, Project
 from app.models import ProjectInput
@@ -132,6 +139,25 @@ def refresh_inverter_dc_changesets(project_id: str = "default", session: Session
             results.append({"created": created, "changeset": _changeset_to_dict(changeset)})
 
     return {"topology": project.inverter.dc_topology, "results": results}
+
+
+@router.post("/changesets/inverter-ac/refresh")
+def refresh_inverter_ac_changesets(project_id: str = "default", session: Session = Depends(get_session)) -> dict:
+    """One AC block per physical inverter (INV-1 .. INV-N). Fixed geometry, so
+    "attribute_update" rather than "regenerate" — the block is placed once and
+    then only its nameplate values get refreshed. Each tag is refreshed
+    independently, so changing one inverter's data doesn't re-enqueue the rest."""
+    project = _load_project(session, project_id)
+    validate_module_skus(project)
+
+    results = []
+    for config in inverter_ac_block.build_inverter_ac_configs(project):
+        changeset, created = changesets.refresh_changeset(
+            session, target_tag=config["tag"], block_type="INVERTER_AC", operation="attribute_update", config=config
+        )
+        results.append({"created": created, "changeset": _changeset_to_dict(changeset)})
+
+    return {"inverter_count": project.inverter.quantity, "results": results}
 
 
 @router.post("/changesets/transformer/refresh")

@@ -55,10 +55,25 @@ class ModuleSpec(BaseModel):
 
 class InverterSpec(BaseModel):
     model: str = "Chint Power Systems CPS SCH350KTL-DO/US-800"
+    # manufacturer/catalog_number are the split form of `model`, needed because
+    # the AC one-line block prints them on separate nameplate lines. `model` is
+    # kept as-is for the HMI's single-line display.
+    manufacturer: str = "Chint Power Systems"
+    catalog_number: str = "CPS SCH350KTL-DO/US-800"
     ac_rating_w: float = 350_000
     quantity: int = 15
     nominal_ac_voltage_v: float = 800.0
     phases: int = 3
+    # AC output conductor configuration, printed on the AC block's nameplate as
+    # e.g. "3Ø 3W + PE". 3-wire = no distributed neutral (the usual case for a
+    # utility-scale inverter feeding a delta-primary transformer); 4-wire adds
+    # one. PE is the equipment grounding conductor, separate from that count.
+    ac_wires: int = 3
+    ac_equipment_ground: bool = True
+    # Letter in the AC block's detail-callout triangle, pointing at the
+    # construction detail the AC termination is built to. Engineer-set per
+    # drawing set; empty renders an empty triangle rather than a placeholder.
+    ac_detail_ref: str = ""
     max_output_current_a: float = 253
     manufacturer_max_ocpd_a: float = 400
     dc_topology: Literal["direct", "combiner"] = "combiner"
