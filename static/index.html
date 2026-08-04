@@ -524,6 +524,7 @@
       <li><button class="rail-btn" data-target="sec-etap"><span><span class="rail-num">20</span> ETAP Export</span><span class="rail-dot dot-pass"></span></button></li>
       <li><button class="rail-btn" data-target="sec-fluke"><span><span class="rail-num">21</span> I-V Curve Field Prep</span><span class="rail-dot dot-warn"></span></button></li>
       <li><button class="rail-btn" data-target="sec-backend"><span><span class="rail-num">22</span> Backend Verification</span><span class="rail-dot dot-neutral" id="backendDot"></span></button></li>
+      <li><button class="rail-btn" data-target="sec-catalog-review"><span><span class="rail-num">23</span> Datasheet Catalog Review</span><span class="rail-dot dot-neutral" id="catalogReviewDot"></span></button></li>
     </ul>
     <div class="rail-foot">
       NEC edition resolved from <b>jurisdiction_lookup.py</b><br>
@@ -2320,6 +2321,21 @@
         </div>
       </section>
 
+      <section class="panel" id="sec-catalog-review">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">solar-calc-backend → POST /ingest/upload, /catalog/*</p>
+            <h2>Datasheet Catalog Review</h2>
+          </div>
+          <button class="btn" id="refreshCatalogPendingBtn">Refresh pending queue</button>
+        </div>
+        <p class="desc">The real ingestion pipeline: a datasheet sent here (via "Send to AI extraction agent" on a Module or Inverter Spec review row) is parsed by the backend's LLM extraction agent, merged into a versioned catalog record, and lands below for engineer review — every field carries its confidence and source, and low-confidence or not-found fields are flagged <span class="mono">manufacturer data pending — verify before issue</span>. This is separate from the Module/Inverter Spec panels' own local list, which is unaffected either way. Same-origin only, like Document Intake's extraction — see Backend Verification's note about embedded/artifact views.</p>
+
+        <div id="catalogPendingList">
+          <p class="desc" style="font-style:italic;">Click "Refresh pending queue" to load.</p>
+        </div>
+      </section>
+
     </div>
   </div>
 </div>
@@ -2328,7 +2344,7 @@
   // ---- nav switching ----
   const WIDE_PANELS = [
     'sec-site', 'sec-directory', 'sec-inverter-design',
-    'sec-combiner', 'sec-switchboard-design', 'sec-mv-design', 'sec-backend',
+    'sec-combiner', 'sec-switchboard-design', 'sec-mv-design', 'sec-backend', 'sec-catalog-review',
   ];
   const railBtns = document.querySelectorAll('.rail-btn');
   railBtns.forEach(btn => {
@@ -3177,9 +3193,14 @@
       '<details><summary style="cursor:pointer; color:var(--ink-muted); font-size:12.5px;">Extracted text (' + (doc.pages || 0) + ' page' + (doc.pages === 1 ? '' : 's') + ', ' + (doc.text || '').trim().length + ' characters)</summary>' +
         '<pre class="capture" style="max-height:220px; margin-top:8px;">' + escapeText(doc.text || '(no text extracted)') + '</pre></details>' +
       docPasteReparseHtml(doc) +
-      '<div class="bulk-btns" style="margin-top:0;"><button type="button" class="btn btn-primary" data-doc-approve="' + doc.id + '">' +
-        (doc.status === 'approved' ? 'Re-approve with edits' : 'Approve — add to module list') + '</button></div>' +
+      '<div class="bulk-btns" style="margin-top:0;">' +
+        '<button type="button" class="btn btn-primary" data-doc-approve="' + doc.id + '">' +
+          (doc.status === 'approved' ? 'Re-approve with edits' : 'Approve — add to module list') + '</button>' +
+        '<button type="button" class="btn-quiet" data-doc-send-agent="' + doc.id + '"' + (doc.backendStatus === 'sending' ? ' disabled' : '') + '>' +
+          (doc.backendStatus === 'sending' ? 'Sending to AI extraction agent…' : 'Send to AI extraction agent (real backend pipeline)') + '</button>' +
+      '</div>' +
       (doc.approveError ? '<p class="desc" style="color:var(--fail); margin:0;">' + escapeText(doc.approveError) + '</p>' : '') +
+      (doc.backendMessage ? '<p class="desc" style="margin:0;' + (doc.backendStatus === 'error' ? ' color:var(--fail);' : '') + '">' + escapeText(doc.backendMessage) + '</p>' : '') +
     '</div>';
   }
 
@@ -3398,6 +3419,7 @@
     renderReview: doc => inverterDocReviewHtml(doc),
     onArchive: doc => { if (doc.catalogKey) removeInverterCatalogEntry(doc.catalogKey); },
     onRestore: doc => { if (doc.catalogKey) approveInverterDoc(doc); },
+    onSendToAgent: doc => sendDocToExtractionAgent(doc, 'inverter', invDocTracker),
   });
 
   // ---- inverter catalog from datasheet ingest ----
@@ -3498,9 +3520,14 @@
       '<details><summary style="cursor:pointer; color:var(--ink-muted); font-size:12.5px;">Extracted text (' + (doc.pages || 0) + ' page' + (doc.pages === 1 ? '' : 's') + ', ' + (doc.text || '').trim().length + ' characters)</summary>' +
         '<pre class="capture" style="max-height:220px; margin-top:8px;">' + escapeText(doc.text || '(no text extracted)') + '</pre></details>' +
       docPasteReparseHtml(doc) +
-      '<div class="bulk-btns" style="margin-top:0;"><button type="button" class="btn btn-primary" data-doc-approve="' + doc.id + '">' +
-        (doc.status === 'approved' ? 'Re-approve with edits' : 'Approve — add to inverter list') + '</button></div>' +
+      '<div class="bulk-btns" style="margin-top:0;">' +
+        '<button type="button" class="btn btn-primary" data-doc-approve="' + doc.id + '">' +
+          (doc.status === 'approved' ? 'Re-approve with edits' : 'Approve — add to inverter list') + '</button>' +
+        '<button type="button" class="btn-quiet" data-doc-send-agent="' + doc.id + '"' + (doc.backendStatus === 'sending' ? ' disabled' : '') + '>' +
+          (doc.backendStatus === 'sending' ? 'Sending to AI extraction agent…' : 'Send to AI extraction agent (real backend pipeline)') + '</button>' +
+      '</div>' +
       (doc.approveError ? '<p class="desc" style="color:var(--fail); margin:0;">' + escapeText(doc.approveError) + '</p>' : '') +
+      (doc.backendMessage ? '<p class="desc" style="margin:0;' + (doc.backendStatus === 'error' ? ' color:var(--fail);' : '') + '">' + escapeText(doc.backendMessage) + '</p>' : '') +
     '</div>';
   }
 
@@ -4250,6 +4277,12 @@
         if (doc) { doc.status = 'reviewed'; render(); }
         return;
       }
+      const sendAgentId = e.target.dataset.docSendAgent;
+      if (sendAgentId !== undefined) {
+        const doc = docById(sendAgentId);
+        if (doc && opts.onSendToAgent) opts.onSendToAgent(doc);
+        return;
+      }
     });
 
     dz.addEventListener('click', () => input.click());
@@ -4279,6 +4312,48 @@
     return api;
   }
 
+  // ---- real backend ingestion pipeline (LLM extraction agent + versioned
+  // catalog) — separate from the local, client-only MODULE_SKUS/
+  // INVERTER_MODELS approve flow above. Sends the original file to
+  // POST /ingest/upload; the resulting draft(s) show up in the Datasheet
+  // Catalog Review panel for field-level review and approve/reject.
+  // Same-origin only, like /extract/pdf — see that endpoint's comment.
+  async function sendDocToExtractionAgent(doc, equipmentType, tracker) {
+    doc.backendStatus = 'sending';
+    doc.backendMessage = '';
+    tracker.render();
+    const form = new FormData();
+    form.append('file', doc.file, doc.name);
+    form.append('equipment_type', equipmentType);
+    const fv = doc.formValues || {};
+    if ((fv.manufacturer || '').trim()) form.append('manufacturer', fv.manufacturer.trim());
+    if ((fv.model || '').trim()) form.append('model', fv.model.trim());
+    let res, body;
+    try {
+      res = await fetch('/ingest/upload', { method: 'POST', body: form });
+      body = await res.json();
+    } catch (err) {
+      doc.backendStatus = 'error';
+      doc.backendMessage = 'network error — ' + err.message;
+      tracker.render();
+      return;
+    }
+    if (!res.ok) {
+      doc.backendStatus = 'error';
+      doc.backendMessage = body.detail || (res.status + ' ' + res.statusText);
+      tracker.render();
+      return;
+    }
+    if (body.job.status === 'needs_attention') {
+      doc.backendStatus = 'needs_attention';
+      doc.backendMessage = body.job.last_error || 'Needs attention — see the ingestion job.';
+    } else {
+      doc.backendStatus = 'merged';
+      doc.backendMessage = body.catalog_versions.length + ' catalog draft(s) ready for review in the Datasheet Catalog Review panel (#23).';
+    }
+    tracker.render();
+  }
+
   const modDocTracker = initDocTracker({
     dropzoneId: 'modDocDropzone', inputId: 'modDocInput', manifestBodyId: 'modDocManifestBody',
     types: [
@@ -4291,6 +4366,7 @@
     renderReview: doc => moduleDocReviewHtml(doc),
     onArchive: doc => { if (doc.catalogKey) removeModuleCatalogEntry(doc.catalogKey); },
     onRestore: doc => { if (doc.catalogKey) approveModuleDoc(doc); },
+    onSendToAgent: doc => sendDocToExtractionAgent(doc, 'module', modDocTracker),
   });
 
   initDocTracker({
@@ -7760,6 +7836,109 @@
     const link = document.getElementById('standaloneHmiLink');
     link.href = document.getElementById('backendUrlInput').value.trim().replace(/\/$/, '') + '/';
   }
+
+  // ---- Datasheet Catalog Review — the real ingestion pipeline's review
+  // queue (GET/PUT/POST /catalog/*). Same-origin only, like /extract/pdf.
+  function catalogFieldRowHtml(versionId, fieldName, fv) {
+    const flagChip = fv.flag ? '<span class="chip chip-warn" style="margin-left:8px;">' + escapeText(fv.flag) + '</span>' : '';
+    const confChipClass = fv.confidence === 'high' ? 'chip-pass' : (fv.confidence === 'not_found' ? 'chip-fail' : 'chip-warn');
+    const value = fv.value == null ? '' : (Array.isArray(fv.value) || typeof fv.value === 'object' ? JSON.stringify(fv.value) : fv.value);
+    return '<tr>' +
+      '<td class="fname">' + escapeText(fieldName) + '</td>' +
+      '<td><input type="text" class="prose" data-cat-version="' + versionId + '" data-cat-field="' + escapeAttr(fieldName) + '" data-cat-orig="' + escapeAttr(value) + '" value="' + escapeAttr(value) + '"></td>' +
+      '<td><span class="chip ' + confChipClass + '">' + escapeText(fv.confidence) + '</span>' + flagChip + '</td>' +
+      '<td style="color:var(--ink-muted); font-size:12px;">' + escapeText(fv.source || '') +
+        (fv.conflict_note ? '<br><span style="color:var(--fail);">' + escapeText(fv.conflict_note) + '</span>' : '') + '</td>' +
+    '</tr>';
+  }
+
+  function catalogVersionCardHtml(v) {
+    const fieldRows = Object.keys(v.fields).sort().map(name => catalogFieldRowHtml(v.version_id, name, v.fields[name])).join('');
+    return '<div class="card" style="margin-bottom:16px;">' +
+      '<p class="card-title">' + escapeText(v.equipment_type) + ' — ' + escapeText(v.manufacturer) + ' ' + escapeText(v.model) +
+        '<span class="chip chip-muted" style="margin-left:10px;">' + escapeText(v.status) + '</span></p>' +
+      '<div style="overflow-x:auto;"><table class="manifest"><thead><tr><th>Field</th><th>Value</th><th>Confidence</th><th>Source / notes</th></tr></thead>' +
+        '<tbody>' + fieldRows + '</tbody></table></div>' +
+      '<div class="bulk-btns" style="margin-top:12px;">' +
+        '<button type="button" class="btn btn-primary" data-cat-approve="' + v.version_id + '">Approve</button>' +
+        '<button type="button" class="contact-remove" data-cat-reject="' + v.version_id + '">Reject</button>' +
+      '</div>' +
+      '<p class="desc" data-cat-msg="' + v.version_id + '" style="margin:6px 0 0;"></p>' +
+    '</div>';
+  }
+
+  async function fetchPendingCatalogVersions() {
+    const container = document.getElementById('catalogPendingList');
+    const dot = document.getElementById('catalogReviewDot');
+    container.innerHTML = '<p class="desc" style="font-style:italic;">Loading…</p>';
+    let versions;
+    try {
+      const res = await fetch('/catalog/pending');
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      versions = await res.json();
+    } catch (err) {
+      dot.className = 'rail-dot dot-fail';
+      container.innerHTML = '<p class="desc" style="color:var(--fail);">Could not reach the backend catalog review queue — ' +
+        escapeText(err.message) + '. This panel only works when the page is served by solar-calc-backend itself, same-origin (see Backend Verification\'s note about embedded/artifact views).</p>';
+      return;
+    }
+    dot.className = 'rail-dot ' + (versions.length ? 'dot-warn' : 'dot-pass');
+    container.innerHTML = versions.length
+      ? versions.map(catalogVersionCardHtml).join('')
+      : '<p class="desc" style="font-style:italic;">Nothing pending review.</p>';
+  }
+
+  // Only edited fields are sent — an unedited field keeps its original
+  // agent-assigned confidence/source rather than being stamped "engineer
+  // edit" just because the card was on screen when Approve was clicked.
+  function collectCatalogEdits(versionId) {
+    const inputs = document.querySelectorAll('input[data-cat-version="' + versionId + '"]');
+    const edits = {};
+    inputs.forEach(inp => {
+      if (inp.value !== inp.dataset.catOrig) {
+        edits[inp.dataset.catField] = { value: inp.value, confidence: 'high', source: 'engineer edit' };
+      }
+    });
+    return edits;
+  }
+
+  async function saveCatalogEditsIfAny(versionId) {
+    const edits = collectCatalogEdits(versionId);
+    if (!Object.keys(edits).length) return true;
+    const res = await fetch('/catalog/versions/' + versionId, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(edits),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    return true;
+  }
+
+  document.getElementById('catalogPendingList').addEventListener('click', async e => {
+    const approveId = e.target.dataset.catApprove;
+    const rejectId = e.target.dataset.catReject;
+    if (!approveId && !rejectId) return;
+    const versionId = approveId || rejectId;
+    const msgEl = document.querySelector('[data-cat-msg="' + versionId + '"]');
+    try {
+      if (approveId) {
+        await saveCatalogEditsIfAny(versionId);
+        const res = await fetch('/catalog/versions/' + versionId + '/approve', { method: 'POST' });
+        const body = await res.json();
+        if (!res.ok) throw new Error(body.detail || res.statusText);
+        if (body.needs_default_choice && msgEl) {
+          msgEl.textContent = 'Approved. An earlier version (' + body.current_default_version_id +
+            ') is still the default for new projects — use the version history endpoint to switch if needed.';
+        }
+      } else {
+        const res = await fetch('/catalog/versions/' + rejectId + '/reject', { method: 'POST' });
+        if (!res.ok) throw new Error(await res.text());
+      }
+      await fetchPendingCatalogVersions();
+    } catch (err) {
+      if (msgEl) { msgEl.style.color = 'var(--fail)'; msgEl.textContent = 'Failed: ' + err.message; }
+    }
+  });
+
+  document.getElementById('refreshCatalogPendingBtn').addEventListener('click', fetchPendingCatalogVersions);
 
   // ---- now that every panel above has defined its bindings, run the first pass ----
   recompute();

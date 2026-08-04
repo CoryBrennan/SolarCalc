@@ -28,6 +28,7 @@ from app import (
     switchboard_block,
     voltage_drop_calc,
 )
+from app.catalog_routes import router as catalog_router
 from app.changeset_routes import router as changeset_router
 from app.db import create_db_and_tables
 from app.models import ProjectInput
@@ -47,6 +48,7 @@ app.add_middleware(
 )
 
 app.include_router(changeset_router)
+app.include_router(catalog_router)
 create_db_and_tables()
 
 
