@@ -1418,6 +1418,61 @@
             <tbody id="invBomManifestBody"><tr class="empty"><td colspan="4">No BOM uploaded yet</td></tr></tbody>
           </table>
         </div>
+
+        <div class="card">
+          <p class="card-title">PVCase planning brief</p>
+          <p class="desc" style="margin-bottom:14px;">What to key into PVCase before building the site layout — modules-per-string, and the exact equipment tags PVCase should end up producing — computed from Module Spec, Inverter Spec, PV String Design, and the naming convention above, so PVCase and this app start from the same numbers instead of a second manual translation.</p>
+          <div class="bulk-btns" style="margin-top:0; margin-bottom:14px;">
+            <button class="btn btn-primary" id="pvcasePlanBtn" type="button">Generate planning brief</button>
+          </div>
+          <p class="desc" id="pvcasePlanStatus"></p>
+          <div id="pvcasePlanResult" style="display:none;">
+            <table class="manifest" style="margin-bottom:14px;">
+              <tbody>
+                <tr><td>Modules per string to use in PVCase</td><td id="pvcasePlanModulesPerString">—</td></tr>
+                <tr><td>Estimated string count</td><td id="pvcasePlanStringCount">—</td></tr>
+                <tr><td>Planned inverters / DC combiners / transformers</td><td id="pvcasePlanCounts">—</td></tr>
+              </tbody>
+            </table>
+            <ul id="pvcasePlanNotes" style="margin:0 0 14px 18px; padding:0;"></ul>
+            <details>
+              <summary style="cursor:pointer;">Expected equipment tags</summary>
+              <pre id="pvcasePlanTags" style="white-space:pre-wrap; font-size:12px; margin-top:8px;"></pre>
+            </details>
+          </div>
+        </div>
+
+        <div class="card">
+          <p class="card-title">PVCase validation</p>
+          <p class="desc" style="margin-bottom:14px;">Once the PVCase design is built and exported, point at the BOM export and/or CAD Release DWG — both live in Dropbox, so a local path works, no upload needed — and check them against the planning brief above. Runs against the Backend URL configured on Client Inputs; scanning a DWG drives a real local AutoCAD session and can take a couple of minutes on a large drawing.</p>
+          <div class="field-grid" style="margin-bottom:14px;">
+            <div class="field wide">
+              <label for="pvcaseBomPathInput">BOM export path (.xlsx)</label>
+              <input class="prose" type="text" id="pvcaseBomPathInput" placeholder="C:\...\Azimuth_..._BOM_Data.xlsx">
+            </div>
+            <div class="field wide">
+              <label for="pvcaseDwgPathInput">CAD Release DWG path</label>
+              <input class="prose" type="text" id="pvcaseDwgPathInput" placeholder="C:\...\Azimuth_..._CAD Release_....dwg">
+            </div>
+          </div>
+          <div class="bulk-btns" style="margin-top:0; margin-bottom:14px;">
+            <button class="btn btn-primary" id="pvcaseValidateBtn" type="button">Run validation</button>
+          </div>
+          <p class="desc" id="pvcaseValidateStatus"></p>
+          <div id="pvcaseValidateResult" style="display:none;">
+            <div style="overflow-x:auto;">
+              <table class="etap" style="margin-bottom:14px;">
+                <thead><tr><th>Equipment</th><th>Comparison</th><th style="text-align:right;">Matched</th><th>Missing (expected, not found)</th><th>Unexpected (found, not planned)</th></tr></thead>
+                <tbody id="pvcaseValidateBody"></tbody>
+              </table>
+            </div>
+            <table class="manifest" style="margin-bottom:14px;">
+              <thead><tr><th>Circuit segment (from BOM)</th><th>Count</th><th>Min ft</th><th>Avg ft</th><th>Max ft</th></tr></thead>
+              <tbody id="pvcaseLengthStatsBody"></tbody>
+            </table>
+            <ul id="pvcaseValidateWarnings" style="margin:0; padding-left:18px;"></ul>
+          </div>
+        </div>
       </section>
 
       <!-- 09 DC COMBINER DESIGN -->
@@ -6107,6 +6162,10 @@
     return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
   }
 
+  function escapeHtml(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
   function directoryFieldHtml(cat, idx, field, value) {
     return '<td><input type="text" class="wide" data-key="' + cat.key + '" data-index="' + idx + '" data-field="' + field + '" value="' + escapeAttr(value) + '"></td>';
   }
@@ -7829,6 +7888,126 @@
     }
   }
   document.getElementById('syncBackendBtn').addEventListener('click', syncWithBackend);
+
+  // ---- PVCase planning brief + validation (App Planning -> PVCase/AutoCAD
+  // implementation -> App validation loop) ----
+  function buildPvcasePlanPayload() {
+    const namingMode = document.getElementById('invNamingConvention').value;
+    const boards = switchboardTags().map((tag, i) => {
+      const count = inverterDesignRows.filter(r => r.switchboard === tag).length;
+      const xfmr = transformerRows.find(r => r.fedFrom === tag);
+      return { tag, inverter_count: count, transformer_tag: (xfmr && xfmr.tag) || ('XFMR-' + (i + 1)) };
+    });
+    return {
+      switchboards: boards,
+      naming: {
+        inverter_prefix: document.getElementById('invNamePrefix').value || 'INV',
+        combiner_prefix: 'DCC',
+        transformer_prefix: 'XFMR',
+        separator: document.getElementById('invNameSeparator').value || '-',
+        start: parseInt(document.getElementById('invNameStart').value, 10) || 1,
+        zero_pad: parseInt(document.getElementById('invNamePad').value, 10) || 0,
+        per_switchboard: namingMode === 'switchboard',
+      },
+    };
+  }
+
+  async function runPvcasePlan() {
+    const status = document.getElementById('pvcasePlanStatus');
+    const result = document.getElementById('pvcasePlanResult');
+    const url = document.getElementById('backendUrlInput').value.trim().replace(/\/$/, '');
+    status.textContent = 'Generating…';
+    status.style.color = 'var(--ink-muted)';
+    try {
+      const res = await fetch(url + '/pvcase/plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ project: buildBackendPayload(), plan: buildPvcasePlanPayload() }),
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + (await res.text()).slice(0, 300));
+      const data = await res.json();
+
+      document.getElementById('pvcasePlanModulesPerString').textContent = data.modules_per_string_to_use_in_pvcase ?? '—';
+      document.getElementById('pvcasePlanStringCount').textContent = data.estimated_string_count ?? '—';
+      document.getElementById('pvcasePlanCounts').textContent =
+        data.expected_tags.inverters.length + ' / ' + data.expected_tags.dc_combiners.length + ' / ' + data.expected_tags.transformers.length;
+      document.getElementById('pvcasePlanNotes').innerHTML = data.pvcase_setup_notes.map(n => '<li>' + escapeHtml(n) + '</li>').join('');
+      document.getElementById('pvcasePlanTags').textContent =
+        'Inverters: ' + data.expected_tags.inverters.join(', ') + '\n\n' +
+        'DC combiners: ' + (data.expected_tags.dc_combiners.join(', ') || '(none — direct MPPT topology)') + '\n\n' +
+        'Transformers: ' + data.expected_tags.transformers.join(', ');
+
+      document.getElementById('pvcasePlanResult').style.display = '';
+      status.textContent = 'Generated ' + new Date().toLocaleTimeString();
+      status.style.color = 'var(--pass)';
+    } catch (err) {
+      result.style.display = 'none';
+      status.textContent = 'Could not generate: ' + (err.message || err);
+      status.style.color = 'var(--fail)';
+    }
+  }
+  document.getElementById('pvcasePlanBtn').addEventListener('click', runPvcasePlan);
+
+  function renderTagDiffRow(equipment, label, diff) {
+    if (!diff) return '';
+    const rowClass = (diff.expected_only.length || diff.actual_only.length) ? ' style="color:var(--fail);"' : '';
+    return '<tr' + rowClass + '><td>' + escapeHtml(equipment) + '</td><td>' + escapeHtml(label) + '</td><td style="text-align:right;">' + diff.matched_count + '</td>' +
+      '<td>' + (diff.expected_only.length ? escapeHtml(diff.expected_only.join(', ')) : '—') + '</td>' +
+      '<td>' + (diff.actual_only.length ? escapeHtml(diff.actual_only.join(', ')) : '—') + '</td></tr>';
+  }
+
+  async function runPvcaseValidate() {
+    const status = document.getElementById('pvcaseValidateStatus');
+    const result = document.getElementById('pvcaseValidateResult');
+    const url = document.getElementById('backendUrlInput').value.trim().replace(/\/$/, '');
+    const bomPath = document.getElementById('pvcaseBomPathInput').value.trim();
+    const dwgPath = document.getElementById('pvcaseDwgPathInput').value.trim();
+    if (!bomPath && !dwgPath) {
+      status.textContent = 'Enter a BOM path, a DWG path, or both.';
+      status.style.color = 'var(--fail)';
+      return;
+    }
+    status.textContent = dwgPath ? 'Validating… DWG scanning drives a real AutoCAD session and can take a couple of minutes.' : 'Validating…';
+    status.style.color = 'var(--ink-muted)';
+    try {
+      const res = await fetch(url + '/pvcase/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          project: buildBackendPayload(),
+          plan: buildPvcasePlanPayload(),
+          bom_path: bomPath || null,
+          dwg_path: dwgPath || null,
+        }),
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + (await res.text()).slice(0, 300));
+      const data = await res.json();
+
+      const rows = [];
+      data.comparisons.forEach(c => {
+        rows.push(renderTagDiffRow(c.equipment, 'Plan vs BOM', c.plan_vs_bom));
+        rows.push(renderTagDiffRow(c.equipment, 'Plan vs DWG', c.plan_vs_dwg));
+        rows.push(renderTagDiffRow(c.equipment, 'BOM vs DWG', c.bom_vs_dwg));
+      });
+      document.getElementById('pvcaseValidateBody').innerHTML = rows.filter(Boolean).join('') ||
+        '<tr class="empty"><td colspan="5">No comparisons — supply a BOM path, a DWG path, or both.</td></tr>';
+
+      document.getElementById('pvcaseLengthStatsBody').innerHTML = (data.length_stats || []).map(s =>
+        '<tr><td>' + escapeHtml(s.segment) + '</td><td>' + s.count + '</td><td>' + s.min_ft + '</td><td>' + s.avg_ft + '</td><td>' + s.max_ft + '</td></tr>'
+      ).join('') || '<tr class="empty"><td colspan="5">No BOM parsed — no length data</td></tr>';
+
+      document.getElementById('pvcaseValidateWarnings').innerHTML = (data.warnings || []).map(w => '<li>' + escapeHtml(w) + '</li>').join('');
+
+      result.style.display = '';
+      status.textContent = (data.ok ? 'All matched — ' : 'Mismatches found — ') + new Date().toLocaleTimeString();
+      status.style.color = data.ok ? 'var(--pass)' : 'var(--fail)';
+    } catch (err) {
+      result.style.display = 'none';
+      status.textContent = 'Validation failed: ' + (err.message || err);
+      status.style.color = 'var(--fail)';
+    }
+  }
+  document.getElementById('pvcaseValidateBtn').addEventListener('click', runPvcaseValidate);
 
   if (window.top !== window.self) {
     const warning = document.getElementById('embeddedArtifactWarning');

@@ -17,6 +17,15 @@ class SiteAddress(BaseModel):
     city: str = ""
     state: str = "IL"
     zip: str = ""
+    # Populated by POST /site/geocode (app/geocode_lookup.py) — not resolved
+    # automatically on every save, since it calls out to external services.
+    # None until an engineer explicitly runs the lookup and it succeeds; a
+    # PVsyst .SIT export (or anything else needing coordinates) should treat
+    # None as "not yet resolved," not "at 0,0."
+    latitude: float | None = None
+    longitude: float | None = None
+    elevation_m: float | None = None
+    timezone: str | None = None
 
     def full_address(self) -> str:
         city_state = " ".join(p for p in [self.state, self.zip] if p)

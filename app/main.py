@@ -9,6 +9,7 @@ use persistence, for the AutoCAD sync loop.
 
 from __future__ import annotations
 
+import dataclasses
 from pathlib import Path
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
@@ -21,9 +22,15 @@ from app import (
     bonding_calc,
     document_header,
     etap_export,
+    geocode_lookup,
+    gps_validation_calc,
     iv_curve_calc,
     jurisdiction_lookup,
     placarding_calc,
+    pvcase_bom_import,
+    pvcase_dwg_scan,
+    pvcase_plan,
+    pvcase_validate,
     string_design_calc,
     switchboard_block,
     voltage_drop_calc,
@@ -31,9 +38,14 @@ from app import (
 from app.catalog_routes import router as catalog_router
 from app.changeset_routes import router as changeset_router
 from app.db import create_db_and_tables
-from app.models import ProjectInput
+from app.gps_validation_calc import GpsValidationRequest, PileValidationRequest
+from app.models import ProjectInput, SiteAddress
 from app.pdf_extract import PdfExtractionError, extract_pdf_text
 from app.project_calc import compute_actual_capacity, compute_combiner_ocpd_switchboard, validate_module_skus
+from app.pvcase_bom_import import PvcaseBomError
+from app.pvcase_dwg_scan import PvcaseDwgError
+from app.pvcase_plan import PvcasePlanRequest
+from app.pvcase_validate import PvcaseValidateRequest
 
 app = FastAPI(title="Solar Calc Engine", version="0.1.0")
 
@@ -86,6 +98,28 @@ async def extract_pdf(file: UploadFile = File(...)) -> dict:
     except PdfExtractionError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return {"filename": file.filename, "pages": pages, "text": text}
+
+
+@app.post("/site/geocode")
+def geocode_site(address: SiteAddress) -> dict:
+    """Resolves lat/long/elevation/timezone for a SiteAddress via free public
+    services (app/geocode_lookup.py) — the coordinate data PVsystCLI's
+    create-site command needs, which nothing in this app captured before now.
+    Run explicitly by the engineer (not on every save) so a flaky external
+    service can't block /calculate, and so a resolved address can be reviewed
+    before it's trusted for a simulation input."""
+    return geocode_lookup.geocode_address(address)
+
+
+@app.post("/site/gps-validate")
+def gps_validate(request: GpsValidationRequest) -> dict:
+    """Compares an Emlid Flow 360 RTK survey export against a design point
+    list (equipment tag + State Plane easting/northing/elevation) and flags
+    any as-built point outside tolerance. Points below RTK-fixed quality
+    (SINGLE/FLOAT solution status, or lateral RMS over the configured
+    threshold) are rejected rather than compared -- see
+    app/gps_validation_calc.py for the quality gate."""
+    return gps_validation_calc.validate_request(request)
 
 
 @app.get("/")
@@ -194,6 +228,57 @@ def calculate(project: ProjectInput) -> dict:
         "string_design": string_length_result,
         "document_header": {"header": header, "missing_fields": document_header.missing_header_fields(header)},
     }
+
+
+@app.post("/pvcase/plan")
+def pvcase_planning_brief(request: PvcasePlanRequest) -> dict:
+    """App Planning step: what to key into PVCase before building the site
+    layout -- target modules-per-string (from string_design_calc) and the
+    exact equipment tags (INV/DCC/XFMR) PVCase should end up producing, so
+    the later /pvcase/validate call has something concrete to check against."""
+    return pvcase_plan.build_pvcase_plan(request.project, request.plan)
+
+
+@app.post("/pvcase/validate")
+def pvcase_validate_design(request: PvcaseValidateRequest) -> dict:
+    """App Validation step: parses whichever of the BOM export / CAD Release
+    DWG are supplied and checks their equipment tags against this project's
+    plan (and against each other). DWG scanning drives a local, real AutoCAD
+    session headlessly and can take a couple of minutes on a large drawing --
+    that's inherent to accoreconsole, not a bug."""
+    bom = None
+    if request.bom_path:
+        try:
+            bom = pvcase_bom_import.parse_pvcase_bom(request.bom_path)
+        except PvcaseBomError as exc:
+            raise HTTPException(status_code=422, detail=f"BOM parse error: {exc}") from exc
+
+    dwg_tags = None
+    if request.dwg_path:
+        try:
+            dwg_tags = pvcase_dwg_scan.scan_device_tags(request.dwg_path)
+        except PvcaseDwgError as exc:
+            raise HTTPException(status_code=422, detail=f"DWG scan error: {exc}") from exc
+
+    report = pvcase_validate.validate_pvcase_design(request.project, request.plan, bom=bom, dwg_tags=dwg_tags)
+    return {"ok": report.ok(), **dataclasses.asdict(report)}
+
+
+@app.post("/pvcase/gps-validate")
+def pvcase_gps_validate(request: PileValidationRequest) -> dict:
+    """As-built pile QA: pulls pile design coordinates straight from a
+    PVCase BOM's "Piling information" sheet (lat/long -- see
+    app/pvcase_bom_import.parse_piling_information) and checks them against
+    an Emlid Flow 360 RTK survey export. Equipment (inverter/DC combiner/
+    transformer) siting isn't covered here -- PVCase's BOM has no
+    coordinates for those; that path is /pvcase/validate's DWG scan side
+    instead. The design-vs-as-built tag match depends on the field crew's
+    point names actually corresponding to PVCase's frame+pile tags -- see
+    app/gps_validation_calc.piles_to_design_points."""
+    try:
+        return gps_validation_calc.validate_piles_request(request)
+    except PvcaseBomError as exc:
+        raise HTTPException(status_code=422, detail=f"BOM parse error: {exc}") from exc
 
 
 @app.post("/generate/switchboard-config")

@@ -34,6 +34,53 @@ def test_health():
     assert response.json() == {"status": "ok"}
 
 
+def test_site_geocode_passes_address_through_to_lookup_and_returns_result(monkeypatch):
+    captured = {}
+
+    def fake_geocode_address(address):
+        captured["street"] = address.street
+        return {
+            "latitude": 38.6273, "longitude": -90.1902, "elevation_m": 141.7,
+            "timezone": "America/Chicago", "resolved": True, "warnings": [],
+        }
+
+    monkeypatch.setattr("app.main.geocode_lookup.geocode_address", fake_geocode_address)
+
+    response = client.post("/site/geocode", json={"street": "1 Metropolitan Sq", "city": "St. Louis"})
+
+    assert response.status_code == 200
+    assert response.json()["timezone"] == "America/Chicago"
+    assert captured["street"] == "1 Metropolitan Sq"
+
+
+def test_site_gps_validate_end_to_end_with_real_emlid_export_row():
+    # TCU1 row verbatim from a real Emlid Flow 360 export (Ameren Peoria,
+    # Illinois West ftUS State Plane) -- FIX solution, matched to a design
+    # point at the exact same coordinates.
+    emlid_csv = (
+        "Name,Code,Code description,Easting,Northing,Elevation,Description,Longitude,Latitude,"
+        "Ellipsoidal height,Origin,Tilt angle,Easting RMS,Northing RMS,Elevation RMS,Lateral RMS,"
+        "Antenna height,Antenna height units,Solution status,Correction type\n"
+        "TCU1,,,2434191.346,1475350.261,570.143,,-89.67023838,40.71672295,461.923,Global,1.7,"
+        "0.039,0.038,0.038,0.054,6.812,ft,FIX,RTK\n"
+    )
+
+    response = client.post(
+        "/site/gps-validate",
+        json={
+            "design_points": [
+                {"tag": "TCU1", "easting_ft": 2434191.346, "northing_ft": 1475350.261, "elevation_ft": 570.143}
+            ],
+            "emlid_csv": emlid_csv,
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["summary"]["passed"] == 1
+    assert body["results"][0]["lateral_offset_ft"] == 0.0
+
+
 def test_calculate_default_project_matches_browser_verified_numbers():
     response = client.post("/calculate", json={})
     assert response.status_code == 200
