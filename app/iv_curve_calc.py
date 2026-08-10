@@ -8,7 +8,7 @@ curve-shape translation.
 
 from __future__ import annotations
 
-from app.module_catalog import MODULE_SKUS, TEMP_COEFF_ISC_PCT_PER_C, TEMP_COEFF_VOC_PCT_PER_C
+from app.module_catalog import MODULE_SKUS
 
 
 def expected_iv_point(module_sku: str, irradiance_w_m2: float, cell_temp_c: float, modules_per_string: int) -> dict:
@@ -16,10 +16,13 @@ def expected_iv_point(module_sku: str, irradiance_w_m2: float, cell_temp_c: floa
     g = irradiance_w_m2 / 1000
     dt = cell_temp_c - 25
 
-    voc_module = module.voc * (1 + TEMP_COEFF_VOC_PCT_PER_C / 100 * dt)
-    vmp_module = module.vmp * (1 + TEMP_COEFF_VOC_PCT_PER_C / 100 * dt)
-    isc_module = module.isc * g * (1 + TEMP_COEFF_ISC_PCT_PER_C / 100 * dt)
-    imp_module = module.imp * g * (1 + TEMP_COEFF_ISC_PCT_PER_C / 100 * dt)
+    # Per-SKU coefficients (see module_catalog.py) -- not a shared global,
+    # since different module families have different real values (e.g. the
+    # Znshine ZXM7-UHLDD144's -0.25%/C Voc vs. the RS9 family's -0.24%/C).
+    voc_module = module.voc * (1 + module.temp_coeff_voc_pct_per_c / 100 * dt)
+    vmp_module = module.vmp * (1 + module.temp_coeff_voc_pct_per_c / 100 * dt)
+    isc_module = module.isc * g * (1 + module.temp_coeff_isc_pct_per_c / 100 * dt)
+    imp_module = module.imp * g * (1 + module.temp_coeff_isc_pct_per_c / 100 * dt)
 
     voc = round(voc_module * modules_per_string, 2)
     isc = round(isc_module, 2)

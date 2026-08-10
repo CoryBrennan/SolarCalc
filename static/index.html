@@ -464,6 +464,8 @@
     background: none; border: none; color: var(--ink-muted); cursor: pointer; font-family: var(--font-mono);
     font-size: 11px; padding: 3px 8px; border-radius: 5px; margin-left: 8px;
   }
+  .rw-details-stack { display: flex; flex-direction: column; gap: 4px; min-width: 130px; }
+  .rw-details-stack input, .rw-details-stack select { width: 100%; box-sizing: border-box; font-size: 12px; }
   .contact-remove:hover { color: var(--fail); background: var(--fail-soft); }
   .logo-preview-wrap { display: flex; align-items: center; gap: 14px; margin-top: 14px; }
   .logo-preview-wrap img {
@@ -525,6 +527,7 @@
       <li><button class="rail-btn" data-target="sec-fluke"><span><span class="rail-num">21</span> I-V Curve Field Prep</span><span class="rail-dot dot-warn"></span></button></li>
       <li><button class="rail-btn" data-target="sec-backend"><span><span class="rail-num">22</span> Backend Verification</span><span class="rail-dot dot-neutral" id="backendDot"></span></button></li>
       <li><button class="rail-btn" data-target="sec-catalog-review"><span><span class="rail-num">23</span> Datasheet Catalog Review</span><span class="rail-dot dot-neutral" id="catalogReviewDot"></span></button></li>
+      <li><button class="rail-btn" data-target="sec-raceway"><span><span class="rail-num">24</span> Conduit, Tray &amp; Messenger</span><span class="rail-dot dot-pass" id="racewayDot"></span></button></li>
     </ul>
     <div class="rail-foot">
       NEC edition resolved from <b>jurisdiction_lookup.py</b><br>
@@ -1473,6 +1476,100 @@
             <ul id="pvcaseValidateWarnings" style="margin:0; padding-left:18px;"></ul>
           </div>
         </div>
+
+        <div class="card">
+          <p class="card-title">PVCase routing-aware ampacity</p>
+          <p class="desc" style="margin-bottom:14px;">PVCase's cable lengths are module-connector-to-endpoint only — no above-ground/free-air vs. underground-conduit breakdown, so Table 310.15(C)(1) fill derating can't be trusted off the flat length alone. Set a routing template per circuit type (an optional fixed lead-in leg, then the rest of each real segment's PVCase length in the remainder leg) and this sizes every real segment in the BOM against <a href="#sec-raceway" onclick="document.querySelector('[data-target=sec-raceway]')?.click();">real conduit trade sizes / cable-tray widths</a> (Panel 12A), reporting the governing (worst-case) segment. Requires the BOM path above; the DWG path isn't used here. "Size as tray" only matters for a "Free air / tray" leg — check it to get a real 392.22 tray-width spec instead of true free air (no raceway to size).</p>
+          <div style="overflow-x:auto; margin-bottom:14px;">
+            <table class="etap">
+              <thead><tr><th>Circuit</th><th>Leg</th><th>Method</th><th>Fixed length <span class="unit">ft, leg 1 only</span></th><th>Conductors</th><th>Conduit material</th><th>Size as tray?</th><th>Tray type</th><th>Tray width <span class="unit">in</span></th><th>Insulation</th><th>VD limit <span class="unit">%</span></th></tr></thead>
+              <tbody>
+                <tr>
+                  <td rowspan="2">AC — Transformer→Inverter</td>
+                  <td>1</td>
+                  <td><select id="pvcaseRouteAcLeg1Method"><option value="free_air_or_tray" selected>Free air / tray</option><option value="conduit_above_grade">Conduit, above grade</option><option value="conduit_below_grade">Conduit, below grade</option></select></td>
+                  <td><input type="text" id="pvcaseRouteAcLeg1Fixed" placeholder="e.g. 10"></td>
+                  <td><input type="text" id="pvcaseRouteAcLeg1ConductorCount" value="3"></td>
+                  <td><select id="pvcaseRouteAcLeg1Material"><option value="PVC_SCH40" selected>PVC Sch 40</option><option value="PVC_SCH80">PVC Sch 80</option><option value="EMT">EMT</option><option value="IMC">IMC</option><option value="RMC">RMC</option></select></td>
+                  <td style="text-align:center;"><input type="checkbox" id="pvcaseRouteAcLeg1SizeAsTray"></td>
+                  <td><select id="pvcaseRouteAcLeg1TrayType"><option value="ladder" selected>Ladder</option><option value="ventilated_trough">Ventilated trough</option><option value="solid_bottom">Solid bottom</option></select></td>
+                  <td><input type="text" id="pvcaseRouteAcLeg1TrayWidth" value="12"></td>
+                  <td rowspan="2"><select id="pvcaseRouteAcInsulation"><option value="75">75°C</option><option value="90" selected>90°C</option></select></td>
+                  <td rowspan="2"><input type="text" id="pvcaseRouteAcVdLimit" value="1.0"></td>
+                </tr>
+                <tr>
+                  <td>2 (remainder)</td>
+                  <td><select id="pvcaseRouteAcLeg2Method"><option value="free_air_or_tray">Free air / tray</option><option value="conduit_above_grade">Conduit, above grade</option><option value="conduit_below_grade" selected>Conduit, below grade</option></select></td>
+                  <td>—</td>
+                  <td><input type="text" id="pvcaseRouteAcLeg2ConductorCount" value="3"></td>
+                  <td><select id="pvcaseRouteAcLeg2Material"><option value="PVC_SCH40" selected>PVC Sch 40</option><option value="PVC_SCH80">PVC Sch 80</option><option value="EMT">EMT</option><option value="IMC">IMC</option><option value="RMC">RMC</option></select></td>
+                  <td style="text-align:center;"><input type="checkbox" id="pvcaseRouteAcLeg2SizeAsTray"></td>
+                  <td><select id="pvcaseRouteAcLeg2TrayType"><option value="ladder" selected>Ladder</option><option value="ventilated_trough">Ventilated trough</option><option value="solid_bottom">Solid bottom</option></select></td>
+                  <td><input type="text" id="pvcaseRouteAcLeg2TrayWidth" value="12"></td>
+                </tr>
+                <tr>
+                  <td rowspan="2">DC — Inverter→Combiner</td>
+                  <td>1</td>
+                  <td><select id="pvcaseRouteDc1Leg1Method"><option value="free_air_or_tray" selected>Free air / tray</option><option value="conduit_above_grade">Conduit, above grade</option><option value="conduit_below_grade">Conduit, below grade</option></select></td>
+                  <td><input type="text" id="pvcaseRouteDc1Leg1Fixed" placeholder="e.g. 15"></td>
+                  <td><input type="text" id="pvcaseRouteDc1Leg1ConductorCount" value="2"></td>
+                  <td><select id="pvcaseRouteDc1Leg1Material"><option value="PVC_SCH40" selected>PVC Sch 40</option><option value="PVC_SCH80">PVC Sch 80</option><option value="EMT">EMT</option><option value="IMC">IMC</option><option value="RMC">RMC</option></select></td>
+                  <td style="text-align:center;"><input type="checkbox" id="pvcaseRouteDc1Leg1SizeAsTray"></td>
+                  <td><select id="pvcaseRouteDc1Leg1TrayType"><option value="ladder" selected>Ladder</option><option value="ventilated_trough">Ventilated trough</option><option value="solid_bottom">Solid bottom</option></select></td>
+                  <td><input type="text" id="pvcaseRouteDc1Leg1TrayWidth" value="12"></td>
+                  <td rowspan="2"><select id="pvcaseRouteDc1Insulation"><option value="75">75°C</option><option value="90" selected>90°C</option></select></td>
+                  <td rowspan="2"><input type="text" id="pvcaseRouteDc1VdLimit" value="1.0"></td>
+                </tr>
+                <tr>
+                  <td>2 (remainder)</td>
+                  <td><select id="pvcaseRouteDc1Leg2Method"><option value="free_air_or_tray">Free air / tray</option><option value="conduit_above_grade">Conduit, above grade</option><option value="conduit_below_grade" selected>Conduit, below grade</option></select></td>
+                  <td>—</td>
+                  <td><input type="text" id="pvcaseRouteDc1Leg2ConductorCount" value="2"></td>
+                  <td><select id="pvcaseRouteDc1Leg2Material"><option value="PVC_SCH40" selected>PVC Sch 40</option><option value="PVC_SCH80">PVC Sch 80</option><option value="EMT">EMT</option><option value="IMC">IMC</option><option value="RMC">RMC</option></select></td>
+                  <td style="text-align:center;"><input type="checkbox" id="pvcaseRouteDc1Leg2SizeAsTray"></td>
+                  <td><select id="pvcaseRouteDc1Leg2TrayType"><option value="ladder" selected>Ladder</option><option value="ventilated_trough">Ventilated trough</option><option value="solid_bottom">Solid bottom</option></select></td>
+                  <td><input type="text" id="pvcaseRouteDc1Leg2TrayWidth" value="12"></td>
+                </tr>
+                <tr>
+                  <td rowspan="2">DC — Combiner→String</td>
+                  <td>1</td>
+                  <td><select id="pvcaseRouteDc2Leg1Method"><option value="free_air_or_tray" selected>Free air / tray</option><option value="conduit_above_grade">Conduit, above grade</option><option value="conduit_below_grade">Conduit, below grade</option></select></td>
+                  <td><input type="text" id="pvcaseRouteDc2Leg1Fixed" placeholder="e.g. 15"></td>
+                  <td><input type="text" id="pvcaseRouteDc2Leg1ConductorCount" value="2"></td>
+                  <td><select id="pvcaseRouteDc2Leg1Material"><option value="PVC_SCH40" selected>PVC Sch 40</option><option value="PVC_SCH80">PVC Sch 80</option><option value="EMT">EMT</option><option value="IMC">IMC</option><option value="RMC">RMC</option></select></td>
+                  <td style="text-align:center;"><input type="checkbox" id="pvcaseRouteDc2Leg1SizeAsTray" checked></td>
+                  <td><select id="pvcaseRouteDc2Leg1TrayType"><option value="ladder" selected>Ladder</option><option value="ventilated_trough">Ventilated trough</option><option value="solid_bottom">Solid bottom</option></select></td>
+                  <td><input type="text" id="pvcaseRouteDc2Leg1TrayWidth" value="12"></td>
+                  <td rowspan="2"><select id="pvcaseRouteDc2Insulation"><option value="75">75°C</option><option value="90" selected>90°C</option></select></td>
+                  <td rowspan="2"><input type="text" id="pvcaseRouteDc2VdLimit" value="2.0"></td>
+                </tr>
+                <tr>
+                  <td>2 (remainder)</td>
+                  <td><select id="pvcaseRouteDc2Leg2Method"><option value="free_air_or_tray" selected>Free air / tray</option><option value="conduit_above_grade">Conduit, above grade</option><option value="conduit_below_grade">Conduit, below grade</option></select></td>
+                  <td>—</td>
+                  <td><input type="text" id="pvcaseRouteDc2Leg2ConductorCount" value="2"></td>
+                  <td><select id="pvcaseRouteDc2Leg2Material"><option value="PVC_SCH40" selected>PVC Sch 40</option><option value="PVC_SCH80">PVC Sch 80</option><option value="EMT">EMT</option><option value="IMC">IMC</option><option value="RMC">RMC</option></select></td>
+                  <td style="text-align:center;"><input type="checkbox" id="pvcaseRouteDc2Leg2SizeAsTray" checked></td>
+                  <td><select id="pvcaseRouteDc2Leg2TrayType"><option value="ladder" selected>Ladder</option><option value="ventilated_trough">Ventilated trough</option><option value="solid_bottom">Solid bottom</option></select></td>
+                  <td><input type="text" id="pvcaseRouteDc2Leg2TrayWidth" value="12"></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="bulk-btns" style="margin-top:0; margin-bottom:14px;">
+            <button class="btn btn-primary" id="pvcaseRoutingBtn" type="button">Compute routing-aware sizing</button>
+          </div>
+          <p class="desc" id="pvcaseRoutingStatus"></p>
+          <div id="pvcaseRoutingResult" style="display:none;">
+            <div style="overflow-x:auto;">
+              <table class="etap" style="margin-bottom:14px;">
+                <thead><tr><th>Circuit</th><th style="text-align:right;">Segments</th><th>Governing segment</th><th>Ampacity-only conductor</th><th>Final conductor (incl. VD)</th><th style="text-align:right;">VD %</th><th>Governing leg raceway</th></tr></thead>
+                <tbody id="pvcaseRoutingBody"></tbody>
+              </table>
+            </div>
+            <ul id="pvcaseRoutingWarnings" style="margin:0; padding-left:18px;"></ul>
+          </div>
+        </div>
       </section>
 
       <!-- 09 DC COMBINER DESIGN -->
@@ -2247,7 +2344,7 @@
           </div>
           <span class="chip chip-warn">Field prep packet — UI scaffold, not wired to live generation yet</span>
         </div>
-        <p class="desc">Phase 1 of 2 (see <span class="mono">IV_Curve_Panel_Handoff_Spec.md</span>): generates a field-ready document so a technician knows what a string <i>should</i> read and can correctly set up a Fluke/Solmetric PVA project before testing — wrong or default PVA setup data causes false-positive deviation flags later. Phase 2 (parsing PVA's post-test Excel export and flagging deviations) is a separate, not-yet-built module.</p>
+        <p class="desc">Phase 1 of 2 (see <span class="mono">IV_Curve_Panel_Handoff_Spec.md</span>): generates a field-ready document so a technician knows what a string <i>should</i> read and can correctly set up a Fluke/Solmetric PVA project before testing — wrong or default PVA setup data causes false-positive deviation flags later. Phase 2 (parsing PVA's post-test Excel export and flagging deviations) now has a real backend — <span class="mono">app/fluke_export_import.py</span> + <span class="mono">app/fluke_validate.py</span>, exposed as <span class="mono">POST /fluke/validate</span> — verified against a real 432-string Solmetric export (2026-08-10); the SolarPro root-cause troubleshooting flowchart from the handoff spec (shading, shorted bypass diode, series/shunt resistance, PID) is still not built. Not yet wired into this page's UI below — call the endpoint directly for now.</p>
 
         <div class="card">
           <p class="card-title">Quick field spot-check (single string) — existing tool, unaffected by the packet below</p>
@@ -2295,7 +2392,7 @@
 
         <div class="note">
           <span>ⓘ</span>
-          <span><b>CSV import schema is an unverified placeholder.</b> No real Fluke/Solmetric/HT export file was available to build against — the manual entry above mirrors <span class="mono">validate_reading()</span> exactly, but <span class="mono">parse_fluke_export()</span>'s column names are a best guess pending a real sample file. The translation is also a simplified single-point scaling, not a full IEC 60891 curve-shape translation.</span>
+          <span><b>Real Solmetric export schema now verified</b> (2026-08-10, against a real 432-string project export) — <span class="mono">app/fluke_export_import.py</span> reads the export's <span class="mono">Table</span> sheet directly (not a CSV; that file is a 40+-sheet macro-driven workbook). <span class="mono">POST /fluke/validate</span> prefers the vendor's own Modeled/Deviation columns over recomputing a translation, adds a design-intent divergence check (catches a wrong module entered into the field tool's Solmetric project) and a coverage check against a parsed PVCase BOM (flags strings the BOM expected but the export never tested) — see that endpoint's and <span class="mono">app/fluke_validate.py</span>'s docstrings for the full verified column map and a known ~4-5% Voc/Vmp translation-methodology gap discovered during verification. The manual entry above still exercises the same underlying <span class="mono">validate_reading()</span> math directly, unaffected by any of this. Translation itself is still a simplified single-point scaling, not a full IEC 60891 curve-shape translation.</span>
         </div>
 
         <div class="card">
@@ -2391,6 +2488,58 @@
         </div>
       </section>
 
+      <!-- 24 CONDUIT, TRAY & MESSENGER CABLE SIZING -->
+      <section class="panel" id="sec-raceway">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">raceway_calc.py → compute_raceway_run()</p>
+            <h2>Conduit, Tray &amp; Messenger Cable Sizing</h2>
+          </div>
+          <span class="chip chip-pass">Live — one set of conductors per raceway run</span>
+        </div>
+        <p class="desc">Every wire run gets its own row, sized independently — a DC source home run in PVC conduit, a combiner-to-inverter run in steel conduit, an inverter-to-switchboard run in cable tray, and an MV feeder on a messenger can all live in the same schedule, each with its own conductor count, length, and raceway. A row's conductor count drives the same 310.15(C)(1) ampacity derate the Ampacity &amp; Conductors panel uses, so its conductor and its fill % can't be sized off different counts.</p>
+
+        <div class="card">
+          <p class="card-title">Raceway run schedule</p>
+          <p class="desc" style="margin-bottom:14px;">One row per set of conductors sharing a single conduit, cable-tray, or messenger run. Switching a row's type swaps its Details column between conduit material/nipple, tray type/width, and messenger span/ice/sag/safety-factor. <b>Populate from project circuits</b> reads the DC source circuit off Ampacity &amp; Conductors, one row per DC combiner off DC Combiner Design (when this inverter uses one), and the AC output circuit off Inverter Spec/ETAP Export — refreshing it replaces only the rows it previously generated (tagged DC-SOURCE / DCC-n / AC-OUT), leaving any runs added by hand untouched.</p>
+          <div class="bulk-btns" style="margin-bottom:14px;">
+            <button class="btn btn-primary" id="populateRacewayBtn" type="button">⟳ Populate from project circuits</button>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="etap">
+              <thead>
+                <tr>
+                  <th>Run</th><th>Type</th><th>Circuit</th>
+                  <th style="text-align:right;">Current (A)</th><th style="text-align:right;">Conductors</th>
+                  <th>Insul. / conductor</th>
+                  <th style="text-align:right;">Length (ft)</th><th>Voltage (V) / VD limit (%)</th>
+                  <th>Details</th>
+                  <th>Conductor</th><th>Result</th>
+                  <th style="text-align:right;">VD (%)</th><th>Status</th><th></th>
+                </tr>
+              </thead>
+              <tbody id="racewayBody"></tbody>
+            </table>
+          </div>
+          <button class="btn" id="addRacewayBtn" style="margin-top:14px;">+ Add run</button>
+        </div>
+
+        <div class="card">
+          <p class="card-title">Summary (read-only)</p>
+          <div class="computed-row">
+            <div class="computed"><div class="k">Runs</div><div class="v" id="racewayRunCount">—</div></div>
+            <div class="computed"><div class="k">Passing</div><div class="v" id="racewayPassCount">—</div></div>
+            <div class="computed"><div class="k">Ambient temp</div><div class="v" id="rwAmbientTempDisplay">—<small> °C, from ASHRAE</small></div></div>
+          </div>
+          <p class="desc" id="racewaySummaryNote" style="margin-top:12px; margin-bottom:0;"></p>
+        </div>
+
+        <div class="note">
+          <span>ⓘ</span>
+          <span><b>Common-size table subsets, not the full interpolated NEC tables</b> — Chapter 9 Table 4 covers EMT/IMC/RMC/PVC Sch 40/Sch 80 trade sizes 1/2 in-4 in; Table 5 conductor areas are THHN/THWN-2, with USE-2/RHW-2 approximated at 28% larger for insulation thickness. Cable tray fill uses the single-conductor method (392.22(B)) since that's the common PV case — conductors smaller than 1/0 AWG in ladder tray need &le;4-1/2 in rung spacing per 392.22(B)(4), flagged but not verified here. Messenger sizing is a standard sag-tension check against representative EHS steel strand strengths, not a Table 5-style NEC lookup (Article 396 sets no sizing formula of its own) — verify against the manufacturer cut sheet before issue. The steel-conduit AC voltage-drop adder (+5%) is an approximation for added inductive reactance, not a full impedance calculation.</span>
+        </div>
+      </section>
+
     </div>
   </div>
 </div>
@@ -2399,7 +2548,7 @@
   // ---- nav switching ----
   const WIDE_PANELS = [
     'sec-site', 'sec-directory', 'sec-inverter-design',
-    'sec-combiner', 'sec-switchboard-design', 'sec-mv-design', 'sec-backend', 'sec-catalog-review',
+    'sec-combiner', 'sec-switchboard-design', 'sec-mv-design', 'sec-backend', 'sec-catalog-review', 'sec-raceway',
   ];
   const railBtns = document.querySelectorAll('.rail-btn');
   railBtns.forEach(btn => {
@@ -6335,6 +6484,412 @@
   ashraeMaxTempEl.addEventListener('input', ampacityRecompute);
   ampacityRecompute();
 
+  // ---- Conduit, tray & messenger cable sizing (mirrors raceway_calc.py) ----
+  // One set of conductors per run. Reuses the same tempCorrectionFactor /
+  // fillAdjustmentFactor / selectConductor / AMPACITY_TABLE / CIRCULAR_MILS
+  // the Ampacity panel already defined above, so a run's conductor sizing
+  // can't drift from that panel's derating chain.
+  const THHN_THWN2_AREA_IN2 = {
+    '10 AWG': 0.0211, '8 AWG': 0.0366, '6 AWG': 0.0507, '4 AWG': 0.0824,
+    '3 AWG': 0.0973, '2 AWG': 0.1158, '1 AWG': 0.1562, '1/0 AWG': 0.1855,
+    '2/0 AWG': 0.2223, '3/0 AWG': 0.2679, '4/0 AWG': 0.3237,
+    '250 kcmil': 0.3970, '300 kcmil': 0.4536, '350 kcmil': 0.5111,
+    '400 kcmil': 0.5623, '500 kcmil': 0.6759, '600 kcmil': 0.7896,
+    '700 kcmil': 0.9028, '750 kcmil': 0.9605,
+  };
+  const USE2_RHW2_FACTOR = 1.28;
+  const RW_TRADE_SIZES = ['1/2', '3/4', '1', '1-1/4', '1-1/2', '2', '2-1/2', '3', '3-1/2', '4'];
+  const RW_CONDUIT_AREA_IN2 = {
+    EMT: { '1/2': 0.304, '3/4': 0.533, '1': 0.864, '1-1/4': 1.496, '1-1/2': 2.036, '2': 3.356, '2-1/2': 5.858, '3': 8.846, '3-1/2': 11.545, '4': 14.753 },
+    IMC: { '1/2': 0.342, '3/4': 0.586, '1': 0.959, '1-1/4': 1.647, '1-1/2': 2.225, '2': 3.630, '2-1/2': 5.135, '3': 7.922, '3-1/2': 9.696, '4': 11.545 },
+    RMC: { '1/2': 0.314, '3/4': 0.549, '1': 0.887, '1-1/4': 1.526, '1-1/2': 2.071, '2': 3.408, '2-1/2': 4.866, '3': 7.499, '3-1/2': 8.837, '4': 10.010 },
+    PVC_SCH40: { '1/2': 0.285, '3/4': 0.508, '1': 0.832, '1-1/4': 1.453, '1-1/2': 1.986, '2': 3.291, '2-1/2': 4.695, '3': 7.268, '3-1/2': 9.737, '4': 12.554 },
+    PVC_SCH80: { '1/2': 0.217, '3/4': 0.409, '1': 0.688, '1-1/4': 1.237, '1-1/2': 1.711, '2': 2.874, '2-1/2': 4.119, '3': 6.442, '3-1/2': 8.688, '4': 11.258 },
+  };
+  const RW_METAL_CONDUIT_MATERIALS = ['EMT', 'IMC', 'RMC'];
+  const RW_STANDARD_TRAY_WIDTHS_IN = [6, 9, 12, 18, 24, 30, 36];
+  const RW_AREA_RATIO_SUB_1_0 = 2 / 3;
+  const RW_AREA_RATIO_250_900 = 11 / 12;
+  const RW_MESSENGER_STRAND_TABLE = [
+    ['1/4 in EHS', 6650], ['5/16 in EHS', 11200], ['3/8 in EHS', 15400], ['7/16 in EHS', 20800], ['1/2 in EHS', 26900],
+  ];
+  const RW_VD_STEEL_CONDUIT_AC_MULTIPLIER = 1.05;
+
+  function rwConductorAreaIn2(conductor, insulation) {
+    const base = THHN_THWN2_AREA_IN2[conductor];
+    if (base == null) return 0;
+    return insulation === 'USE2_RHW2' ? Math.round(base * USE2_RHW2_FACTOR * 10000) / 10000 : base;
+  }
+  function rwConductorOdIn(conductor, insulation) {
+    const area = rwConductorAreaIn2(conductor, insulation);
+    return area ? 2 * Math.sqrt(area / Math.PI) : 0;
+  }
+  function rwFillPercentAllowed(count, isNipple) {
+    if (isNipple) return 60.0;
+    if (count <= 1) return 53.0;
+    if (count === 2) return 31.0;
+    return 40.0;
+  }
+  function rwSizeConduit(conductor, insulation, count, material, isNipple) {
+    const areaPerConductor = rwConductorAreaIn2(conductor, insulation);
+    const totalArea = Math.round(areaPerConductor * count * 10000) / 10000;
+    const allowedPct = rwFillPercentAllowed(count, isNipple);
+    const sizes = RW_CONDUIT_AREA_IN2[material] || RW_CONDUIT_AREA_IN2.PVC_SCH40;
+    let selectedSize = null, actualFillPct = null;
+    for (const size of RW_TRADE_SIZES) {
+      const area100 = sizes[size];
+      if (area100 * (allowedPct / 100) >= totalArea) {
+        selectedSize = size;
+        actualFillPct = area100 ? Math.round((totalArea / area100) * 10000) / 100 : null;
+        break;
+      }
+    }
+    return {
+      isMetal: RW_METAL_CONDUIT_MATERIALS.includes(material),
+      totalArea, allowedPct, selectedSize, actualFillPct, fits: selectedSize !== null,
+    };
+  }
+  function rwTrayAreaRatio(conductor) {
+    const idx = XFMR_CONDUCTOR_ORDER.indexOf(conductor);
+    return idx >= XFMR_CONDUCTOR_ORDER.indexOf('250 kcmil') ? RW_AREA_RATIO_250_900 : RW_AREA_RATIO_SUB_1_0;
+  }
+  function rwSizeCableTray(conductor, insulation, count, trayType, widthIn) {
+    const areaPerConductor = rwConductorAreaIn2(conductor, insulation);
+    const totalArea = Math.round(areaPerConductor * count * 10000) / 10000;
+    const ratio = rwTrayAreaRatio(conductor);
+    const maxAllowedArea = Math.round(widthIn * ratio * 10000) / 10000;
+    const actualFillPct = maxAllowedArea ? Math.round((totalArea / maxAllowedArea) * 10000) / 100 : null;
+    const passes = totalArea <= maxAllowedArea;
+    const requiredWidth = ratio ? totalArea / ratio : 0;
+    const minRequiredWidth = RW_STANDARD_TRAY_WIDTHS_IN.find(w => w >= requiredWidth) || RW_STANDARD_TRAY_WIDTHS_IN[RW_STANDARD_TRAY_WIDTHS_IN.length - 1];
+    const idx = XFMR_CONDUCTOR_ORDER.indexOf(conductor);
+    const ladderRungNote = trayType === 'ladder' && idx < XFMR_CONDUCTOR_ORDER.indexOf('1/0 AWG');
+    return { totalArea, maxAllowedArea, actualFillPct, passes, minRequiredWidth, ladderRungNote };
+  }
+  function rwSizeMessenger(conductor, insulation, count, spanFt, iceThicknessIn, sagRatio, safetyFactor, windLoadPlf) {
+    const cm = CIRCULAR_MILS[conductor] || 0;
+    const bareCuWeightPlf = cm * 0.000003117;
+    const insulatedWeightPlf = bareCuWeightPlf * 1.35;
+    const odIn = rwConductorOdIn(conductor, insulation);
+    const iceWeightPlf = iceThicknessIn > 0 ? 1.24 * iceThicknessIn * (odIn + iceThicknessIn) : 0;
+    const perCableWeightPlf = insulatedWeightPlf + iceWeightPlf;
+    const totalLoadPlf = Math.round((perCableWeightPlf * count + windLoadPlf) * 1000) / 1000;
+    const sagFt = sagRatio * spanFt;
+    const maxTensionLb = sagFt > 0 ? (totalLoadPlf * spanFt * spanFt) / (8 * sagFt) : Infinity;
+    const requiredStrengthLb = Number.isFinite(maxTensionLb) ? Math.round(maxTensionLb * safetyFactor * 10) / 10 : null;
+    let selected = null, selectedStrength = null;
+    if (requiredStrengthLb !== null) {
+      for (const [label, strength] of RW_MESSENGER_STRAND_TABLE) {
+        if (strength >= requiredStrengthLb) { selected = label; selectedStrength = strength; break; }
+      }
+    }
+    return {
+      totalLoadPlf, sagFt: Math.round(sagFt * 100) / 100,
+      maxTensionLb: Number.isFinite(maxTensionLb) ? Math.round(maxTensionLb * 10) / 10 : null,
+      requiredStrengthLb, selected, selectedStrength, fits: selected !== null,
+    };
+  }
+  function rwVoltageDropMultiplier(circuitType, racewayType, conduitMaterial) {
+    if (circuitType !== 'ac') return 1.0;
+    if (racewayType === 'conduit' && RW_METAL_CONDUIT_MATERIALS.includes(conduitMaterial)) return RW_VD_STEEL_CONDUIT_AC_MULTIPLIER;
+    return 1.0;
+  }
+
+  // Row state: one entry per raceway run, each independently typed and sized
+  // — mirrors combinerRows/mvEquipmentRows below (inline-editable table, full
+  // re-render on structural change, cell-only refresh on value change).
+  const RW_CONDUIT_MATERIAL_OPTIONS = [
+    ['PVC_SCH40', 'PVC Sch 40'], ['PVC_SCH80', 'PVC Sch 80'],
+    ['EMT', 'EMT (steel)'], ['IMC', 'IMC (steel)'], ['RMC', 'RMC/GRC (steel)'],
+  ];
+  const RW_TRAY_TYPE_OPTIONS = [
+    ['ladder', 'Ladder'], ['ventilated_trough', 'Vent. trough'], ['solid_bottom', 'Solid bottom'],
+  ];
+
+  function defaultRacewayRow(tag) {
+    return {
+      tag: tag, racewayType: 'conduit', circuitType: 'dc', currentA: 30, conductorCount: 2,
+      insulationRating: 90, conductorInsulation: 'USE2_RHW2', lengthFt: 100, voltageV: 600, vdLimitPct: 2.0,
+      conduitMaterial: 'PVC_SCH40', isNipple: false,
+      trayType: 'ladder', trayWidthIn: 12,
+      spanFt: 100, iceThicknessIn: 0, sagRatio: 0.03, safetyFactor: 2.0, windLoadPlf: 0,
+    };
+  }
+  let racewayRows = [defaultRacewayRow('RW-1')];
+  const racewayBody = document.getElementById('racewayBody');
+
+  function racewayComputeRow(row) {
+    const ambient = parseNum(ashraeMaxTempEl.value);
+    const tempFactor = tempCorrectionFactor(ambient, row.insulationRating);
+    const fillFactor = fillAdjustmentFactor(row.conductorCount);
+    const requiredAmpacity = (tempFactor && fillFactor) ? row.currentA / (tempFactor * fillFactor) : 0;
+    const conductor = selectConductor(requiredAmpacity, row.insulationRating);
+
+    const result = { tempFactor, fillFactor, requiredAmpacity, conductor, headline: '—', passes: false, vdPct: null, vdVolts: null };
+    if (!conductor) {
+      result.headline = 'exceeds 750 kcmil — split circuit';
+      return result;
+    }
+
+    if (row.racewayType === 'conduit') {
+      const c = rwSizeConduit(conductor, row.conductorInsulation, row.conductorCount, row.conduitMaterial, row.isNipple);
+      result.raceway = c;
+      result.headline = c.selectedSize
+        ? (c.selectedSize + '" ' + (c.isMetal ? 'steel' : 'PVC') + ' @ ' + c.actualFillPct.toFixed(1) + '%')
+        : 'exceeds 4" — split run';
+      result.racewayPasses = c.fits;
+    } else if (row.racewayType === 'cable_tray') {
+      const t = rwSizeCableTray(conductor, row.conductorInsulation, row.conductorCount, row.trayType, row.trayWidthIn);
+      result.raceway = t;
+      result.headline = t.passes
+        ? (t.actualFillPct.toFixed(1) + '% of ' + row.trayWidthIn + '" tray')
+        : ('overfilled — need ' + t.minRequiredWidth + '" tray');
+      result.racewayPasses = t.passes;
+    } else {
+      const m = rwSizeMessenger(conductor, row.conductorInsulation, row.conductorCount, row.spanFt, row.iceThicknessIn, row.sagRatio, row.safetyFactor, row.windLoadPlf);
+      result.raceway = m;
+      result.headline = m.selected || 'exceeds 1/2" EHS — heavier strand or shorter span';
+      result.racewayPasses = m.fits;
+    }
+
+    const cm = CIRCULAR_MILS[conductor];
+    const vdMultiplier = rwVoltageDropMultiplier(row.circuitType, row.racewayType, row.conduitMaterial);
+    if (cm && row.voltageV) {
+      const vdVolts = (Math.sqrt(3) * K_COPPER * row.currentA * row.lengthFt * vdMultiplier) / cm;
+      const vdPct = (vdVolts / row.voltageV) * 100;
+      result.vdVolts = vdVolts;
+      result.vdPct = vdPct;
+      result.vdPasses = vdPct <= row.vdLimitPct;
+    } else {
+      result.vdPasses = true;
+    }
+
+    result.passes = result.racewayPasses && result.vdPasses;
+    return result;
+  }
+
+  function racewayDetailsCellHtml(row, i) {
+    if (row.racewayType === 'conduit') {
+      return '<div class="rw-details-stack">' +
+        '<select data-idx="' + i + '" data-field="conduitMaterial">' +
+        RW_CONDUIT_MATERIAL_OPTIONS.map(([v, label]) => '<option value="' + v + '"' + (v === row.conduitMaterial ? ' selected' : '') + '>' + label + '</option>').join('') +
+        '</select>' +
+        '<select data-idx="' + i + '" data-field="isNipple">' +
+        '<option value="no"' + (!row.isNipple ? ' selected' : '') + '>Not a nipple</option>' +
+        '<option value="yes"' + (row.isNipple ? ' selected' : '') + '>Nipple (&le;24in)</option>' +
+        '</select></div>';
+    }
+    if (row.racewayType === 'cable_tray') {
+      return '<div class="rw-details-stack">' +
+        '<select data-idx="' + i + '" data-field="trayType">' +
+        RW_TRAY_TYPE_OPTIONS.map(([v, label]) => '<option value="' + v + '"' + (v === row.trayType ? ' selected' : '') + '>' + label + '</option>').join('') +
+        '</select>' +
+        '<input type="text" data-idx="' + i + '" data-field="trayWidthIn" value="' + escapeAttr(row.trayWidthIn) + '" placeholder="Width in"></div>';
+    }
+    return '<div class="rw-details-stack">' +
+      '<input type="text" data-idx="' + i + '" data-field="spanFt" value="' + escapeAttr(row.spanFt) + '" placeholder="Span ft">' +
+      '<input type="text" data-idx="' + i + '" data-field="iceThicknessIn" value="' + escapeAttr(row.iceThicknessIn) + '" placeholder="Ice in">' +
+      '<input type="text" data-idx="' + i + '" data-field="sagRatio" value="' + escapeAttr(row.sagRatio) + '" placeholder="Sag ratio">' +
+      '<input type="text" data-idx="' + i + '" data-field="safetyFactor" value="' + escapeAttr(row.safetyFactor) + '" placeholder="Safety factor"></div>';
+  }
+
+  function racewayComputedCellsHtml(c) {
+    const vdText = c.vdPct == null ? '—' : c.vdPct.toFixed(2) + ' %';
+    const vdClass = c.vdPct == null ? '' : (c.vdPasses ? 'vd-pass' : 'vd-fail');
+    return {
+      conductor: c.conductor || 'over 750 kcmil',
+      headline: c.headline,
+      vdText, vdClass,
+      statusHtml: '<span class="status-chip ' + (c.passes ? 'status-extracted' : 'status-fail') + '"><span class="p"></span>' + (c.passes ? 'Pass' : 'Fail') + '</span>',
+    };
+  }
+
+  function refreshRacewayRowCells(idx) {
+    const c = racewayComputeRow(racewayRows[idx]);
+    const tr = racewayBody.querySelector('tr[data-idx="' + idx + '"]');
+    if (!tr) return;
+    const cells = racewayComputedCellsHtml(c);
+    tr.querySelector('[data-cell="conductor"]').textContent = cells.conductor;
+    tr.querySelector('[data-cell="headline"]').textContent = cells.headline;
+    const vdCell = tr.querySelector('[data-cell="vd"]');
+    vdCell.textContent = cells.vdText;
+    vdCell.className = cells.vdClass;
+    tr.querySelector('[data-cell="status"]').innerHTML = cells.statusHtml;
+    return c;
+  }
+
+  function renderRacewayRows() {
+    racewayBody.innerHTML = '';
+    racewayRows.forEach((row, i) => {
+      const c = racewayComputeRow(row);
+      const cells = racewayComputedCellsHtml(c);
+      const tr = document.createElement('tr');
+      tr.dataset.idx = i;
+      tr.innerHTML =
+        '<td><input type="text" data-idx="' + i + '" data-field="tag" value="' + escapeAttr(row.tag) + '" style="width:70px;"></td>' +
+        '<td><select data-idx="' + i + '" data-field="racewayType">' +
+          '<option value="conduit"' + (row.racewayType === 'conduit' ? ' selected' : '') + '>Conduit</option>' +
+          '<option value="cable_tray"' + (row.racewayType === 'cable_tray' ? ' selected' : '') + '>Cable tray</option>' +
+          '<option value="messenger"' + (row.racewayType === 'messenger' ? ' selected' : '') + '>Messenger</option>' +
+        '</select></td>' +
+        '<td><select data-idx="' + i + '" data-field="circuitType">' +
+          '<option value="dc"' + (row.circuitType === 'dc' ? ' selected' : '') + '>DC</option>' +
+          '<option value="ac"' + (row.circuitType === 'ac' ? ' selected' : '') + '>AC</option>' +
+        '</select></td>' +
+        '<td style="text-align:right;"><input type="text" data-idx="' + i + '" data-field="currentA" value="' + escapeAttr(row.currentA) + '" style="width:60px;text-align:right;"></td>' +
+        '<td style="text-align:right;"><input type="text" data-idx="' + i + '" data-field="conductorCount" value="' + escapeAttr(row.conductorCount) + '" style="width:50px;text-align:right;"></td>' +
+        '<td><div class="rw-details-stack">' +
+          '<select data-idx="' + i + '" data-field="insulationRating">' +
+            '<option value="75"' + (row.insulationRating === 75 ? ' selected' : '') + '>75°C</option>' +
+            '<option value="90"' + (row.insulationRating === 90 ? ' selected' : '') + '>90°C</option>' +
+          '</select>' +
+          '<select data-idx="' + i + '" data-field="conductorInsulation">' +
+            '<option value="USE2_RHW2"' + (row.conductorInsulation === 'USE2_RHW2' ? ' selected' : '') + '>USE-2/RHW-2</option>' +
+            '<option value="THHN_THWN2"' + (row.conductorInsulation === 'THHN_THWN2' ? ' selected' : '') + '>THHN/THWN-2</option>' +
+          '</select></div></td>' +
+        '<td style="text-align:right;"><input type="text" data-idx="' + i + '" data-field="lengthFt" value="' + escapeAttr(row.lengthFt) + '" style="width:60px;text-align:right;"></td>' +
+        '<td><div class="rw-details-stack">' +
+          '<input type="text" data-idx="' + i + '" data-field="voltageV" value="' + escapeAttr(row.voltageV) + '" placeholder="Voltage V">' +
+          '<input type="text" data-idx="' + i + '" data-field="vdLimitPct" value="' + escapeAttr(row.vdLimitPct) + '" placeholder="VD limit %"></div></td>' +
+        '<td data-cell="details">' + racewayDetailsCellHtml(row, i) + '</td>' +
+        '<td data-cell="conductor">' + cells.conductor + '</td>' +
+        '<td data-cell="headline">' + cells.headline + '</td>' +
+        '<td style="text-align:right;" data-cell="vd" class="' + cells.vdClass + '">' + cells.vdText + '</td>' +
+        '<td data-cell="status">' + cells.statusHtml + '</td>' +
+        '<td>' + (racewayRows.length > 1 ? '<button type="button" class="contact-remove" data-remove="' + i + '">Remove</button>' : '') + '</td>';
+      racewayBody.appendChild(tr);
+    });
+    refreshRacewaySummary();
+  }
+
+  function refreshRacewaySummary() {
+    document.getElementById('rwAmbientTempDisplay').innerHTML = parseNum(ashraeMaxTempEl.value).toFixed(1) + '<small> °C, from ASHRAE</small>';
+    let passCount = 0;
+    const failingTags = [];
+    racewayRows.forEach(row => {
+      const c = racewayComputeRow(row);
+      if (c.passes) passCount++; else failingTags.push(row.tag || '(untagged)');
+    });
+    document.getElementById('racewayRunCount').textContent = racewayRows.length;
+    document.getElementById('racewayPassCount').textContent = passCount + ' / ' + racewayRows.length;
+    const note = document.getElementById('racewaySummaryNote');
+    note.textContent = failingTags.length ? ('Failing: ' + failingTags.join(', ')) : 'All runs pass.';
+    document.getElementById('racewayDot').className = 'rail-dot ' + (failingTags.length ? 'dot-fail' : 'dot-pass');
+  }
+
+  function racewayRecomputeAll() {
+    racewayRows.forEach((_, i) => refreshRacewayRowCells(i));
+    refreshRacewaySummary();
+  }
+
+  function handleRacewayFieldChange(e) {
+    const idx = e.target.dataset.idx;
+    const field = e.target.dataset.field;
+    if (idx === undefined || !field) return;
+    const row = racewayRows[idx];
+    const stringFields = ['tag', 'racewayType', 'circuitType', 'conductorInsulation', 'conduitMaterial', 'trayType'];
+    if (field === 'insulationRating') row[field] = parseInt(e.target.value, 10) || 90;
+    else if (field === 'isNipple') row[field] = e.target.value === 'yes';
+    else if (stringFields.includes(field)) row[field] = e.target.value;
+    else row[field] = parseNum(e.target.value) || 0;
+
+    // Structural fields reshape the Details cell (or the remove-column
+    // visibility) — everything else only needs its own computed cells.
+    if (field === 'racewayType') renderRacewayRows();
+    else { refreshRacewayRowCells(idx); refreshRacewaySummary(); }
+  }
+  racewayBody.addEventListener('input', handleRacewayFieldChange);
+  racewayBody.addEventListener('change', handleRacewayFieldChange);
+  racewayBody.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-remove]');
+    if (!btn) return;
+    racewayRows.splice(parseInt(btn.dataset.remove, 10), 1);
+    renderRacewayRows();
+  });
+  document.getElementById('addRacewayBtn').addEventListener('click', () => {
+    racewayRows.push(defaultRacewayRow('RW-' + (racewayRows.length + 1)));
+    renderRacewayRows();
+  });
+
+  // Derives raceway rows from circuits the app already models elsewhere,
+  // rather than requiring the engineer to retype currents/lengths that
+  // already exist on other panels. References other panels' fields by
+  // document.getElementById(...) at call time (not the cached top-level
+  // consts some of those panels define later in this same script) so this
+  // works regardless of source order — it only ever runs on a button click,
+  // by which point the whole page has finished loading either way.
+  function deriveRacewayRowsFromProject() {
+    const rows = [];
+    const d = MODULE_SKUS[modSku.value];
+    const modulesPerString = (typeof primaryStringLength === 'function' ? primaryStringLength() : 0) || 0;
+    const stringVoltageV = d ? Math.round(d.vmp * modulesPerString * 100) / 100 : 0;
+    const ampCircuitTypeVal = document.getElementById('ampCircuitType').value;
+    const ampConductorCountVal = parseNum(document.getElementById('ampConductorCount').value);
+    const ampInsulationRatingVal = parseInt(document.getElementById('ampInsulationRating').value, 10);
+
+    // DC source circuit (string -> combiner/inverter) — Ampacity & Conductors.
+    if (d) {
+      const row = defaultRacewayRow('DC-SOURCE');
+      Object.assign(row, {
+        circuitType: 'dc',
+        currentA: Math.round(d.isc * 1.25 * 100) / 100,
+        conductorCount: ampCircuitTypeVal === 'dc_source' ? (ampConductorCountVal || 2) : 2,
+        insulationRating: ampCircuitTypeVal === 'dc_source' ? (ampInsulationRatingVal || 90) : 90,
+        lengthFt: (typeof DEFAULT_STRING_RUN_FT !== 'undefined' ? DEFAULT_STRING_RUN_FT : 150),
+        voltageV: stringVoltageV || 600,
+        vdLimitPct: parseNum(document.getElementById('vdStringCombiner').value) || 2.0,
+        derived: true,
+      });
+      rows.push(row);
+    }
+
+    // DC combiner output circuits — one row per combiner on DC Combiner Design,
+    // only when this inverter's DC topology actually routes through one.
+    if (document.getElementById('invDcTopology').value === 'combiner' && typeof combinerRows !== 'undefined') {
+      combinerRows.forEach((cRow, i) => {
+        const c = computeCombinerRow(cRow);
+        const row = defaultRacewayRow('DCC-' + (i + 1));
+        Object.assign(row, {
+          circuitType: 'dc',
+          currentA: Math.round(c.outputAmpacity * 100) / 100,
+          conductorCount: parseNum(document.getElementById('combOutputConductorCount').value) || 2,
+          insulationRating: parseInt(document.getElementById('combOutputInsulation').value, 10) || 90,
+          lengthFt: parseNum(cRow.runFt) || 0,
+          voltageV: stringVoltageV || 600,
+          vdLimitPct: parseNum(document.getElementById('vdCombinerInverter').value) || 1.0,
+          derived: true,
+        });
+        rows.push(row);
+      });
+    }
+
+    // AC output circuit (inverter -> switchboard) — Inverter Spec + ETAP Export.
+    const acRow = defaultRacewayRow('AC-OUT');
+    Object.assign(acRow, {
+      circuitType: 'ac',
+      currentA: Math.round((parseNum(document.getElementById('invMaxOutputCurrent').value) || 0) * 1.25 * 100) / 100,
+      conductorCount: ampCircuitTypeVal === 'ac_output' ? (ampConductorCountVal || 3) : 3,
+      insulationRating: ampCircuitTypeVal === 'ac_output' ? (ampInsulationRatingVal || 90) : 90,
+      lengthFt: parseNum(document.getElementById('etapLength').value) || 0,
+      voltageV: parseNum(document.getElementById('invNominalVoltage').value) || 600,
+      vdLimitPct: parseNum(document.getElementById('vdInverterSwitchboard').value) || 1.0,
+      conduitMaterial: 'EMT',
+      derived: true,
+    });
+    rows.push(acRow);
+
+    return rows;
+  }
+
+  document.getElementById('populateRacewayBtn').addEventListener('click', () => {
+    const manualRows = racewayRows.filter(r => !r.derived);
+    racewayRows = deriveRacewayRowsFromProject().concat(manualRows);
+    renderRacewayRows();
+  });
+
+  ashraeMaxTempEl.addEventListener('input', racewayRecomputeAll);
+  renderRacewayRows();
+
   // ---- ASHRAE station selection ----
   // ashrae-meteo.info has no public API (confirmed directly — interactive map
   // tool only, no documented endpoints), so nothing on this panel is a live
@@ -7403,6 +7958,7 @@
       switchboardRows: JSON.parse(JSON.stringify(switchboardRows)),
       transformerRows: transformerRows.map(r => Object.assign({}, r)),
       mvEquipmentRows: mvEquipmentRows.map(r => Object.assign({}, r)),
+      racewayRows: racewayRows.map(r => Object.assign({}, r)),
       customInverters: Object.keys(INVERTER_MODELS)
         .filter(k => INVERTER_MODELS[k].custom)
         .map(k => Object.assign({ key: k }, INVERTER_MODELS[k])),
@@ -7541,6 +8097,10 @@
     if (Array.isArray(project.mvEquipmentRows)) {
       mvEquipmentRows = project.mvEquipmentRows.map(r => Object.assign(blankMvRow(), r));
     }
+    if (Array.isArray(project.racewayRows) && project.racewayRows.length) {
+      racewayRows = project.racewayRows.map(r => Object.assign(defaultRacewayRow('RW-1'), r));
+      renderRacewayRows();
+    }
     refreshInverterBulkOptions();
     recomputeInverterDesign();
     recomputeSwitchboardDesign();
@@ -7600,6 +8160,7 @@
     ampacityRecompute();
     ocpdSyncDefault();
     vdropRecompute();
+    if (typeof racewayRecomputeAll === 'function') racewayRecomputeAll();
     recompute();
   }
 
@@ -7746,6 +8307,27 @@
         insulation_rating: parseInt(ampInsulationRating.value, 10),
         conductor_count: parseInt(ampConductorCount.value, 10) || 1,
       },
+      raceway_runs: racewayRows.map(r => ({
+        tag: r.tag,
+        raceway_type: r.racewayType,
+        circuit_type: r.circuitType,
+        current_a: r.currentA,
+        conductor_count: parseInt(r.conductorCount, 10) || 1,
+        insulation_rating: r.insulationRating,
+        conductor_insulation: r.conductorInsulation,
+        length_ft: r.lengthFt,
+        voltage_v: r.voltageV,
+        vd_limit_pct: r.vdLimitPct,
+        conduit_material: r.conduitMaterial,
+        is_nipple: !!r.isNipple,
+        tray_type: r.trayType,
+        tray_width_in: r.trayWidthIn,
+        span_ft: r.spanFt,
+        ice_thickness_in: r.iceThicknessIn,
+        sag_ratio: r.sagRatio,
+        safety_factor: r.safetyFactor,
+        wind_load_plf: r.windLoadPlf,
+      })),
       ocpd: {
         circuit: ocpdCircuit.value,
         combiner_index: parseInt(ocpdCombinerSelect.value, 10) || 0,
@@ -7829,6 +8411,22 @@
       ['PV String Design', 'Min string length (modules)', document.getElementById('stringLenMin').textContent, data.string_design.min_string_length],
       ['PV String Design', 'Recommended MPPT life (yr)', document.getElementById('stringLenRecommendedLife').textContent, data.string_design.recommended_mppt_life_years == null ? '—' : String(data.string_design.recommended_mppt_life_years)],
     ];
+
+    const rwBackendRows = (data.raceway && data.raceway.rows) || [];
+    if (racewayRows.length && rwBackendRows.length) {
+      rows.push(['Conduit, Tray & Messenger', 'Run count', String(racewayRows.length), rwBackendRows.length]);
+      const firstRow = racewayRows[0];
+      const firstLocal = racewayComputeRow(firstRow);
+      const firstBackend = rwBackendRows[0];
+      rows.push(['Conduit, Tray & Messenger', firstRow.tag + ' — selected conductor', firstLocal.conductor || '—', firstBackend.selected_conductor]);
+      if (firstRow.racewayType === 'conduit' && firstBackend.raceway) {
+        rows.push(['Conduit, Tray & Messenger', firstRow.tag + ' — trade size (in)', (firstLocal.raceway && firstLocal.raceway.selectedSize) || '—', firstBackend.raceway.selected_trade_size_in]);
+      } else if (firstRow.racewayType === 'cable_tray' && firstBackend.raceway) {
+        rows.push(['Conduit, Tray & Messenger', firstRow.tag + ' — tray fill %', (firstLocal.raceway && firstLocal.raceway.actualFillPct != null) ? firstLocal.raceway.actualFillPct.toFixed(1) : '—', firstBackend.raceway.actual_fill_pct]);
+      } else if (firstRow.racewayType === 'messenger' && firstBackend.raceway) {
+        rows.push(['Conduit, Tray & Messenger', firstRow.tag + ' — selected messenger strand', (firstLocal.raceway && firstLocal.raceway.selected) || '—', firstBackend.raceway.selected_messenger]);
+      }
+    }
 
     const body = document.getElementById('backendCompareBody');
     body.innerHTML = '';
@@ -8008,6 +8606,108 @@
     }
   }
   document.getElementById('pvcaseValidateBtn').addEventListener('click', runPvcaseValidate);
+
+  // ---- PVCase routing-aware ampacity (conduit vs. free-air/tray split on
+  // top of PVCase's flat BOM lengths) ----
+  function routingLegFromInputs(prefix, legNum, fixedLengthFt) {
+    const legId = prefix + 'Leg' + legNum;
+    return {
+      installation_method: document.getElementById(legId + 'Method').value,
+      fixed_length_ft: fixedLengthFt,
+      conductor_count: parseInt(document.getElementById(legId + 'ConductorCount').value, 10) || 1,
+      conduit_material: document.getElementById(legId + 'Material').value,
+      size_as_tray: document.getElementById(legId + 'SizeAsTray').checked,
+      tray_type: document.getElementById(legId + 'TrayType').value,
+      tray_width_in: parseNum(document.getElementById(legId + 'TrayWidth').value) || 12,
+    };
+  }
+
+  function circuitAssumptionFromInputs(prefix) {
+    const leg1Fixed = document.getElementById(prefix + 'Leg1Fixed').value.trim();
+    const legs = leg1Fixed === ''
+      ? [routingLegFromInputs(prefix, 1, null)]
+      : [routingLegFromInputs(prefix, 1, parseNum(leg1Fixed)), routingLegFromInputs(prefix, 2, null)];
+    return {
+      insulation_rating: parseInt(document.getElementById(prefix + 'Insulation').value, 10),
+      voltage_drop_limit_pct: parseNum(document.getElementById(prefix + 'VdLimit').value),
+      legs,
+    };
+  }
+
+  function buildPvcaseRoutingAssumptions() {
+    return {
+      transformer_to_inverter: circuitAssumptionFromInputs('pvcaseRouteAc'),
+      inverter_to_combiner: circuitAssumptionFromInputs('pvcaseRouteDc1'),
+      combiner_to_string: circuitAssumptionFromInputs('pvcaseRouteDc2'),
+    };
+  }
+
+  const ROUTING_CIRCUIT_LABELS = {
+    transformer_to_inverter: 'AC — Transformer→Inverter',
+    inverter_to_combiner: 'DC — Inverter→Combiner',
+    combiner_to_string: 'DC — Combiner→String',
+  };
+
+  async function runPvcaseRouting() {
+    const status = document.getElementById('pvcaseRoutingStatus');
+    const result = document.getElementById('pvcaseRoutingResult');
+    const url = document.getElementById('backendUrlInput').value.trim().replace(/\/$/, '');
+    const bomPath = document.getElementById('pvcaseBomPathInput').value.trim();
+    if (!bomPath) {
+      status.textContent = 'Enter a BOM export path above first — routing-aware sizing needs real segment lengths.';
+      status.style.color = 'var(--fail)';
+      return;
+    }
+    status.textContent = 'Computing…';
+    status.style.color = 'var(--ink-muted)';
+    try {
+      const res = await fetch(url + '/pvcase/routing-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          project: buildBackendPayload(),
+          bom_path: bomPath,
+          assumptions: buildPvcaseRoutingAssumptions(),
+        }),
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + (await res.text()).slice(0, 300));
+      const data = await res.json();
+
+      const warnings = [];
+      document.getElementById('pvcaseRoutingBody').innerHTML = data.circuits.map(c => {
+        (c.warnings || []).forEach(w => warnings.push(ROUTING_CIRCUIT_LABELS[c.circuit] + ': ' + w));
+        const gov = c.governing_segment ? (c.governing_segment.from_tag + ' → ' + c.governing_segment.to_tag + ' (' + c.governing_segment.length_ft + ' ft)') : '—';
+        const vdPct = c.voltage_drop ? c.voltage_drop.voltage_drop_pct : '—';
+        const rowClass = (c.selected_conductor && c.final_conductor && c.selected_conductor !== c.final_conductor) ? ' style="color:var(--warn);"' : '';
+
+        let racewayText = '—';
+        const gLeg = (c.legs && c.governing_leg_index !== undefined) ? c.legs[c.governing_leg_index] : null;
+        const rw = gLeg ? gLeg.raceway : null;
+        if (rw && rw.selected_trade_size_in !== undefined) {
+          racewayText = rw.material + ' ' + (rw.selected_trade_size_in || 'no size fits') + '" (' + rw.actual_fill_pct + '% fill)';
+        } else if (rw && rw.min_required_width_in !== undefined) {
+          racewayText = rw.tray_type + ' tray, ' + rw.min_required_width_in + '" min width (' + rw.actual_fill_pct + '% fill)';
+        } else if (gLeg) {
+          racewayText = 'Free air (not sized as a tray)';
+        }
+
+        return '<tr' + rowClass + '><td>' + escapeHtml(ROUTING_CIRCUIT_LABELS[c.circuit]) + '</td><td style="text-align:right;">' + c.segment_count + '</td>' +
+          '<td>' + escapeHtml(gov) + '</td><td>' + (c.selected_conductor || '—') + '</td><td>' + (c.final_conductor || '—') + '</td>' +
+          '<td style="text-align:right;">' + vdPct + '</td><td>' + escapeHtml(racewayText) + '</td></tr>';
+      }).join('');
+
+      document.getElementById('pvcaseRoutingWarnings').innerHTML = warnings.map(w => '<li>' + escapeHtml(w) + '</li>').join('');
+
+      result.style.display = '';
+      status.textContent = 'Computed ' + new Date().toLocaleTimeString();
+      status.style.color = 'var(--pass)';
+    } catch (err) {
+      result.style.display = 'none';
+      status.textContent = 'Could not compute: ' + (err.message || err);
+      status.style.color = 'var(--fail)';
+    }
+  }
+  document.getElementById('pvcaseRoutingBtn').addEventListener('click', runPvcaseRouting);
 
   if (window.top !== window.self) {
     const warning = document.getElementById('embeddedArtifactWarning');

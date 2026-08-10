@@ -99,3 +99,44 @@ def test_pvcase_validate_endpoint_parses_dwg_path(monkeypatch):
     assert data["dwg_present"] is True
     inv_comp = next(c for c in data["comparisons"] if c["equipment"] == "inverters")
     assert inv_comp["plan_vs_dwg"]["matched_count"] == 2
+
+
+def _routing_body(**overrides):
+    body = {
+        "project": {"inverter": {"quantity": 2, "dc_topology": "combiner"}},
+        "bom_path": "C:/fake/bom.xlsx",
+    }
+    body.update(overrides)
+    return body
+
+
+def test_pvcase_routing_report_endpoint_parses_bom_and_returns_all_circuits(monkeypatch):
+    fake_bom = PvcaseBomData(
+        project_name="Test",
+        overview={},
+        transformer_to_inverter=[CableSegment(from_tag="XFMR-1", to_tag="INV-1-1", length_ft=50.0)],
+        inverter_to_combiner=[CableSegment(from_tag="INV-1-1", to_tag="DCC-1-1", length_ft=200.0)],
+        combiner_to_string=[CableSegment(from_tag="DCC-1-1", to_tag="INV-1-1.STR1", length_ft=100.0)],
+    )
+    monkeypatch.setattr("app.main.pvcase_bom_import.parse_pvcase_bom", lambda path: fake_bom)
+
+    response = client.post("/pvcase/routing-report", json=_routing_body())
+
+    assert response.status_code == 200
+    data = response.json()
+    circuits = {c["circuit"] for c in data["circuits"]}
+    assert circuits == {"transformer_to_inverter", "inverter_to_combiner", "combiner_to_string"}
+    for c in data["circuits"]:
+        assert c["selected_conductor"] is not None
+        assert c["final_conductor"] is not None
+
+
+def test_pvcase_routing_report_endpoint_returns_422_on_bom_parse_error(monkeypatch):
+    def fake_parse(path):
+        raise PvcaseBomError("bad sheet")
+
+    monkeypatch.setattr("app.main.pvcase_bom_import.parse_pvcase_bom", fake_parse)
+
+    response = client.post("/pvcase/routing-report", json=_routing_body())
+    assert response.status_code == 422
+    assert "bad sheet" in response.json()["detail"]

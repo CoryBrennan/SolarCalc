@@ -46,7 +46,7 @@ Closes the loop the rest of this codebase used to treat as a permanent
 placeholder (`voltage_drop_calc.py`'s "length is expected to come from the
 PVCase export" docstring, `run_reference_design.py`'s hardcoded
 `pvcase_combiner_to_inverter_length_ft`): App Planning → PVCase/AutoCAD
-implementation → App validation, three steps, two new backend endpoints.
+implementation → App validation, three steps, three new backend endpoints.
 
 - **`POST /pvcase/plan`** (`app/pvcase_plan.py`) — the App Planning step.
   Given a project + a switchboard/naming-convention layout, returns what to
@@ -60,12 +60,41 @@ implementation → App validation, three steps, two new backend endpoints.
   since both live in a Dropbox-synced project folder rather than needing a
   browser upload — and diffs their equipment tags against the plan and
   against each other.
+- **`POST /pvcase/routing-report`** (`app/pvcase_routing.py`, built on
+  `app/cable_routing_calc.py`) — closes the routing-condition gap below:
+  applies a per-circuit-type routing template (an optional fixed lead-in
+  leg, e.g. "10 ft in EMT conduit exiting the equipment," then a remainder
+  leg for the rest, e.g. "buried PVC for whatever's left") across every real
+  segment parsed from the BOM, and reports the governing (worst-case)
+  segment and conductor per circuit type. A single continuous conductor is
+  sized to whichever leg is most restrictive — not averaged across legs —
+  matching how NEC actually requires a run to be sized; voltage-drop's
+  length-driven upsize can push the real answer (`final_conductor`) past
+  what ampacity alone would pick (`selected_conductor`), so both are
+  reported. Integrated with `app/raceway_calc.py` (built separately, not
+  part of this PVCase work): once the governing leg and final conductor are
+  known, each conduit leg gets a real trade size via
+  `raceway_calc.size_conduit()` and a free-air leg explicitly marked
+  `size_as_tray=True` gets a real tray width via
+  `raceway_calc.size_cable_tray()` — sized against the *final* conductor,
+  since every leg carries the same continuous wire. Voltage drop is computed
+  leg-by-leg and summed (not one flat length calc) so an AC run through
+  steel conduit correctly picks up `raceway_calc`'s reactance multiplier on
+  just that leg. Verified end-to-end against a real 504-segment BOM (36 AC +
+  36 DC combiner + 432 DC string runs), including a case where a bundled
+  312 A DC circuit legitimately has no conductor that clears its derated
+  ampacity (`selected_conductor: null`) — surfaced, not silently guessed at.
 
-Both are wired into the HMI's Inverter Design panel ("PVCase planning
-brief" / "PVCase validation" cards), reusing its existing naming-convention
-and per-switchboard controls rather than duplicating that state.
+All three are wired into the HMI's Inverter Design panel ("PVCase planning
+brief" / "PVCase validation" / "PVCase routing-aware ampacity" cards),
+reusing its existing naming-convention and per-switchboard controls rather
+than duplicating that state. The routing card exposes per-leg conductor
+count and conduit material (the two inputs that actually change the
+answer); cable-tray physical sizing is supported by the API
+(`size_as_tray`/`tray_type`/`tray_width_in` on a leg) but not yet exposed as
+fields in that card.
 
-Two limitations, neither fixable from this side:
+One limitation left, not fixable from this side:
 
 - **DWG scanning needs a local AutoCAD install.** `pvcase_dwg_scan.py`
   drives `accoreconsole.exe` headlessly and reads tag/coordinate pairs off
@@ -73,12 +102,59 @@ Two limitations, neither fixable from this side:
   production CAD Release DWG, but only runs where AutoCAD is actually
   installed (the engineer's own machine), never on a cloud deployment like
   Render.
-- **PVCase's cable lengths are routing-condition-blind.** The BOM export's
-  circuit-length sheets (Transformer→Inverter, Inverter→DC Combiner, DC
-  Combiner→String) measure module-connector-to-endpoint only, with no
-  above-ground cable-tray/hanger vs. underground-conduit breakdown — real
-  lengths now, but still not enough on their own for correct ampacity
-  derating. See `memory/pvcase_integration_gaps.md`.
+
+See `memory/pvcase_integration_gaps.md` for the fuller history of both gaps.
+
+## Fluke IV-curve field-export validation + PVA project generation
+
+Closes the two gaps `IV_Curve_Panel_Handoff_Spec.md` and the HMI's I-V
+Curve panel used to carry as "not yet built"/"deferred" — see that spec's
+2026-08-10 update section for the full before/after. Two new endpoints,
+verified against a real 432-string Encore Brighton 1 export:
+
+- **`POST /fluke/validate`** (`app/fluke_export_import.py` +
+  `app/fluke_validate.py`) — parses a real Solmetric PVA field export's
+  `Table` sheet (not a CSV — that workbook is a 40+-sheet macro-driven
+  report; verified column map in `fluke_export_import.py`'s module
+  docstring), then: per-string pass/fail preferring Solmetric's own
+  Modeled/Deviation columns over recomputing a translation; a
+  design-intent divergence check against this project's catalog module
+  (asymmetric tolerance — 3% current / 8% voltage — after verification
+  found a real ~4-5% Voc/Vmp translation-methodology gap vs. Solmetric's
+  own "Blended" temperature source, even with the correct module); and, if
+  a BOM path is also supplied, a coverage check against
+  `pvcase_bom_import.py`'s parsed string list for strings the BOM expected
+  but the export never tested.
+- **`POST /fluke/pvapx`** (`app/pvapx_generator.py`) — generates a real
+  Solmetric `.pvapx` project by cloning a real, working template file and
+  rewriting its module data and switchboard/inverter/combiner/string tree
+  from a parsed PVCase BOM. Reverses the handoff spec's earlier "no
+  documented import path exists" deferral with actual evidence: a
+  generated file (2 switchboards, 36 inverters, 432 strings, from the real
+  Encore Brighton 1 BOM) was opened in real Solmetric PVA software and
+  loaded correctly. **Every newly generated `.pvapx` still needs the same
+  manual check before trusting it on a job** — the response includes a
+  `validation_gate` field as a standing reminder, since the blank
+  `data/`/`meas/` structure this assumes is inferred, not confirmed
+  against a Solmetric-authored blank project.
+- **`module_catalog.py`** gained a second module family (Znshine PV-Tech
+  ZXM7-UHLDD144, real values from the Encore Brighton project's own
+  `.pvapx` files) alongside the original ReneSola RS9 family — which also
+  meant promoting `TEMP_COEFF_VOC_PCT_PER_C`/`TEMP_COEFF_ISC_PCT_PER_C`
+  from two bare module-level constants to per-SKU fields on
+  `ModuleElectricalSpec` (RS9's existing behavior is unchanged; it was the
+  second family needing different real coefficients that broke the old
+  assumption).
+
+Like DWG scanning above, `/fluke/pvapx` only makes sense running on the
+engineer's own machine — both the BOM/export/template inputs and the
+generated output are local Dropbox-synced file paths, not uploads.
+
+Not built in this pass, still open: the .docx/PDF field-prep packet (Part
+1+2) `IV_Curve_Panel_Handoff_Spec.md` describes, and the SolarPro
+root-cause troubleshooting flowchart (shading, shorted bypass diode,
+series/shunt resistance, PID) for Phase 2's deviation engine — both
+separate, larger efforts from what shipped here.
 
 ## Deploy (Render)
 

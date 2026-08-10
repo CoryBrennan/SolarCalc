@@ -22,15 +22,20 @@ from app import (
     bonding_calc,
     document_header,
     etap_export,
+    fluke_export_import,
+    fluke_validate,
     geocode_lookup,
     gps_validation_calc,
     iv_curve_calc,
     jurisdiction_lookup,
     placarding_calc,
+    pvapx_generator,
     pvcase_bom_import,
     pvcase_dwg_scan,
     pvcase_plan,
+    pvcase_routing,
     pvcase_validate,
+    raceway_calc,
     string_design_calc,
     switchboard_block,
     voltage_drop_calc,
@@ -38,13 +43,19 @@ from app import (
 from app.catalog_routes import router as catalog_router
 from app.changeset_routes import router as changeset_router
 from app.db import create_db_and_tables
+from app.skyvisor_routes import router as skyvisor_router
+from app.fluke_export_import import FlukeImportError
+from app.fluke_validate import FlukeValidateRequest
 from app.gps_validation_calc import GpsValidationRequest, PileValidationRequest
 from app.models import ProjectInput, SiteAddress
+from app.module_catalog import MODULE_SKUS
 from app.pdf_extract import PdfExtractionError, extract_pdf_text
 from app.project_calc import compute_actual_capacity, compute_combiner_ocpd_switchboard, validate_module_skus
+from app.pvapx_generator import FlukePvapxRequest
 from app.pvcase_bom_import import PvcaseBomError
 from app.pvcase_dwg_scan import PvcaseDwgError
 from app.pvcase_plan import PvcasePlanRequest
+from app.pvcase_routing import PvcaseRoutingRequest
 from app.pvcase_validate import PvcaseValidateRequest
 
 app = FastAPI(title="Solar Calc Engine", version="0.1.0")
@@ -61,6 +72,7 @@ app.add_middleware(
 
 app.include_router(changeset_router)
 app.include_router(catalog_router)
+app.include_router(skyvisor_router)
 create_db_and_tables()
 
 
@@ -156,6 +168,10 @@ def calculate(project: ProjectInput) -> dict:
 
     bonding_result = bonding_calc.size_bonding_and_grounding(project.transformer)
 
+    raceway_result = raceway_calc.compute_raceway_runs(
+        project.raceway_runs, ambient_c=project.ashrae.max_design_temp_c
+    )
+
     voltage_drop_result = voltage_drop_calc.check_segment(
         current_a=project.inverter.max_output_current_a,
         length_ft=project.etap.length_ft,
@@ -220,6 +236,7 @@ def calculate(project: ProjectInput) -> dict:
         "ocpd": ocpd_result,
         "switchboard": switchboard_result,
         "ampacity": ampacity_result,
+        "raceway": raceway_result,
         "bonding": bonding_result,
         "voltage_drop": voltage_drop_result,
         "placarding": placarding_result,
@@ -264,6 +281,24 @@ def pvcase_validate_design(request: PvcaseValidateRequest) -> dict:
     return {"ok": report.ok(), **dataclasses.asdict(report)}
 
 
+@app.post("/pvcase/routing-report")
+def pvcase_routing_report(request: PvcaseRoutingRequest) -> dict:
+    """Closes the other half of memory/pvcase_integration_gaps.md's
+    routing-condition gap: PVCase's BOM lengths are module-connector-to-
+    endpoint only, with no above-ground/free-air vs. underground-conduit
+    breakdown, so ampacity_calc's Table 310.15(C)(1) fill derating can't be
+    trusted straight off a flat PVCase length. Applies one routing template
+    per circuit type (app/cable_routing_calc.py) across every real segment
+    parsed from the BOM and reports the governing (worst-case) segment and
+    conductor per circuit type -- not a single sitewide guess."""
+    try:
+        bom = pvcase_bom_import.parse_pvcase_bom(request.bom_path)
+    except PvcaseBomError as exc:
+        raise HTTPException(status_code=422, detail=f"BOM parse error: {exc}") from exc
+
+    return pvcase_routing.compute_routing_report(request.project, bom, request.assumptions)
+
+
 @app.post("/pvcase/gps-validate")
 def pvcase_gps_validate(request: PileValidationRequest) -> dict:
     """As-built pile QA: pulls pile design coordinates straight from a
@@ -279,6 +314,77 @@ def pvcase_gps_validate(request: PileValidationRequest) -> dict:
         return gps_validation_calc.validate_piles_request(request)
     except PvcaseBomError as exc:
         raise HTTPException(status_code=422, detail=f"BOM parse error: {exc}") from exc
+
+
+@app.post("/fluke/validate")
+def fluke_validate_export(request: FlukeValidateRequest) -> dict:
+    """Parses a real Solmetric PVA field export (app/fluke_export_import.py)
+    and validates it: per-string pass/fail preferring the vendor's own
+    Modeled/Deviation columns, a design-intent divergence check against this
+    project's catalog module (catches a wrong module entered into the field
+    tool's Solmetric project -- see app/fluke_validate.py's module
+    docstring), and, if a BOM is supplied, a coverage check for strings the
+    BOM expected but the export never tested."""
+    try:
+        readings = fluke_export_import.parse_fluke_export(request.export_path)
+    except FlukeImportError as exc:
+        raise HTTPException(status_code=422, detail=f"Fluke export parse error: {exc}") from exc
+
+    bom = None
+    if request.bom_path:
+        try:
+            bom = pvcase_bom_import.parse_pvcase_bom(request.bom_path)
+        except PvcaseBomError as exc:
+            raise HTTPException(status_code=422, detail=f"BOM parse error: {exc}") from exc
+
+    report = fluke_validate.build_validation_report(
+        readings,
+        tolerance_pct=request.tolerance_pct,
+        module_sku=request.project.module.sku,
+        modules_per_string=request.project.iv_curve_conditions.modules_per_string,
+        bom=bom,
+    )
+    return {"all_pass": report.all_pass(), "coverage_complete": report.coverage_complete(), **dataclasses.asdict(report)}
+
+
+@app.post("/fluke/pvapx")
+def fluke_generate_pvapx(request: FlukePvapxRequest) -> dict:
+    """Generates a real Solmetric PVA `.pvapx` project file from a parsed
+    PVCase BOM + this project's catalog module, by cloning a real template
+    project and rewriting its module data and switchboard/inverter/combiner/
+    string tree -- see app/pvapx_generator.py's module docstring, including
+    the MANDATORY validation gate: open the output in real Solmetric PVA
+    software and confirm it loads before trusting it on an actual job. Only
+    meaningful running on the engineer's own machine, same as DWG scanning
+    and BOM/export parsing -- all three are local Dropbox-synced file paths."""
+    if request.project.module.sku not in MODULE_SKUS:
+        raise HTTPException(status_code=422, detail=f"Unknown module SKU {request.project.module.sku!r} -- not in module_catalog.MODULE_SKUS")
+
+    try:
+        bom = pvcase_bom_import.parse_pvcase_bom(request.bom_path)
+    except PvcaseBomError as exc:
+        raise HTTPException(status_code=422, detail=f"BOM parse error: {exc}") from exc
+
+    module = MODULE_SKUS[request.project.module.sku]
+    counts = pvapx_generator.generate_pvapx(
+        request.template_path,
+        request.output_path,
+        bom,
+        module,
+        manufacturer=request.manufacturer,
+        model_name=request.model_name or request.project.module.sku,
+        modules_per_string=request.modules_per_string,
+        noct_c=request.noct_c,
+    )
+    return {
+        "ok": True,
+        "output_path": request.output_path,
+        **dataclasses.asdict(counts),
+        "validation_gate": (
+            "UNVERIFIED until opened in real Solmetric PVA software and confirmed to load -- "
+            "do not trust this file on an actual job before that check."
+        ),
+    }
 
 
 @app.post("/generate/switchboard-config")

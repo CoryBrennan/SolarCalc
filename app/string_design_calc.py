@@ -13,7 +13,7 @@ from __future__ import annotations
 import math
 
 from app.models import ASHRAESiteData, ClientVoltageDropLimits, InverterSpec, ModuleSpec
-from app.module_catalog import MODULE_SKUS, TEMP_COEFF_VOC_PCT_PER_C
+from app.module_catalog import MODULE_SKUS
 
 MPPT_LIFE_TARGET_YEARS = 15.0
 
@@ -47,8 +47,12 @@ def compute_string_length_range(
 ) -> dict:
     d = MODULE_SKUS[module.sku]
 
-    voc_per_module_cold = d.voc * (1 + (TEMP_COEFF_VOC_PCT_PER_C / 100) * (ashrae.min_design_temp_c - 25))
-    vmp_per_module_hot = d.vmp * (1 + (TEMP_COEFF_VOC_PCT_PER_C / 100) * (ashrae.avg_high_temp_c - 25))
+    # Per-SKU coefficient (see module_catalog.py) -- was a shared global
+    # constant until a second, real module family with a different Voc
+    # coefficient (Znshine ZXM7-UHLDD144, -0.25%/C vs. RS9's -0.24%/C) was
+    # added, which would otherwise size Znshine strings off the wrong number.
+    voc_per_module_cold = d.voc * (1 + (d.temp_coeff_voc_pct_per_c / 100) * (ashrae.min_design_temp_c - 25))
+    vmp_per_module_hot = d.vmp * (1 + (d.temp_coeff_voc_pct_per_c / 100) * (ashrae.avg_high_temp_c - 25))
     voltage_ceiling = min(module.max_system_voltage_v, inverter.max_dc_voltage_v)
 
     max_len = math.floor(voltage_ceiling / voc_per_module_cold) if voc_per_module_cold > 0 else 0
