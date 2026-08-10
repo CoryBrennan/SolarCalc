@@ -68,11 +68,12 @@ import zipfile
 from dataclasses import dataclass
 from xml.sax.saxutils import escape
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.models import ProjectInput
 from app.module_catalog import ModuleElectricalSpec
 from app.pvcase_bom_import import PvcaseBomData
+from app.pvcase_plan import PvcasePlanInput
 
 
 class FlukePvapxRequest(BaseModel):
@@ -89,6 +90,22 @@ class FlukePvapxRequest(BaseModel):
     modules_per_string: int
     manufacturer: str
     model_name: str | None = None  # defaults to project.module.sku if unset
+    noct_c: float = 45.0
+
+
+class FlukePvapxFromDesignRequest(BaseModel):
+    """Same as FlukePvapxRequest, but derives the switchboard/inverter/
+    combiner/string tree purely from the project's own design -- no PVCase
+    BOM export required. See build_hierarchy_from_plan()'s docstring for
+    exactly what's derived vs. assumed."""
+
+    project: ProjectInput
+    plan: PvcasePlanInput = Field(default_factory=PvcasePlanInput)
+    template_path: str
+    output_path: str
+    manufacturer: str
+    model_name: str | None = None
+    strings_per_combiner: int | None = None  # None -> derived from the design (see build_hierarchy_from_plan)
     noct_c: float = 45.0
 
 
@@ -239,9 +256,11 @@ class PvapxTreeCounts:
     strings: int
 
 
-def build_inverter_groups_xml(bom: PvcaseBomData, modules_per_string: int) -> tuple[str, PvapxTreeCounts]:
-    """Renders the full <InverterGroups>...</InverterGroups> block for
-    every switchboard/inverter/combiner/string in `bom`.
+def _render_hierarchy_xml(hierarchy: dict[str, dict[str, list[str]]], modules_per_string: int) -> tuple[str, PvapxTreeCounts]:
+    """Renders the full <InverterGroups>...</InverterGroups> block for a
+    tree already in inverter_tag -> combiner_tag -> [string_tag, ...] shape,
+    regardless of whether it came from a parsed BOM or was derived purely
+    from the project's design (see build_hierarchy_from_plan()).
 
     Verified against a real 2-switchboard project's XML nesting: ONE outer
     <InverterGroups> wraps one <PvInverterOrGroupModel
@@ -249,9 +268,8 @@ def build_inverter_groups_xml(bom: PvcaseBomData, modules_per_string: int) -> tu
     has its own nested <InverterGroups> holding that switchboard's
     inverters -- not N separate top-level <InverterGroups> blocks.
     """
-    hierarchy = _build_hierarchy(bom)
     groups: dict[str, dict[str, dict[str, list[str]]]] = {}
-    for inverter_tag, combiners in hierarchy.inverters.items():
+    for inverter_tag, combiners in hierarchy.items():
         groups.setdefault(_switchboard_label(inverter_tag), {})[inverter_tag] = combiners
 
     allocator = _MeasureIdAllocator()
@@ -259,13 +277,70 @@ def build_inverter_groups_xml(bom: PvcaseBomData, modules_per_string: int) -> tu
         _render_switchboard(label, inverters, allocator, modules_per_string)
         for label, inverters in groups.items()
     )
+
+    # Each inverter maps to its own combiner_tag -> [string_tag, ...] dict
+    # (a BOM-derived tree can have more than one combiner per inverter;
+    # the design-derived tree always has exactly one).
     counts = PvapxTreeCounts(
         switchboards=len(groups),
-        inverters=sum(len(inv) for inv in groups.values()),
-        combiners=len(bom.inverter_to_combiner),
-        strings=len(bom.combiner_to_string),
+        inverters=sum(len(inverters) for inverters in groups.values()),
+        combiners=sum(len(combiners) for inverters in groups.values() for combiners in inverters.values()),
+        strings=sum(
+            len(string_tags)
+            for inverters in groups.values()
+            for combiners in inverters.values()
+            for string_tags in combiners.values()
+        ),
     )
     return f'    <InverterGroups>\n{switchboards_xml}    </InverterGroups>\n', counts
+
+
+def build_inverter_groups_xml(bom: PvcaseBomData, modules_per_string: int) -> tuple[str, PvapxTreeCounts]:
+    """Renders the full <InverterGroups>...</InverterGroups> block for
+    every switchboard/inverter/combiner/string in `bom`."""
+    hierarchy = _build_hierarchy(bom)
+    return _render_hierarchy_xml(hierarchy.inverters, modules_per_string)
+
+
+def build_hierarchy_from_plan(
+    plan_result: dict,
+    strings_per_combiner: int,
+) -> dict[str, dict[str, list[str]]]:
+    """Derives a switchboard/inverter/combiner/string tree purely from
+    `app/pvcase_plan.py`'s own planning output (`build_pvcase_plan()`) --
+    no PVCase BOM export needed. Reuses that module's `expected_tags`
+    (inverter and DC-combiner tags), which already assumes one DC combiner
+    per inverter -- the same real-world convention `pvcase_plan.py` itself
+    documents (matches every real Azimuth PVCase export seen so far:
+    Encore Brighton, 36 inverters, 36 DC combiners). String tags within
+    each combiner are synthesized as STR1..STR<strings_per_combiner> --
+    the app has no per-combiner string *identity* of its own (PVCase
+    assigns those during actual site layout), only a *count* it can derive
+    (see FlukePvapxFromDesignRequest / the /fluke/pvapx-from-design route
+    for how that count gets computed when not supplied explicitly)."""
+    inverter_tags = plan_result["expected_tags"]["inverters"]
+    combiner_tags = plan_result["expected_tags"]["dc_combiners"]
+    if len(combiner_tags) != len(inverter_tags):
+        raise ValueError(
+            "build_hierarchy_from_plan() assumes one DC combiner per inverter "
+            f"(dc_topology == 'combiner'), but got {len(inverter_tags)} inverter tags "
+            f"and {len(combiner_tags)} combiner tags -- check plan.project.inverter.dc_topology."
+        )
+
+    string_tags = [f"STR{n}" for n in range(1, strings_per_combiner + 1)]
+    return {
+        inverter_tag: {combiner_tag: list(string_tags)}
+        for inverter_tag, combiner_tag in zip(inverter_tags, combiner_tags)
+    }
+
+
+def build_inverter_groups_xml_from_plan(
+    plan_result: dict,
+    modules_per_string: int,
+    strings_per_combiner: int,
+) -> tuple[str, PvapxTreeCounts]:
+    hierarchy = build_hierarchy_from_plan(plan_result, strings_per_combiner)
+    return _render_hierarchy_xml(hierarchy, modules_per_string)
 
 
 def build_module_definitions_xml(
@@ -341,22 +416,21 @@ def _replace_balanced_block(xml_text: str, tag: str, replacement: str) -> str:
                 return xml_text[:start] + replacement + xml_text[i:]
 
 
-def generate_pvapx(
+def _write_pvapx(
     template_path: str,
     output_path: str,
-    bom: PvcaseBomData,
+    inverter_groups_xml: str,
+    counts: PvapxTreeCounts,
     module: ModuleElectricalSpec,
     manufacturer: str,
     model_name: str,
     modules_per_string: int,
-    noct_c: float = 45.0,
+    noct_c: float,
 ) -> PvapxTreeCounts:
-    """See module docstring -- clones `template_path` and rewrites its
-    ModuleDefinitions + InverterGroups tree from `bom`/`module`. UNVERIFIED
-    against real Solmetric software for THIS port; see the mandatory
-    validation gate in the module docstring before using output on an
-    actual job. Returns the tree counts written, for the caller to report
-    back (e.g. via the /fluke/pvapx endpoint)."""
+    """Shared clone-and-rewrite mechanics for both generate_pvapx() (tree
+    from a parsed BOM) and generate_pvapx_from_plan() (tree derived from
+    the project's own design) -- everything except how `inverter_groups_xml`
+    was built is identical between the two."""
     with zipfile.ZipFile(template_path, "r") as template_zip:
         names = template_zip.namelist()
         setting_name = next((n for n in names if re.match(r"setting\d*\.xml$", n)), None)
@@ -364,8 +438,6 @@ def generate_pvapx(
             raise ValueError(f"no setting*.xml found in template -- got {names!r}")
         setting_xml = template_zip.read(setting_name).decode("utf-8")
         history_name = "history.xml" if "history.xml" in names else None
-
-        inverter_groups_xml, counts = build_inverter_groups_xml(bom, modules_per_string)
 
         setting_xml = _replace_balanced_block(
             setting_xml, "ModuleDefinitions",
@@ -394,3 +466,43 @@ def generate_pvapx(
                     out_zip.writestr(item, template_zip.read(name))
 
     return counts
+
+
+def generate_pvapx(
+    template_path: str,
+    output_path: str,
+    bom: PvcaseBomData,
+    module: ModuleElectricalSpec,
+    manufacturer: str,
+    model_name: str,
+    modules_per_string: int,
+    noct_c: float = 45.0,
+) -> PvapxTreeCounts:
+    """See module docstring -- clones `template_path` and rewrites its
+    ModuleDefinitions + InverterGroups tree from `bom`/`module`. UNVERIFIED
+    against real Solmetric software for THIS port; see the mandatory
+    validation gate in the module docstring before using output on an
+    actual job. Returns the tree counts written, for the caller to report
+    back (e.g. via the /fluke/pvapx endpoint)."""
+    inverter_groups_xml, counts = build_inverter_groups_xml(bom, modules_per_string)
+    return _write_pvapx(template_path, output_path, inverter_groups_xml, counts, module, manufacturer, model_name, modules_per_string, noct_c)
+
+
+def generate_pvapx_from_plan(
+    template_path: str,
+    output_path: str,
+    plan_result: dict,
+    module: ModuleElectricalSpec,
+    manufacturer: str,
+    model_name: str,
+    modules_per_string: int,
+    strings_per_combiner: int,
+    noct_c: float = 45.0,
+) -> PvapxTreeCounts:
+    """Same as generate_pvapx(), but the switchboard/inverter/combiner/
+    string tree is derived purely from `plan_result`
+    (app/pvcase_plan.build_pvcase_plan()'s own output) instead of a parsed
+    PVCase BOM -- see build_hierarchy_from_plan()'s docstring for exactly
+    what that assumes. Same mandatory validation gate applies."""
+    inverter_groups_xml, counts = build_inverter_groups_xml_from_plan(plan_result, modules_per_string, strings_per_combiner)
+    return _write_pvapx(template_path, output_path, inverter_groups_xml, counts, module, manufacturer, model_name, modules_per_string, noct_c)

@@ -2396,6 +2396,39 @@
         </div>
 
         <div class="card">
+          <p class="card-title">Generate .pvapx from this design</p>
+          <p class="desc" style="margin-bottom:14px;">Builds a real Solmetric PVA project file (<span class="mono">POST /fluke/pvapx-from-design</span>) by cloning a template <span class="mono">.pvapx</span> and rewriting its module data and switchboard/inverter/combiner/string tree — derived purely from this project's own design (Module Spec, Inverter Design, naming convention), no PVCase BOM export required. Modules-per-string and strings-per-combiner are computed from the design; override strings-per-combiner below if the site doesn't distribute strings evenly.</p>
+          <div class="field-grid">
+            <div class="field"><label>Module manufacturer</label><input class="prose" type="text" id="pvapxManufacturer" value="Znshine PV-Tech"></div>
+            <div class="field"><label>Model name <span class="unit">optional</span></label><input class="prose" type="text" id="pvapxModelName" placeholder="defaults to Module Spec SKU"></div>
+            <div class="field"><label>Strings per combiner <span class="unit">optional</span></label><input type="text" id="pvapxStringsPerCombiner" placeholder="derived from design"></div>
+            <div class="field"><label>NOCT <span class="unit">°C</span></label><input type="text" id="pvapxNoct" value="45"></div>
+          </div>
+          <div class="field-grid">
+            <div class="field" style="grid-column: span 2;"><label>Template .pvapx path <span class="unit">local file, any real project</span></label><input class="prose" type="text" id="pvapxTemplatePath" placeholder="C:\path\to\an\existing\project.pvapx"></div>
+            <div class="field" style="grid-column: span 2;"><label>Output path</label><input class="prose" type="text" id="pvapxOutputPath" placeholder="C:\path\to\generated.pvapx"></div>
+          </div>
+          <div style="margin-top:14px;">
+            <button class="btn btn-primary" id="pvapxFromDesignBtn" type="button">Generate .pvapx</button>
+          </div>
+          <p class="desc" id="pvapxFromDesignStatus"></p>
+          <div id="pvapxFromDesignResult" style="display:none;">
+            <table class="fluke">
+              <tbody>
+                <tr><td>Modules per string</td><td id="pvapxResultModulesPerString">—</td></tr>
+                <tr><td>Strings per combiner</td><td id="pvapxResultStringsPerCombiner">—</td></tr>
+                <tr><td>Switchboards / inverters / combiners / strings</td><td id="pvapxResultCounts">—</td></tr>
+                <tr><td>Output</td><td id="pvapxResultOutputPath">—</td></tr>
+              </tbody>
+            </table>
+            <div class="note" style="margin-top:10px;">
+              <span>ⓘ</span>
+              <span id="pvapxResultValidationGate"></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
           <p class="card-title">Field prep packet — generate</p>
           <p class="desc" style="margin-bottom:14px;">One combined document per project: Part 1 is the one-time PVA software setup tutorial (static, same every project); Part 2 is this project's actual per-combiner data to key into that same tutorial. Preview the planned layout below.</p>
           <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
@@ -3221,6 +3254,19 @@
     '710': reneSola(710, 49.00, 40.90, 18.40, 17.36, 781),
     '715': reneSola(715, 49.20, 41.10, 18.44, 17.40, 787),
     '720': reneSola(720, 49.40, 41.30, 18.49, 17.44, 792),
+    // Real values from the Encore Brighton project's own .pvapx files
+    // (2026-08-10) -- see module_catalog.py's matching backend entry.
+    // bifacial/dimensionsMm/weightKg/cellType/maxFuse aren't in that
+    // source, so they're left as reasonable placeholders, not real
+    // datasheet values -- confirm before relying on them.
+    'ZXM7-UHLDD144': {
+      manufacturer: 'Znshine PV-Tech', model: 'ZXM7-UHLDD144',
+      pmax: 580, voc: 51.5, vmp: 42.8, isc: 14.35, imp: 13.56, bifacial: 580,
+      tempCoeffVoc: -0.25, tempCoeffIsc: 0.04, maxSystemV: 1500, maxFuse: 35,
+      firstYearDeg: 1.0, annualDeg: 0.4,
+      cellType: '(not in source data)',
+      dimensionsMm: [0, 0, 0], weightKg: 0, source: 'solar_calc_engine verification, 2026-08-10 (see module_catalog.py)',
+    },
   };
   // The manufacturer is part of the module's identity now, not a separate
   // field that could disagree with the model beside it.
@@ -8545,6 +8591,56 @@
     }
   }
   document.getElementById('pvcasePlanBtn').addEventListener('click', runPvcasePlan);
+
+  async function runFlukePvapxFromDesign() {
+    const status = document.getElementById('pvapxFromDesignStatus');
+    const result = document.getElementById('pvapxFromDesignResult');
+    const url = document.getElementById('backendUrlInput').value.trim().replace(/\/$/, '');
+    const templatePath = document.getElementById('pvapxTemplatePath').value.trim();
+    const outputPath = document.getElementById('pvapxOutputPath').value.trim();
+    if (!templatePath || !outputPath) {
+      status.textContent = 'Template path and output path are both required (local files on whatever machine runs this backend).';
+      status.style.color = 'var(--fail)';
+      return;
+    }
+    const stringsOverrideRaw = document.getElementById('pvapxStringsPerCombiner').value.trim();
+    status.textContent = 'Generating…';
+    status.style.color = 'var(--ink-muted)';
+    try {
+      const res = await fetch(url + '/fluke/pvapx-from-design', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          project: buildBackendPayload(),
+          plan: buildPvcasePlanPayload(),
+          template_path: templatePath,
+          output_path: outputPath,
+          manufacturer: document.getElementById('pvapxManufacturer').value.trim() || 'Unknown Manufacturer',
+          model_name: document.getElementById('pvapxModelName').value.trim() || null,
+          strings_per_combiner: stringsOverrideRaw ? parseInt(stringsOverrideRaw, 10) : null,
+          noct_c: parseFloat(document.getElementById('pvapxNoct').value) || 45,
+        }),
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + (await res.text()).slice(0, 300));
+      const data = await res.json();
+
+      document.getElementById('pvapxResultModulesPerString').textContent = data.modules_per_string;
+      document.getElementById('pvapxResultStringsPerCombiner').textContent = data.strings_per_combiner;
+      document.getElementById('pvapxResultCounts').textContent =
+        data.switchboards + ' / ' + data.inverters + ' / ' + data.combiners + ' / ' + data.strings;
+      document.getElementById('pvapxResultOutputPath').textContent = data.output_path;
+      document.getElementById('pvapxResultValidationGate').textContent = data.validation_gate;
+
+      document.getElementById('pvapxFromDesignResult').style.display = '';
+      status.textContent = 'Generated ' + new Date().toLocaleTimeString();
+      status.style.color = 'var(--pass)';
+    } catch (err) {
+      result.style.display = 'none';
+      status.textContent = 'Could not generate: ' + (err.message || err);
+      status.style.color = 'var(--fail)';
+    }
+  }
+  document.getElementById('pvapxFromDesignBtn').addEventListener('click', runFlukePvapxFromDesign);
 
   function renderTagDiffRow(equipment, label, diff) {
     if (!diff) return '';

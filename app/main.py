@@ -51,7 +51,7 @@ from app.models import ProjectInput, SiteAddress
 from app.module_catalog import MODULE_SKUS
 from app.pdf_extract import PdfExtractionError, extract_pdf_text
 from app.project_calc import compute_actual_capacity, compute_combiner_ocpd_switchboard, validate_module_skus
-from app.pvapx_generator import FlukePvapxRequest
+from app.pvapx_generator import FlukePvapxFromDesignRequest, FlukePvapxRequest
 from app.pvcase_bom_import import PvcaseBomError
 from app.pvcase_dwg_scan import PvcaseDwgError
 from app.pvcase_plan import PvcasePlanRequest
@@ -379,6 +379,60 @@ def fluke_generate_pvapx(request: FlukePvapxRequest) -> dict:
     return {
         "ok": True,
         "output_path": request.output_path,
+        **dataclasses.asdict(counts),
+        "validation_gate": (
+            "UNVERIFIED until opened in real Solmetric PVA software and confirmed to load -- "
+            "do not trust this file on an actual job before that check."
+        ),
+    }
+
+
+@app.post("/fluke/pvapx-from-design")
+def fluke_generate_pvapx_from_design(request: FlukePvapxFromDesignRequest) -> dict:
+    """Same as /fluke/pvapx, but needs no PVCase BOM export at all -- the
+    switchboard/inverter/combiner/string tree is derived purely from this
+    project's own design: app/pvcase_plan.py's tag generation (naming
+    convention + switchboard layout, same one-DC-combiner-per-inverter
+    assumption it already documents) for the inverter/combiner tags and
+    NEC 690.7(A)(2) string sizing for modules-per-string, plus module/
+    inverter quantity to derive a strings-per-combiner count (overridable
+    via `strings_per_combiner` if the site doesn't distribute strings
+    evenly). See app/pvapx_generator.py's build_hierarchy_from_plan()
+    docstring for exactly what's derived vs. assumed, and the same
+    MANDATORY validation gate as /fluke/pvapx."""
+    if request.project.module.sku not in MODULE_SKUS:
+        raise HTTPException(status_code=422, detail=f"Unknown module SKU {request.project.module.sku!r} -- not in module_catalog.MODULE_SKUS")
+    if request.project.inverter.dc_topology != "combiner":
+        raise HTTPException(status_code=422, detail="Design-derived .pvapx generation assumes dc_topology == 'combiner' (one DC combiner per inverter) -- see build_hierarchy_from_plan()'s docstring.")
+
+    plan_result = pvcase_plan.build_pvcase_plan(request.project, request.plan)
+    modules_per_string = plan_result["modules_per_string_to_use_in_pvcase"]
+    if not modules_per_string:
+        raise HTTPException(status_code=422, detail="No valid string length could be computed for this design -- check Module Spec/Inverter Spec/ASHRAE inputs.")
+
+    n_inverters = len(plan_result["expected_tags"]["inverters"])
+    strings_per_combiner = request.strings_per_combiner
+    if strings_per_combiner is None:
+        modules_per_inverter = request.project.module.quantity / n_inverters
+        strings_per_combiner = round(modules_per_inverter / modules_per_string)
+
+    module = MODULE_SKUS[request.project.module.sku]
+    counts = pvapx_generator.generate_pvapx_from_plan(
+        request.template_path,
+        request.output_path,
+        plan_result,
+        module,
+        manufacturer=request.manufacturer,
+        model_name=request.model_name or request.project.module.sku,
+        modules_per_string=modules_per_string,
+        strings_per_combiner=strings_per_combiner,
+        noct_c=request.noct_c,
+    )
+    return {
+        "ok": True,
+        "output_path": request.output_path,
+        "modules_per_string": modules_per_string,
+        "strings_per_combiner": strings_per_combiner,
         **dataclasses.asdict(counts),
         "validation_gate": (
             "UNVERIFIED until opened in real Solmetric PVA software and confirmed to load -- "

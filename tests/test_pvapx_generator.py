@@ -3,9 +3,17 @@ from __future__ import annotations
 import zipfile
 import xml.etree.ElementTree as ET
 
+from app.models import ProjectInput
 from app.module_catalog import MODULE_SKUS
-from app.pvapx_generator import build_inverter_groups_xml, generate_pvapx
+from app.pvapx_generator import (
+    build_hierarchy_from_plan,
+    build_inverter_groups_xml,
+    build_inverter_groups_xml_from_plan,
+    generate_pvapx,
+    generate_pvapx_from_plan,
+)
 from app.pvcase_bom_import import CableSegment, PvcaseBomData
+from app.pvcase_plan import PvcasePlanInput, SwitchboardGroup, build_pvcase_plan
 
 SETTING_TEMPLATE = (
     '<?xml version="1.0"?>\n'
@@ -135,3 +143,70 @@ def test_generate_pvapx_produces_valid_stripped_structure(tmp_path):
     assert "Old Manufacturer" not in setting
     assert setting.count('xsi:type="InverterGroupModel"') == 2
     assert setting.count('xsi:type="PvStringModel"') == 3
+
+
+def _real_brighton_plan():
+    """Real Encore Brighton 1 design numbers (2 switchboards x 18
+    inverters, 26 modules/string, 12 strings/combiner, 432 strings total)
+    -- matches the real BOM this whole feature was verified against."""
+    project = ProjectInput(
+        module={"sku": "ZXM7-UHLDD144", "quantity": 11232},
+        inverter={"quantity": 36, "dc_topology": "combiner"},
+    )
+    plan_input = PvcasePlanInput(switchboards=[
+        SwitchboardGroup(tag="SWBD-1", inverter_count=18, transformer_tag="XFMR-1"),
+        SwitchboardGroup(tag="SWBD-2", inverter_count=18, transformer_tag="XFMR-2"),
+    ])
+    return project, build_pvcase_plan(project, plan_input)
+
+
+def test_build_hierarchy_from_plan_matches_real_design_shape():
+    project, plan_result = _real_brighton_plan()
+    hierarchy = build_hierarchy_from_plan(plan_result, strings_per_combiner=12)
+
+    assert len(hierarchy) == 36
+    assert hierarchy["INV-1-1"] == {"DCC-1-1": [f"STR{n}" for n in range(1, 13)]}
+
+
+def test_build_hierarchy_from_plan_rejects_non_one_to_one_combiner_mapping():
+    _, plan_result = _real_brighton_plan()
+    plan_result["expected_tags"]["dc_combiners"] = []  # simulate direct topology (no combiners)
+    try:
+        build_hierarchy_from_plan(plan_result, strings_per_combiner=12)
+        assert False, "expected ValueError"
+    except ValueError as exc:
+        assert "one DC combiner per inverter" in str(exc)
+
+
+def test_build_inverter_groups_xml_from_plan_derives_real_design_counts():
+    project, plan_result = _real_brighton_plan()
+    modules_per_string = plan_result["modules_per_string_to_use_in_pvcase"]
+    assert modules_per_string == 26  # real NEC 690.7(A)(2) result for this module/inverter pair
+
+    xml, counts = build_inverter_groups_xml_from_plan(plan_result, modules_per_string, strings_per_combiner=12)
+    assert counts.switchboards == 2
+    assert counts.inverters == 36
+    assert counts.combiners == 36
+    assert counts.strings == 432  # matches the real Brighton 1 BOM exactly
+
+
+def test_generate_pvapx_from_plan_produces_valid_structure(tmp_path):
+    template_path = tmp_path / "template.pvapx"
+    output_path = tmp_path / "generated.pvapx"
+    _write_fixture_template(template_path)
+
+    _, plan_result = _real_brighton_plan()
+    module = MODULE_SKUS["ZXM7-UHLDD144"]
+    counts = generate_pvapx_from_plan(
+        str(template_path), str(output_path), plan_result, module,
+        manufacturer="Znshine PV-Tech", model_name="ZXM7-UHLDD144",
+        modules_per_string=26, strings_per_combiner=12,
+    )
+    assert counts.switchboards == 2
+    assert counts.strings == 432
+
+    with zipfile.ZipFile(output_path) as z:
+        setting = z.read("setting9.xml").decode("utf-8")
+    root = ET.fromstring(setting)
+    assert root.tag == "PvaPcProject"
+    assert setting.count('xsi:type="PvStringModel"') == 432
