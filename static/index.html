@@ -530,6 +530,7 @@
       <li><button class="rail-btn" data-target="sec-raceway"><span><span class="rail-num">24</span> Conduit, Tray &amp; Messenger</span><span class="rail-dot dot-pass" id="racewayDot"></span></button></li>
       <li><button class="rail-btn" data-target="sec-skyvisor"><span><span class="rail-num">25</span> SkyVisor Integration</span><span class="rail-dot dot-warn" id="skyvisorDot"></span></button></li>
       <li><button class="rail-btn" data-target="sec-gps-validate"><span><span class="rail-num">26</span> GPS As-Built Validation</span><span class="rail-dot dot-pass" id="gpsValidateDot"></span></button></li>
+      <li><button class="rail-btn" data-target="sec-value-engineering"><span><span class="rail-num">27</span> Wire Value Engineering</span><span class="rail-dot dot-neutral" id="veDot"></span></button></li>
     </ul>
     <div class="rail-foot">
       NEC edition resolved from <b>jurisdiction_lookup.py</b><br>
@@ -2757,6 +2758,76 @@
         </div>
       </section>
 
+      <!-- 27 WIRE VALUE ENGINEERING -->
+      <section class="panel" id="sec-value-engineering">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">wire_cost_calc.py → evaluate_project_feeders()</p>
+            <h2>Wire &amp; Conduit Value Engineering</h2>
+          </div>
+          <span class="chip chip-pass">Live — copper vs. aluminum, single vs. parallel sets</span>
+        </div>
+        <p class="desc">For each row on the Raceway schedule (24), compares every combination of conductor material (copper / aluminum) and parallel-set count that still clears NEC ampacity, voltage-drop, and conduit-fill checks, then ranks the passing options by total installed cost (material + labor). Reuses the same conductor tables, derate chain, and voltage-drop formula as the Ampacity (13) and Raceway (24) panels — a run's phase/neutral conductor here can never disagree with what those panels would size the same current/length/insulation to. Ground conductors are sized per Table 250.122 off the OCPD rating and are <b>not</b> downsized on parallel sets — NEC 250.122(F) requires a full-size ground conductor in every parallel raceway, not one shared/divided one.</p>
+
+        <div class="card">
+          <p class="card-title">Market pricing <span class="unit">defaults are representative placeholders — recalibrate against current supplier quotes before using this for a real bid</span></p>
+          <div class="field-grid" style="margin-bottom:0;">
+            <div class="field">
+              <label for="vePriceCopper">Copper <span class="unit">$/lb</span></label>
+              <input class="prose" type="text" id="vePriceCopper" value="4.25">
+            </div>
+            <div class="field">
+              <label for="vePriceAluminum">Aluminum <span class="unit">$/lb</span></label>
+              <input class="prose" type="text" id="vePriceAluminum" value="1.15">
+            </div>
+            <div class="field">
+              <label for="veLaborRate">Labor rate <span class="unit">$/hr, blended crew</span></label>
+              <input class="prose" type="text" id="veLaborRate" value="95.00">
+            </div>
+            <div class="field">
+              <label for="veMarkup">Conductor markup <span class="unit">x over metal + jacket cost</span></label>
+              <input class="prose" type="text" id="veMarkup" value="1.35">
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <p class="card-title">Per-run value-engineering settings</p>
+          <p class="desc" style="margin-bottom:14px;">One row per Raceway (24) run, kept in sync automatically — a raceway row only knows "N conductors," so these settings say how many of them are current-carrying vs. neutral vs. ground, and which materials / parallel-set counts to compare. Use <b>Sync rows from Raceway schedule</b> after adding or removing rows over on Raceway (24).</p>
+          <div class="bulk-btns" style="margin-bottom:14px;">
+            <button class="btn btn-primary" id="veSyncBtn" type="button">⟳ Sync rows from Raceway schedule (24)</button>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="etap">
+              <thead>
+                <tr>
+                  <th>Run</th>
+                  <th style="text-align:right;">CCC / set</th>
+                  <th>Neutral</th>
+                  <th>Ground OCPD override (A)</th>
+                  <th>Materials to compare</th>
+                  <th>Ground material</th>
+                  <th style="text-align:right;">Max parallel sets</th>
+                  <th>Conduit materials to compare</th>
+                </tr>
+              </thead>
+              <tbody id="veSettingsBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="bulk-btns" style="margin-bottom:14px;">
+          <button class="btn btn-primary" id="veRunBtn" type="button">Run value engineering</button>
+        </div>
+        <p class="desc" id="veStatus"></p>
+        <div id="veResult" style="display:none;"></div>
+
+        <div class="note">
+          <span>ⓘ</span>
+          <span><b>Placeholder pricing, real NEC tables.</b> Ampacity, voltage-drop, and conduit-fill logic here is the same code the rest of the app uses for those panels — only the $/lb metal price, conduit $/ft, and labor-hour figures are representative defaults (only the four pricing fields above are exposed here; conduit $/ft and labor-hour tables use the backend's defaults). Verify OCPD/switchgear lugs are listed for aluminum conductors and use an approved antioxidant compound before recommending an AL candidate for construction (NEC 110.14).</span>
+        </div>
+      </section>
+
     </div>
   </div>
 </div>
@@ -2766,7 +2837,7 @@
   const WIDE_PANELS = [
     'sec-site', 'sec-directory', 'sec-inverter-design',
     'sec-combiner', 'sec-switchboard-design', 'sec-mv-design', 'sec-backend', 'sec-catalog-review', 'sec-raceway',
-    'sec-skyvisor', 'sec-gps-validate',
+    'sec-skyvisor', 'sec-gps-validate', 'sec-value-engineering',
   ];
   const railBtns = document.querySelectorAll('.rail-btn');
   railBtns.forEach(btn => {
@@ -6844,10 +6915,24 @@
       conduitMaterial: 'PVC_SCH40', isNipple: false,
       trayType: 'ladder', trayWidthIn: 12,
       spanFt: 100, iceThicknessIn: 0, sagRatio: 0.03, safetyFactor: 2.0, windLoadPlf: 0,
+      // Value-engineering settings (27) -- carried on the same row object as
+      // the raceway fields above so a run's VE settings can never drift out
+      // of sync with its own tag/current/voltage/length: there's only ever
+      // one row per run, not a second parallel array to keep aligned.
+      veCcc: 3, veNeutralPresent: true, veNeutralCountsAsCcc: false, veGroundOcpdA: '',
+      veMaterialCu: true, veMaterialAl: true, veGroundMaterial: 'auto', veMaxParallelSets: 2,
+      veConduitMaterials: ['PVC_SCH40'],
     };
   }
   let racewayRows = [defaultRacewayRow('RW-1')];
   const racewayBody = document.getElementById('racewayBody');
+
+  // Referenced by veSettingsRowHtml/veCandidateRowsHtml below, which the
+  // Value Engineering (27) panel's render path can reach as early as the
+  // very first renderRacewayRows() call a few lines down -- declared here
+  // (not down by the rest of panel 27's code) so it's initialized before
+  // anything can read it; `const` isn't hoisted the way `function` is.
+  const VE_CONDUIT_MATERIAL_LABELS = { PVC_SCH40: 'PVC Sch 40', PVC_SCH80: 'PVC Sch 80', EMT: 'EMT', IMC: 'IMC', RMC: 'RMC' };
 
   function racewayComputeRow(row) {
     const ambient = parseNum(ashraeMaxTempEl.value);
@@ -7006,6 +7091,11 @@
     const note = document.getElementById('racewaySummaryNote');
     note.textContent = failingTags.length ? ('Failing: ' + failingTags.join(', ')) : 'All runs pass.';
     document.getElementById('racewayDot').className = 'rail-dot ' + (failingTags.length ? 'dot-fail' : 'dot-pass');
+    // Value-engineering (27) settings table shares racewayRows as its data
+    // source (see defaultRacewayRow's veXxx fields) -- keep its "Run" labels
+    // live off every raceway edit, not just structural add/remove/type
+    // changes, since a renamed tag is also this table's row identity.
+    if (typeof renderVeSettingsRows === 'function') renderVeSettingsRows();
   }
 
   function racewayRecomputeAll() {
@@ -8989,6 +9079,184 @@
     }
   }
   document.getElementById('pvcaseRoutingBtn').addEventListener('click', runPvcaseRouting);
+
+  // ---- Wire Value Engineering (27) — copper vs. aluminum, single vs.
+  // parallel-set cost comparison (app/wire_cost_calc.py). Settings live on
+  // the same racewayRows objects the Raceway (24) panel owns (see
+  // defaultRacewayRow's veXxx fields), so this table is a second view onto
+  // that array, not a second array to keep in sync by hand.
+  function veSettingsRowHtml(row, i) {
+    const conduitOptions = Object.keys(VE_CONDUIT_MATERIAL_LABELS).map(v =>
+      '<option value="' + v + '"' + ((row.veConduitMaterials || []).includes(v) ? ' selected' : '') + '>' + VE_CONDUIT_MATERIAL_LABELS[v] + '</option>'
+    ).join('');
+    return '<tr data-idx="' + i + '">' +
+      '<td>' + escapeHtml(row.tag) + '</td>' +
+      '<td style="text-align:right;"><input type="text" data-idx="' + i + '" data-field="veCcc" value="' + escapeAttr(row.veCcc) + '" style="width:50px;text-align:right;"></td>' +
+      '<td><div class="rw-details-stack">' +
+        '<label style="font-size:12px;display:flex;align-items:center;gap:5px;"><input type="checkbox" data-idx="' + i + '" data-field="veNeutralPresent"' + (row.veNeutralPresent ? ' checked' : '') + '> Present</label>' +
+        '<label style="font-size:12px;display:flex;align-items:center;gap:5px;"><input type="checkbox" data-idx="' + i + '" data-field="veNeutralCountsAsCcc"' + (row.veNeutralCountsAsCcc ? ' checked' : '') + '> Counts as CCC</label>' +
+      '</div></td>' +
+      '<td><input type="text" data-idx="' + i + '" data-field="veGroundOcpdA" value="' + escapeAttr(row.veGroundOcpdA) + '" placeholder="auto from current" style="width:110px;"></td>' +
+      '<td><div class="rw-details-stack">' +
+        '<label style="font-size:12px;display:flex;align-items:center;gap:5px;"><input type="checkbox" data-idx="' + i + '" data-field="veMaterialCu"' + (row.veMaterialCu ? ' checked' : '') + '> Copper</label>' +
+        '<label style="font-size:12px;display:flex;align-items:center;gap:5px;"><input type="checkbox" data-idx="' + i + '" data-field="veMaterialAl"' + (row.veMaterialAl ? ' checked' : '') + '> Aluminum</label>' +
+      '</div></td>' +
+      '<td><select data-idx="' + i + '" data-field="veGroundMaterial">' +
+        '<option value="auto"' + (row.veGroundMaterial === 'auto' ? ' selected' : '') + '>Auto (match phase)</option>' +
+        '<option value="CU"' + (row.veGroundMaterial === 'CU' ? ' selected' : '') + '>Copper</option>' +
+        '<option value="AL"' + (row.veGroundMaterial === 'AL' ? ' selected' : '') + '>Aluminum</option>' +
+      '</select></td>' +
+      '<td style="text-align:right;"><input type="text" data-idx="' + i + '" data-field="veMaxParallelSets" value="' + escapeAttr(row.veMaxParallelSets) + '" style="width:50px;text-align:right;"></td>' +
+      '<td><select multiple size="3" data-idx="' + i + '" data-field="veConduitMaterials" style="min-width:120px;">' + conduitOptions + '</select></td>' +
+      '</tr>';
+  }
+
+  function renderVeSettingsRows() {
+    const body = document.getElementById('veSettingsBody');
+    if (!body) return;
+    body.innerHTML = racewayRows.map((row, i) => veSettingsRowHtml(row, i)).join('');
+  }
+
+  function handleVeFieldChange(e) {
+    const idx = e.target.dataset.idx;
+    const field = e.target.dataset.field;
+    if (idx === undefined || !field) return;
+    const row = racewayRows[idx];
+    if (!row) return;
+    if (field === 'veConduitMaterials') {
+      row.veConduitMaterials = Array.from(e.target.selectedOptions).map(o => o.value);
+    } else if (field === 'veNeutralPresent' || field === 'veNeutralCountsAsCcc' || field === 'veMaterialCu' || field === 'veMaterialAl') {
+      row[field] = e.target.checked;
+    } else if (field === 'veGroundMaterial') {
+      row[field] = e.target.value;
+    } else if (field === 'veGroundOcpdA') {
+      row[field] = e.target.value; // kept as a string -- blank means "auto" to the backend
+    } else {
+      row[field] = parseNum(e.target.value) || 0; // veCcc, veMaxParallelSets
+    }
+  }
+  const veSettingsBodyEl = document.getElementById('veSettingsBody');
+  veSettingsBodyEl.addEventListener('input', handleVeFieldChange);
+  veSettingsBodyEl.addEventListener('change', handleVeFieldChange);
+  document.getElementById('veSyncBtn').addEventListener('click', renderVeSettingsRows);
+  renderVeSettingsRows();
+
+  function buildVeSettingsPayload() {
+    const settings = {};
+    racewayRows.forEach(row => {
+      const materials = [];
+      if (row.veMaterialCu) materials.push('CU');
+      if (row.veMaterialAl) materials.push('AL');
+      settings[row.tag] = {
+        ccc_per_set: parseInt(row.veCcc, 10) || 1,
+        neutral_present: !!row.veNeutralPresent,
+        neutral_counts_as_ccc: !!row.veNeutralCountsAsCcc,
+        ground_ocpd_a: row.veGroundOcpdA ? parseNum(row.veGroundOcpdA) : null,
+        materials: materials.length ? materials : ['CU'],
+        ground_material: (row.veGroundMaterial && row.veGroundMaterial !== 'auto') ? row.veGroundMaterial : null,
+        max_parallel_sets: parseInt(row.veMaxParallelSets, 10) || 1,
+        conduit_materials: (row.veConduitMaterials && row.veConduitMaterials.length) ? row.veConduitMaterials : null,
+      };
+    });
+    return settings;
+  }
+
+  function veMaterialLabel(m) { return m === 'AL' ? 'Aluminum' : 'Copper'; }
+
+  function veCandidateRowsHtml(result) {
+    const rec = result.recommended;
+    return result.candidates.map(c => {
+      const isRec = rec && c.material === rec.material && c.parallel_sets === rec.parallel_sets && c.conduit_material === rec.conduit_material;
+      const raceway = (c.raceway && c.raceway.trade_size_in) ? (c.raceway.trade_size_in + '" (' + c.raceway.fill_pct + '%) x' + c.raceway.raceway_count) : '—';
+      const vd = c.voltage_drop ? c.voltage_drop.voltage_drop_pct.toFixed(2) + '%' : '—';
+      const totalUsd = c.costs ? ('$' + Math.round(c.costs.total_installed_usd).toLocaleString()) : '—';
+      const perFt = c.costs ? ('$' + c.costs.cost_per_ft_usd.toFixed(2)) : '—';
+      const statusHtml = c.passes
+        ? '<span class="status-chip status-extracted"><span class="p"></span>Pass</span>'
+        : '<span class="status-chip status-fail"><span class="p"></span>Fail</span>';
+      const rowStyle = isRec ? ' style="background:var(--pass-soft);"' : (c.passes ? '' : ' style="color:var(--ink-muted);"');
+      const reasonText = (c.fail_reasons && c.fail_reasons.length) ? c.fail_reasons.join(' ') : ((c.notes && c.notes.length) ? c.notes.join(' ') : '');
+      const reasonRow = reasonText ? ('<tr' + rowStyle + '><td colspan="11" style="font-size:12px;padding-top:0;">' + escapeHtml(reasonText) + '</td></tr>') : '';
+      return '<tr' + rowStyle + '>' +
+        '<td>' + veMaterialLabel(c.material) + '</td>' +
+        '<td>x' + c.parallel_sets + '</td>' +
+        '<td>' + escapeHtml(VE_CONDUIT_MATERIAL_LABELS[c.conduit_material] || c.conduit_material) + '</td>' +
+        '<td>' + (c.phase_conductor || '—') + '</td>' +
+        '<td>' + (c.neutral_conductor || '—') + '</td>' +
+        '<td>' + (c.ground_conductor || '—') + ' ' + (c.ground_material === 'AL' ? 'Al' : 'Cu') + '</td>' +
+        '<td>' + raceway + '</td>' +
+        '<td style="text-align:right;">' + vd + '</td>' +
+        '<td style="text-align:right;">' + totalUsd + '</td>' +
+        '<td style="text-align:right;">' + perFt + '</td>' +
+        '<td>' + statusHtml + '</td>' +
+        '</tr>' + reasonRow;
+    }).join('');
+  }
+
+  function veRunResultCardHtml(tag, result) {
+    const rec = result.recommended;
+    let headline;
+    if (!rec) {
+      headline = '<span class="chip chip-fail">No candidate clears ampacity, voltage drop, and conduit fill for this run.</span>';
+    } else {
+      const savings = result.savings_vs_most_expensive_passing;
+      const savingsText = savings
+        ? (' — saves $' + Math.round(savings.savings_usd).toLocaleString() + ' (' + savings.savings_pct + '%) vs. the most expensive passing option')
+        : '';
+      headline = '<span class="chip chip-pass">Recommended: ' + veMaterialLabel(rec.material) + ' x' + rec.parallel_sets + ' set(s), ' + rec.phase_conductor + '</span>' +
+        '<span style="margin-left:10px;color:var(--ink-muted);">$' + Math.round(rec.costs.total_installed_usd).toLocaleString() + ' total ($' + rec.costs.cost_per_ft_usd.toFixed(2) + '/ft)' + escapeHtml(savingsText) + '</span>';
+    }
+    return '<div class="card" style="margin-bottom:16px;">' +
+      '<p class="card-title">' + escapeHtml(tag) + '</p>' +
+      '<p style="margin:0 0 12px;">' + headline + '</p>' +
+      '<div style="overflow-x:auto;"><table class="etap">' +
+      '<thead><tr><th>Material</th><th>Sets</th><th>Conduit</th><th>Phase</th><th>Neutral</th><th>Ground</th><th>Raceway</th>' +
+      '<th style="text-align:right;">VD %</th><th style="text-align:right;">Total $</th><th style="text-align:right;">$/ft</th><th>Status</th></tr></thead>' +
+      '<tbody>' + veCandidateRowsHtml(result) + '</tbody></table></div></div>';
+  }
+
+  function renderVeResults(data) {
+    const container = document.getElementById('veResult');
+    const tags = Object.keys(data.runs);
+    container.innerHTML = tags.map(tag => veRunResultCardHtml(tag, data.runs[tag])).join('');
+    const allRecommended = tags.length > 0 && tags.every(t => data.runs[t].recommended);
+    document.getElementById('veDot').className = 'rail-dot ' + (allRecommended ? 'dot-pass' : 'dot-fail');
+  }
+
+  async function runValueEngineering() {
+    const status = document.getElementById('veStatus');
+    const result = document.getElementById('veResult');
+    const url = document.getElementById('backendUrlInput').value.trim().replace(/\/$/, '');
+    status.textContent = 'Computing…';
+    status.style.color = 'var(--ink-muted)';
+    try {
+      const res = await fetch(url + '/value-engineering/project-feeders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          project: buildBackendPayload(),
+          settings: buildVeSettingsPayload(),
+          pricing: {
+            copper_usd_per_lb: parseNum(document.getElementById('vePriceCopper').value),
+            aluminum_usd_per_lb: parseNum(document.getElementById('vePriceAluminum').value),
+            labor_rate_usd_per_hr: parseNum(document.getElementById('veLaborRate').value),
+            conductor_markup_multiplier: parseNum(document.getElementById('veMarkup').value),
+          },
+        }),
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + (await res.text()).slice(0, 300));
+      const data = await res.json();
+      renderVeResults(data);
+      result.style.display = '';
+      status.textContent = 'Computed ' + new Date().toLocaleTimeString();
+      status.style.color = 'var(--pass)';
+    } catch (err) {
+      result.style.display = 'none';
+      status.textContent = 'Could not compute: ' + (err.message || err);
+      status.style.color = 'var(--fail)';
+    }
+  }
+  document.getElementById('veRunBtn').addEventListener('click', runValueEngineering);
 
   if (window.top !== window.self) {
     const warning = document.getElementById('embeddedArtifactWarning');

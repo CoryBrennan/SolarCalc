@@ -15,7 +15,7 @@ CONDUCTOR_ORDER: list[str] = [
 ]
 
 # NEC Table 310.16, copper, 75°C and 90°C columns (common sizes subset).
-AMPACITY_TABLE: dict[str, dict[str, int]] = {
+AMPACITY_TABLE_CU: dict[str, dict[str, int]] = {
     "10 AWG": {"c75": 35, "c90": 40},
     "8 AWG": {"c75": 50, "c90": 55},
     "6 AWG": {"c75": 65, "c90": 75},
@@ -36,6 +36,39 @@ AMPACITY_TABLE: dict[str, dict[str, int]] = {
     "700 kcmil": {"c75": 460, "c90": 520},
     "750 kcmil": {"c75": 475, "c90": 535},
 }
+
+# NEC Table 310.16, aluminum/copper-clad aluminum, 75°C and 90°C columns
+# (same sizes subset as the copper table above). Used by the value-engineering
+# cost comparison (app/wire_cost_calc.py) to size an all-aluminum candidate
+# feeder against the same required ampacity as the copper one.
+AMPACITY_TABLE_AL: dict[str, dict[str, int]] = {
+    "10 AWG": {"c75": 30, "c90": 35},
+    "8 AWG": {"c75": 40, "c90": 45},
+    "6 AWG": {"c75": 50, "c90": 55},
+    "4 AWG": {"c75": 65, "c90": 75},
+    "3 AWG": {"c75": 75, "c90": 85},
+    "2 AWG": {"c75": 90, "c90": 100},
+    "1 AWG": {"c75": 100, "c90": 115},
+    "1/0 AWG": {"c75": 120, "c90": 135},
+    "2/0 AWG": {"c75": 135, "c90": 150},
+    "3/0 AWG": {"c75": 155, "c90": 175},
+    "4/0 AWG": {"c75": 180, "c90": 205},
+    "250 kcmil": {"c75": 205, "c90": 230},
+    "300 kcmil": {"c75": 230, "c90": 260},
+    "350 kcmil": {"c75": 250, "c90": 280},
+    "400 kcmil": {"c75": 270, "c90": 305},
+    "500 kcmil": {"c75": 310, "c90": 350},
+    "600 kcmil": {"c75": 340, "c90": 385},
+    "700 kcmil": {"c75": 375, "c90": 420},
+    "750 kcmil": {"c75": 385, "c90": 435},
+}
+
+AMPACITY_TABLES: dict[str, dict[str, dict[str, int]]] = {"CU": AMPACITY_TABLE_CU, "AL": AMPACITY_TABLE_AL}
+
+# Kept as the pre-existing name — every current call site (ampacity_calc,
+# raceway_calc, cable_routing_calc, bonding_calc) reads copper ampacities
+# through this name, so it stays an alias rather than a second source of truth.
+AMPACITY_TABLE = AMPACITY_TABLE_CU
 
 # Circular mils per conductor size, for voltage-drop calculations.
 CIRCULAR_MILS: dict[str, int] = {
@@ -64,14 +97,49 @@ STANDARD_OCPD_SIZES: list[int] = [
     200, 225, 250, 300, 350, 400, 450, 500, 600, 700, 800, 1000, 1200,
 ]
 
+# NEC Table 250.122 — minimum equipment grounding conductor (EGC) size as a
+# function of the OCPD rating protecting the circuit (NOT the ungrounded
+# conductor size — that's Table 250.66 / GROUNDING_CONDUCTOR_BREAKPOINTS
+# above, used for the grounding electrode conductor / bonding jumper, a
+# different conductor with a different sizing rule). Ordered ascending by
+# OCPD breakpoint; capped to STANDARD_OCPD_SIZES' 1200 A top end and
+# CONDUCTOR_ORDER's 750 kcmil top end, same common-sizes-subset posture as
+# the rest of this file — verify against the current NEC edition before issue.
+EGC_BREAKPOINTS_CU: list[tuple[int, str]] = [
+    (15, "10 AWG"), (20, "10 AWG"), (30, "10 AWG"), (40, "10 AWG"), (60, "10 AWG"),
+    (100, "8 AWG"), (200, "6 AWG"), (300, "4 AWG"), (400, "3 AWG"), (500, "2 AWG"),
+    (600, "1 AWG"), (800, "1/0 AWG"), (1000, "2/0 AWG"), (1200, "3/0 AWG"),
+]
+EGC_BREAKPOINTS_AL: list[tuple[int, str]] = [
+    (15, "8 AWG"), (20, "8 AWG"), (30, "8 AWG"), (40, "8 AWG"), (60, "8 AWG"),
+    (100, "6 AWG"), (200, "4 AWG"), (300, "2 AWG"), (400, "1 AWG"), (500, "1/0 AWG"),
+    (600, "2/0 AWG"), (800, "3/0 AWG"), (1000, "4/0 AWG"), (1200, "250 kcmil"),
+]
+EGC_BREAKPOINTS: dict[str, list[tuple[int, str]]] = {"CU": EGC_BREAKPOINTS_CU, "AL": EGC_BREAKPOINTS_AL}
 
-def select_conductor(required_ampacity: float, insulation_rating: int) -> str | None:
+
+def select_conductor(required_ampacity: float, insulation_rating: int, material: str = "CU") -> str | None:
     """Smallest conductor whose ampacity at the given rating clears required_ampacity."""
     column = "c90" if insulation_rating == 90 else "c75"
+    table = AMPACITY_TABLES.get(material, AMPACITY_TABLE_CU)
     for conductor in CONDUCTOR_ORDER:
-        if AMPACITY_TABLE[conductor][column] >= required_ampacity:
+        if table[conductor][column] >= required_ampacity:
             return conductor
     return None
+
+
+def equipment_grounding_conductor_size(ocpd_rating_a: float, material: str = "CU") -> str:
+    """Table 250.122 lookup: minimum EGC size for the OCPD protecting the
+    circuit. Note 250.122(F): where ungrounded conductors are run in
+    parallel in multiple raceways/cables, the EGC is NOT downsized per
+    raceway — every raceway gets its own EGC sized off the full OCPD rating.
+    Callers building a parallel-set BOM should multiply this size's per-foot
+    cost by the number of raceways, not divide the ampacity across them."""
+    breakpoints = EGC_BREAKPOINTS.get(material, EGC_BREAKPOINTS_CU)
+    for breakpoint, size in breakpoints:
+        if ocpd_rating_a <= breakpoint:
+            return size
+    return breakpoints[-1][1]
 
 
 def next_standard_size(min_rating: float) -> int:

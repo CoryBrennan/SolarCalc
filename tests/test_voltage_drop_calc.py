@@ -6,6 +6,12 @@ session — 0.67%, passes without upsizing.
 from app.voltage_drop_calc import check_segment
 
 
+def test_aluminum_has_more_voltage_drop_than_copper_same_size():
+    cu = check_segment(current_a=253, length_ft=200, voltage_v=800, limit_pct=100, conductor="4/0 AWG", material="CU")
+    al = check_segment(current_a=253, length_ft=200, voltage_v=800, limit_pct=100, conductor="4/0 AWG", material="AL")
+    assert al["voltage_drop_pct"] > cu["voltage_drop_pct"]
+
+
 def test_default_project_matches_browser_verified():
     result = check_segment(current_a=253, length_ft=200, voltage_v=800, limit_pct=1.0, conductor="4/0 AWG")
     assert result["voltage_drop_pct"] == 0.67

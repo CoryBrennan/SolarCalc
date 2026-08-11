@@ -39,6 +39,7 @@ from app import (
     string_design_calc,
     switchboard_block,
     voltage_drop_calc,
+    wire_cost_calc,
 )
 from app.catalog_routes import router as catalog_router
 from app.changeset_routes import router as changeset_router
@@ -57,6 +58,7 @@ from app.pvcase_dwg_scan import PvcaseDwgError
 from app.pvcase_plan import PvcasePlanRequest
 from app.pvcase_routing import PvcaseRoutingRequest
 from app.pvcase_validate import PvcaseValidateRequest
+from app.wire_cost_calc import FeederValueEngineeringRequest, ProjectFeederVeRequest
 
 app = FastAPI(title="Solar Calc Engine", version="0.1.0")
 
@@ -303,6 +305,26 @@ def pvcase_routing_report(request: PvcaseRoutingRequest) -> dict:
         raise HTTPException(status_code=422, detail=f"BOM parse error: {exc}") from exc
 
     return pvcase_routing.compute_routing_report(request.project, bom, request.assumptions)
+
+
+@app.post("/value-engineering/feeder")
+def value_engineering_feeder(request: FeederValueEngineeringRequest) -> dict:
+    """Copper vs. aluminum, single vs. parallel-set cost comparison for one
+    feeder/branch run — app/wire_cost_calc.py. Standalone by design (takes
+    its own current/voltage/length inputs rather than a full ProjectInput)
+    so it can be pointed at any run by the foot, including one copied from a
+    project's raceway_runs/ampacity inputs."""
+    return wire_cost_calc.evaluate_feeder_value_engineering(request.scenario, request.pricing)
+
+
+@app.post("/value-engineering/project-feeders")
+def value_engineering_project_feeders(request: ProjectFeederVeRequest) -> dict:
+    """Same comparison as /value-engineering/feeder, run once per row on the
+    project's own raceway_runs (the "Conduit, Tray & Messenger" panel's
+    schedule) instead of one manually-entered run -- so a saved project's
+    feeders can be value-engineered without retyping current/voltage/length
+    that's already on file."""
+    return wire_cost_calc.evaluate_project_feeders(request)
 
 
 @app.post("/pvcase/gps-validate")
