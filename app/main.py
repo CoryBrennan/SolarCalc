@@ -140,8 +140,14 @@ def serve_hmi() -> FileResponse:
     copy can't call this API at all (its sandbox blocks external fetch/XHR,
     confirmed via the artifact-capabilities skill: only downloads/mcp
     capabilities exist, neither fits an arbitrary REST backend). This route
-    is what actually makes "Sync with Backend" work."""
-    return FileResponse(_STATIC_DIR / "index.html")
+    is what actually makes "Sync with Backend" work.
+
+    FileResponse sets no Cache-Control of its own, so browsers fall back to
+    heuristic caching off Last-Modified and can serve a stale index.html for
+    a while after a deploy without ever revalidating -- explicit no-cache
+    forces an If-None-Match/If-Modified-Since check on every load instead
+    (still a cheap 304 when unchanged, not a full re-fetch)."""
+    return FileResponse(_STATIC_DIR / "index.html", headers={"Cache-Control": "no-cache"})
 
 
 @app.post("/calculate")
