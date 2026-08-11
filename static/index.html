@@ -528,6 +528,8 @@
       <li><button class="rail-btn" data-target="sec-backend"><span><span class="rail-num">22</span> Backend Verification</span><span class="rail-dot dot-neutral" id="backendDot"></span></button></li>
       <li><button class="rail-btn" data-target="sec-catalog-review"><span><span class="rail-num">23</span> Datasheet Catalog Review</span><span class="rail-dot dot-neutral" id="catalogReviewDot"></span></button></li>
       <li><button class="rail-btn" data-target="sec-raceway"><span><span class="rail-num">24</span> Conduit, Tray &amp; Messenger</span><span class="rail-dot dot-pass" id="racewayDot"></span></button></li>
+      <li><button class="rail-btn" data-target="sec-skyvisor"><span><span class="rail-num">25</span> SkyVisor Integration</span><span class="rail-dot dot-warn" id="skyvisorDot"></span></button></li>
+      <li><button class="rail-btn" data-target="sec-gps-validate"><span><span class="rail-num">26</span> GPS As-Built Validation</span><span class="rail-dot dot-pass" id="gpsValidateDot"></span></button></li>
     </ul>
     <div class="rail-foot">
       NEC edition resolved from <b>jurisdiction_lookup.py</b><br>
@@ -2573,6 +2575,188 @@
         </div>
       </section>
 
+      <!-- 25 SKYVISOR INTEGRATION -->
+      <section class="panel" id="sec-skyvisor">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">skyvisor_routes.py → /skyvisor/*</p>
+            <h2>SkyVisor Thermal Anomaly Integration</h2>
+          </div>
+          <span class="chip chip-warn">File-based — no public SkyVisor API/export docs exist yet</span>
+        </div>
+        <p class="desc">SkyVisor geolocates thermal anomalies from a drone IR flight against a module-level asset map. No public SkyVisor API/export docs exist yet, so this is deliberately file-based: export this project's asset map as a CSV for SkyVisor to import, then bring its inspection export back in here to reconcile flagged defects against physical modules by nearest-coordinate match.</p>
+
+        <div class="card">
+          <p class="card-title">Seed asset map</p>
+          <p class="desc" style="margin-bottom:14px;">Array tables (racking rows), string assets, and module assets — each keyed to the last, so seed in this order. Real projects generate this from a real layout source (PVCase piling data, a DWG scan) via an external script; paste that script's JSON output here, or hand-write a few rows for a small site. Each box calls the matching <span class="mono">/skyvisor/*/bulk</span> endpoint directly.</p>
+          <div class="field-grid" style="grid-template-columns: 1fr; gap:14px;">
+            <div class="field wide">
+              <label for="skyvisorArrayTablesJson">Array tables — JSON array of <span class="mono">{block_tag, row_label, latitude, longitude, azimuth_deg}</span></label>
+              <textarea class="prose" id="skyvisorArrayTablesJson" rows="4" style="width:100%; font-family:var(--mono, monospace); font-size:12px;" placeholder='[{"block_tag": "B1", "row_label": "R1", "latitude": 35.1234, "longitude": -80.5678, "azimuth_deg": 180}]'></textarea>
+              <div class="bulk-btns" style="margin-top:8px;">
+                <button class="btn" id="skyvisorImportArrayTablesBtn" type="button">Import array tables</button>
+              </div>
+              <p class="desc" id="skyvisorArrayTablesStatus"></p>
+            </div>
+            <div class="field wide">
+              <label for="skyvisorStringsJson">String assets — JSON array of <span class="mono">{inverter_tag, combiner_index, mppt_index, module_count, module_sku}</span></label>
+              <textarea class="prose" id="skyvisorStringsJson" rows="4" style="width:100%; font-family:var(--mono, monospace); font-size:12px;" placeholder='[{"inverter_tag": "INV-1", "combiner_index": 1, "mppt_index": 1, "module_count": 28, "module_sku": "RS9-540"}]'></textarea>
+              <div class="bulk-btns" style="margin-top:8px;">
+                <button class="btn" id="skyvisorImportStringsBtn" type="button">Import string assets</button>
+              </div>
+              <p class="desc" id="skyvisorStringsStatus"></p>
+            </div>
+            <div class="field wide">
+              <label for="skyvisorModulesJson">Module assets — JSON array of <span class="mono">{array_table_id, string_asset_id, position_in_string, module_sku, latitude, longitude}</span> (ids returned by the two imports above)</label>
+              <textarea class="prose" id="skyvisorModulesJson" rows="4" style="width:100%; font-family:var(--mono, monospace); font-size:12px;" placeholder='[{"array_table_id": "...", "string_asset_id": "...", "position_in_string": 1, "module_sku": "RS9-540", "latitude": 35.1234, "longitude": -80.5678}]'></textarea>
+              <div class="bulk-btns" style="margin-top:8px;">
+                <button class="btn" id="skyvisorImportModulesBtn" type="button">Import module assets</button>
+              </div>
+              <p class="desc" id="skyvisorModulesStatus"></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <p class="card-title">Export asset map for SkyVisor</p>
+          <p class="desc" style="margin-bottom:14px;">Downloads every seeded module asset — coordinates, SKU, string/table lineage — as a CSV. Column shape is this app's own choice, not a confirmed SkyVisor import format; check SkyVisor's own docs before assuming it imports as-is.</p>
+          <div class="bulk-btns" style="margin-top:0;">
+            <button class="btn btn-primary" id="skyvisorExportBtn" type="button">Download asset-map.csv</button>
+          </div>
+          <p class="desc" id="skyvisorExportStatus"></p>
+        </div>
+
+        <div class="card">
+          <p class="card-title">Import SkyVisor anomaly export</p>
+          <p class="desc" style="margin-bottom:14px;">Each flagged anomaly is matched to the nearest seeded module asset within 3 m (typical drone-geotag accuracy); anomalies with no module inside that tolerance still import, flagged unmatched. Column names in the parser are a placeholder shape until a real SkyVisor export sample confirms the real field names.</p>
+          <div class="field-grid" style="margin-bottom:14px;">
+            <div class="field">
+              <label for="skyvisorImportDate">Flight date</label>
+              <input class="prose" type="date" id="skyvisorImportDate">
+            </div>
+            <div class="field wide">
+              <label for="skyvisorImportFile">SkyVisor anomaly export (.csv)</label>
+              <input class="prose" type="file" id="skyvisorImportFile" accept=".csv">
+            </div>
+          </div>
+          <div class="bulk-btns" style="margin-top:0; margin-bottom:14px;">
+            <button class="btn btn-primary" id="skyvisorImportAnomaliesBtn" type="button">Import anomalies</button>
+          </div>
+          <p class="desc" id="skyvisorImportStatus"></p>
+        </div>
+
+        <div class="card">
+          <p class="card-title">Anomalies</p>
+          <div class="field-grid" style="margin-bottom:14px;">
+            <div class="field">
+              <label for="skyvisorFilterStatus">Resolution status</label>
+              <select id="skyvisorFilterStatus">
+                <option value="">All</option>
+                <option value="open">Open</option>
+                <option value="resolved">Resolved</option>
+                <option value="false_positive">False positive</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="skyvisorFilterType">Anomaly type</label>
+              <input class="prose" type="text" id="skyvisorFilterType" placeholder="e.g. hot_spot">
+            </div>
+          </div>
+          <div class="bulk-btns" style="margin-top:0; margin-bottom:14px;">
+            <button class="btn" id="skyvisorRefreshAnomaliesBtn" type="button">⟳ Refresh</button>
+          </div>
+          <p class="desc" id="skyvisorAnomaliesStatus"></p>
+          <div style="overflow-x:auto;">
+            <table class="etap">
+              <thead><tr><th>Type</th><th>Severity</th><th style="text-align:right;">ΔT (°C)</th><th>Module</th><th>String</th><th>Status</th><th></th></tr></thead>
+              <tbody id="skyvisorAnomaliesBody"><tr class="empty"><td colspan="7">No anomalies loaded — click Refresh.</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- 26 GPS AS-BUILT VALIDATION -->
+      <section class="panel" id="sec-gps-validate">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">gps_validation_calc.py → validate_piles_request()</p>
+            <h2>GPS As-Built Validation</h2>
+          </div>
+          <span class="chip chip-pass">Live — piles from a PVCase BOM vs. an Emlid Flow 360 field survey</span>
+        </div>
+        <p class="desc">Checks as-built pile positions from an RTK GPS field survey (Emlid Flow 360's CSV export) against design coordinates pulled straight from the PVCase BOM's "Piling information" sheet — no manual design-point entry needed. Only equipment-tagged points that appear in both files are compared; a point present in only one is reported, not silently dropped.</p>
+
+        <div class="card">
+          <p class="card-title">Run validation</p>
+          <div class="field-grid" style="margin-bottom:14px;">
+            <div class="field wide">
+              <label for="gpsBomPathInput">PVCase BOM export path (.xlsx)</label>
+              <input class="prose" type="text" id="gpsBomPathInput" placeholder="C:\...\Azimuth_..._BOM_Data.xlsx">
+            </div>
+            <div class="field wide">
+              <label for="gpsEmlidFile">Emlid Flow 360 point export (.csv)</label>
+              <input class="prose" type="file" id="gpsEmlidFile" accept=".csv">
+            </div>
+          </div>
+          <details style="margin-bottom:14px;">
+            <summary style="cursor:pointer;">Tolerances (defaults match the backend)</summary>
+            <div class="field-grid" style="margin-top:10px;">
+              <div class="field">
+                <label for="gpsLateralTol">Lateral tolerance <span class="unit">ft</span></label>
+                <input class="prose" type="text" id="gpsLateralTol" value="0.5">
+              </div>
+              <div class="field">
+                <label for="gpsElevationTol">Elevation tolerance <span class="unit">ft</span></label>
+                <input class="prose" type="text" id="gpsElevationTol" value="0.5">
+              </div>
+              <div class="field">
+                <label for="gpsMaxRms">Max acceptable lateral RMS <span class="unit">ft</span></label>
+                <input class="prose" type="text" id="gpsMaxRms" value="0.15">
+              </div>
+            </div>
+          </details>
+          <div class="bulk-btns" style="margin-top:0; margin-bottom:14px;">
+            <button class="btn btn-primary" id="gpsValidateBtn" type="button">Run validation</button>
+          </div>
+          <p class="desc" id="gpsValidateStatus"></p>
+          <div id="gpsValidateResult" style="display:none;">
+            <div class="computed-row" style="margin-bottom:14px;">
+              <div class="computed"><div class="k">Matched</div><div class="v" id="gpsMatchedCount">—</div></div>
+              <div class="computed"><div class="k">Passed</div><div class="v" id="gpsPassedCount">—</div></div>
+              <div class="computed"><div class="k">Failed</div><div class="v" id="gpsFailedCount">—</div></div>
+              <div class="computed"><div class="k">Rejected (low quality)</div><div class="v" id="gpsRejectedCount">—</div></div>
+            </div>
+            <div style="overflow-x:auto; margin-bottom:14px;">
+              <table class="etap">
+                <thead><tr><th>Tag</th><th>Field name</th><th style="text-align:right;">Lateral offset (ft)</th><th style="text-align:right;">Elevation offset (ft)</th><th>Status</th></tr></thead>
+                <tbody id="gpsResultsBody"></tbody>
+              </table>
+            </div>
+            <details style="margin-bottom:10px;">
+              <summary style="cursor:pointer;">Rejected — low GPS quality (re-survey)</summary>
+              <ul id="gpsRejectedList" style="margin:8px 0 0 18px; padding:0;"></ul>
+            </details>
+            <details style="margin-bottom:10px;">
+              <summary style="cursor:pointer;">No shared coordinate system</summary>
+              <ul id="gpsNoCrsList" style="margin:8px 0 0 18px; padding:0;"></ul>
+            </details>
+            <details style="margin-bottom:10px;">
+              <summary style="cursor:pointer;">Unmatched design points (in BOM, not in field survey)</summary>
+              <ul id="gpsUnmatchedDesignList" style="margin:8px 0 0 18px; padding:0;"></ul>
+            </details>
+            <details>
+              <summary style="cursor:pointer;">Unmatched as-built points (in field survey, not in BOM)</summary>
+              <ul id="gpsUnmatchedAsBuiltList" style="margin:8px 0 0 18px; padding:0;"></ul>
+            </details>
+          </div>
+        </div>
+
+        <div class="note">
+          <span>ⓘ</span>
+          <span><b>Only accepts RTK-fixed solutions.</b> Points logged as SINGLE (autonomous GPS, meter-level) or FLOAT (RTK not yet converged, decimeter-level) are rejected outright regardless of offset — see the Rejected list. Equipment (inverter/DC combiner/transformer) design points aren't covered by this path since PVCase's BOM only carries pile coordinates; that needs a DWG scan (Panel 08's PVCase validation card) instead.</span>
+        </div>
+      </section>
+
     </div>
   </div>
 </div>
@@ -2582,6 +2766,7 @@
   const WIDE_PANELS = [
     'sec-site', 'sec-directory', 'sec-inverter-design',
     'sec-combiner', 'sec-switchboard-design', 'sec-mv-design', 'sec-backend', 'sec-catalog-review', 'sec-raceway',
+    'sec-skyvisor', 'sec-gps-validate',
   ];
   const railBtns = document.querySelectorAll('.rail-btn');
   railBtns.forEach(btn => {
@@ -8914,6 +9099,245 @@
   });
 
   document.getElementById('refreshCatalogPendingBtn').addEventListener('click', fetchPendingCatalogVersions);
+
+  // ---- SkyVisor integration (seed asset map, export for SkyVisor, import
+  // its anomaly export back, review/resolve) ----
+  async function skyvisorBulkImport(textareaId, statusId, endpoint) {
+    const status = document.getElementById(statusId);
+    const raw = document.getElementById(textareaId).value.trim();
+    if (!raw) { status.textContent = 'Paste a JSON array first.'; status.style.color = 'var(--fail)'; return; }
+    let payload;
+    try {
+      payload = JSON.parse(raw);
+      if (!Array.isArray(payload)) throw new Error('must be a JSON array');
+    } catch (err) {
+      status.textContent = 'Invalid JSON: ' + err.message;
+      status.style.color = 'var(--fail)';
+      return;
+    }
+    const url = document.getElementById('backendUrlInput').value.trim().replace(/\/$/, '');
+    status.textContent = 'Importing…';
+    status.style.color = 'var(--ink-muted)';
+    try {
+      const res = await fetch(url + endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + (await res.text()).slice(0, 300));
+      const data = await res.json();
+      status.textContent = 'Imported ' + data.length + ' row(s) — ' + new Date().toLocaleTimeString();
+      status.style.color = 'var(--pass)';
+    } catch (err) {
+      status.textContent = 'Import failed: ' + (err.message || err);
+      status.style.color = 'var(--fail)';
+    }
+  }
+  document.getElementById('skyvisorImportArrayTablesBtn').addEventListener('click', () =>
+    skyvisorBulkImport('skyvisorArrayTablesJson', 'skyvisorArrayTablesStatus', '/skyvisor/array-tables/bulk'));
+  document.getElementById('skyvisorImportStringsBtn').addEventListener('click', () =>
+    skyvisorBulkImport('skyvisorStringsJson', 'skyvisorStringsStatus', '/skyvisor/strings/bulk'));
+  document.getElementById('skyvisorImportModulesBtn').addEventListener('click', () =>
+    skyvisorBulkImport('skyvisorModulesJson', 'skyvisorModulesStatus', '/skyvisor/modules/bulk'));
+
+  document.getElementById('skyvisorExportBtn').addEventListener('click', async () => {
+    const status = document.getElementById('skyvisorExportStatus');
+    const url = document.getElementById('backendUrlInput').value.trim().replace(/\/$/, '');
+    status.textContent = 'Exporting…';
+    status.style.color = 'var(--ink-muted)';
+    try {
+      const res = await fetch(url + '/skyvisor/asset-map.csv');
+      if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + (await res.text()).slice(0, 300));
+      const csvText = await res.text();
+      if (!csvText.trim()) {
+        status.textContent = 'No module assets seeded yet — nothing to export.';
+        status.style.color = 'var(--fail)';
+        return;
+      }
+      const blob = new Blob([csvText], { type: 'text/csv' });
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = 'asset-map.csv';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(blobUrl);
+      status.textContent = 'Downloaded ' + new Date().toLocaleTimeString();
+      status.style.color = 'var(--pass)';
+    } catch (err) {
+      status.textContent = 'Export failed: ' + (err.message || err);
+      status.style.color = 'var(--fail)';
+    }
+  });
+
+  document.getElementById('skyvisorImportAnomaliesBtn').addEventListener('click', async () => {
+    const status = document.getElementById('skyvisorImportStatus');
+    const url = document.getElementById('backendUrlInput').value.trim().replace(/\/$/, '');
+    const file = document.getElementById('skyvisorImportFile').files[0];
+    const flightDate = document.getElementById('skyvisorImportDate').value;
+    if (!file) { status.textContent = 'Choose a SkyVisor anomaly export CSV first.'; status.style.color = 'var(--fail)'; return; }
+    if (!flightDate) { status.textContent = 'Set the flight date first.'; status.style.color = 'var(--fail)'; return; }
+    const form = new FormData();
+    form.append('file', file, file.name);
+    form.append('flight_date', flightDate);
+    status.textContent = 'Importing…';
+    status.style.color = 'var(--ink-muted)';
+    try {
+      const res = await fetch(url + '/skyvisor/import', { method: 'POST', body: form });
+      if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + (await res.text()).slice(0, 300));
+      const data = await res.json();
+      status.textContent = 'Imported ' + data.anomalies.length + ' anomalies, batch status: ' + data.batch.status +
+        ' — ' + new Date().toLocaleTimeString();
+      status.style.color = data.batch.status === 'matched' ? 'var(--pass)' : 'var(--warn)';
+      document.getElementById('skyvisorImportFile').value = '';
+      await refreshSkyvisorAnomalies();
+    } catch (err) {
+      status.textContent = 'Import failed: ' + (err.message || err);
+      status.style.color = 'var(--fail)';
+    }
+  });
+
+  function skyvisorAnomalyRowHtml(a) {
+    const statusColor = a.resolution_status === 'open' ? 'var(--warn)' : (a.resolution_status === 'resolved' ? 'var(--pass)' : 'var(--ink-muted)');
+    const actions = a.resolution_status === 'open'
+      ? '<button class="btn" data-resolve="' + escapeAttr(a.id) + '" data-outcome="resolved">Resolve</button> ' +
+        '<button class="btn" data-resolve="' + escapeAttr(a.id) + '" data-outcome="false_positive">False positive</button>'
+      : '';
+    return '<tr>' +
+      '<td>' + escapeHtml(a.anomaly_type) + '</td>' +
+      '<td>' + escapeHtml(a.severity) + '</td>' +
+      '<td style="text-align:right;">' + (a.delta_t_c ?? '—') + '</td>' +
+      '<td>' + (a.module_asset_id ? escapeHtml(a.module_asset_id) : '<span style="color:var(--fail);">unmatched</span>') + '</td>' +
+      '<td>' + (a.string_asset_id ? escapeHtml(a.string_asset_id) : '—') + '</td>' +
+      '<td style="color:' + statusColor + ';">' + escapeHtml(a.resolution_status) + '</td>' +
+      '<td>' + actions + '</td>' +
+    '</tr>';
+  }
+
+  async function refreshSkyvisorAnomalies() {
+    const status = document.getElementById('skyvisorAnomaliesStatus');
+    const body = document.getElementById('skyvisorAnomaliesBody');
+    const url = document.getElementById('backendUrlInput').value.trim().replace(/\/$/, '');
+    const resolutionStatus = document.getElementById('skyvisorFilterStatus').value;
+    const anomalyType = document.getElementById('skyvisorFilterType').value.trim();
+    const params = new URLSearchParams();
+    if (resolutionStatus) params.set('resolution_status', resolutionStatus);
+    if (anomalyType) params.set('anomaly_type', anomalyType);
+    status.textContent = 'Loading…';
+    status.style.color = 'var(--ink-muted)';
+    try {
+      const res = await fetch(url + '/skyvisor/anomalies' + (params.toString() ? '?' + params.toString() : ''));
+      if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + (await res.text()).slice(0, 300));
+      const anomalies = await res.json();
+      body.innerHTML = anomalies.length
+        ? anomalies.map(skyvisorAnomalyRowHtml).join('')
+        : '<tr class="empty"><td colspan="7">No anomalies match this filter.</td></tr>';
+      status.textContent = anomalies.length + ' anomalies — ' + new Date().toLocaleTimeString();
+      status.style.color = 'var(--pass)';
+    } catch (err) {
+      body.innerHTML = '<tr class="empty"><td colspan="7">Failed to load.</td></tr>';
+      status.textContent = 'Load failed: ' + (err.message || err);
+      status.style.color = 'var(--fail)';
+    }
+  }
+  document.getElementById('skyvisorRefreshAnomaliesBtn').addEventListener('click', refreshSkyvisorAnomalies);
+  document.getElementById('skyvisorAnomaliesBody').addEventListener('click', async (ev) => {
+    const btn = ev.target.closest('[data-resolve]');
+    if (!btn) return;
+    const url = document.getElementById('backendUrlInput').value.trim().replace(/\/$/, '');
+    btn.disabled = true;
+    try {
+      const res = await fetch(url + '/skyvisor/anomalies/' + encodeURIComponent(btn.dataset.resolve) + '/resolve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resolution_status: btn.dataset.outcome }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      await refreshSkyvisorAnomalies();
+    } catch (err) {
+      alert('Could not update anomaly: ' + (err.message || err));
+      btn.disabled = false;
+    }
+  });
+
+  // ---- GPS as-built validation (Emlid Flow 360 export vs. PVCase BOM piling
+  // coordinates) ----
+  function readFileAsText(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(reader.error || new Error('could not read file'));
+      reader.readAsText(file);
+    });
+  }
+
+  function gpsResultRowHtml(r) {
+    return '<tr' + (r.passes ? '' : ' style="color:var(--fail);"') + '>' +
+      '<td>' + escapeHtml(r.tag) + '</td>' +
+      '<td>' + escapeHtml(r.name) + '</td>' +
+      '<td style="text-align:right;">' + r.lateral_offset_ft + '</td>' +
+      '<td style="text-align:right;">' + (r.elevation_offset_ft ?? '—') + '</td>' +
+      '<td>' + (r.passes ? 'Pass' : 'Fail') + '</td>' +
+    '</tr>';
+  }
+
+  document.getElementById('gpsValidateBtn').addEventListener('click', async () => {
+    const status = document.getElementById('gpsValidateStatus');
+    const result = document.getElementById('gpsValidateResult');
+    const url = document.getElementById('backendUrlInput').value.trim().replace(/\/$/, '');
+    const bomPath = document.getElementById('gpsBomPathInput').value.trim();
+    const file = document.getElementById('gpsEmlidFile').files[0];
+    if (!bomPath) { status.textContent = 'Enter the PVCase BOM export path first.'; status.style.color = 'var(--fail)'; return; }
+    if (!file) { status.textContent = 'Choose the Emlid Flow 360 point export CSV first.'; status.style.color = 'var(--fail)'; return; }
+
+    status.textContent = 'Validating…';
+    status.style.color = 'var(--ink-muted)';
+    try {
+      const emlidCsv = await readFileAsText(file);
+      const res = await fetch(url + '/pvcase/gps-validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bom_path: bomPath,
+          emlid_csv: emlidCsv,
+          tolerances: {
+            lateral_tolerance_ft: parseNum(document.getElementById('gpsLateralTol').value) || 0.5,
+            elevation_tolerance_ft: parseNum(document.getElementById('gpsElevationTol').value) || 0.5,
+            max_lateral_rms_ft: parseNum(document.getElementById('gpsMaxRms').value) || 0.15,
+          },
+        }),
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + (await res.text()).slice(0, 300));
+      const data = await res.json();
+
+      document.getElementById('gpsMatchedCount').textContent = data.summary.matched;
+      document.getElementById('gpsPassedCount').textContent = data.summary.passed;
+      document.getElementById('gpsFailedCount').textContent = data.summary.failed;
+      document.getElementById('gpsRejectedCount').textContent = data.summary.rejected_low_quality;
+
+      document.getElementById('gpsResultsBody').innerHTML = data.results.length
+        ? data.results.map(gpsResultRowHtml).join('')
+        : '<tr class="empty"><td colspan="5">No matched points.</td></tr>';
+      document.getElementById('gpsRejectedList').innerHTML = data.rejected.map(r =>
+        '<li>' + escapeHtml(r.name) + ' — ' + escapeHtml(r.reason) + '</li>').join('') || '<li>None</li>';
+      document.getElementById('gpsNoCrsList').innerHTML = data.no_shared_crs.map(r =>
+        '<li>' + escapeHtml(r.name) + ' — ' + escapeHtml(r.reason) + '</li>').join('') || '<li>None</li>';
+      document.getElementById('gpsUnmatchedDesignList').innerHTML = data.unmatched_design.map(t =>
+        '<li>' + escapeHtml(t) + '</li>').join('') || '<li>None</li>';
+      document.getElementById('gpsUnmatchedAsBuiltList').innerHTML = data.unmatched_as_built.map(n =>
+        '<li>' + escapeHtml(n) + '</li>').join('') || '<li>None</li>';
+
+      result.style.display = '';
+      status.textContent = (data.summary.failed === 0 && data.summary.rejected_low_quality === 0 ? 'All passed — ' : 'Issues found — ') +
+        new Date().toLocaleTimeString();
+      status.style.color = (data.summary.failed === 0 && data.summary.rejected_low_quality === 0) ? 'var(--pass)' : 'var(--fail)';
+    } catch (err) {
+      result.style.display = 'none';
+      status.textContent = 'Validation failed: ' + (err.message || err);
+      status.style.color = 'var(--fail)';
+    }
+  });
 
   // ---- now that every panel above has defined its bindings, run the first pass ----
   recompute();
