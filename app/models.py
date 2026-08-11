@@ -136,6 +136,40 @@ class AmpacityInput(BaseModel):
     conductor_count: int = 6
 
 
+class RacewayRun(BaseModel):
+    """One conduit, cable-tray, or messenger-cable run — a single set of
+    conductors sharing one raceway. conductor_count drives both the
+    ampacity-derate chain (NEC 310.15(C)(1)) and the raceway fill % here, so
+    a run's ampacity and its physical fill can't be sized against different
+    conductor counts."""
+
+    tag: str = "RW-1"
+    raceway_type: Literal["conduit", "cable_tray", "messenger"] = "conduit"
+    circuit_type: Literal["dc", "ac"] = "dc"
+    current_a: float = 30.0
+    conductor_count: int = 2
+    insulation_rating: Literal[75, 90] = 90
+    conductor_insulation: Literal["THHN_THWN2", "USE2_RHW2"] = "USE2_RHW2"
+    length_ft: float = 100.0
+    voltage_v: float = 600.0
+    vd_limit_pct: float = 2.0
+
+    # conduit-specific
+    conduit_material: Literal["EMT", "IMC", "RMC", "PVC_SCH40", "PVC_SCH80"] = "PVC_SCH40"
+    is_nipple: bool = False
+
+    # cable tray-specific
+    tray_type: Literal["ladder", "ventilated_trough", "solid_bottom"] = "ladder"
+    tray_width_in: float = 12.0
+
+    # messenger-specific
+    span_ft: float = 100.0
+    ice_thickness_in: float = 0.0
+    sag_ratio: float = 0.03
+    safety_factor: float = 2.0
+    wind_load_plf: float = 0.0
+
+
 class OcpdInput(BaseModel):
     circuit: Literal["pv_source", "dc_combiner_output", "inverter_output"] = "inverter_output"
     combiner_index: int = 0
@@ -259,6 +293,7 @@ class ProjectInput(BaseModel):
     transformer: TransformerConfig = Field(default_factory=TransformerConfig)
     switchboard: SwitchboardConfig = Field(default_factory=SwitchboardConfig)
     ampacity: AmpacityInput = Field(default_factory=AmpacityInput)
+    raceway_runs: list[RacewayRun] = Field(default_factory=lambda: [RacewayRun()])
     ocpd: OcpdInput = Field(default_factory=OcpdInput)
     etap: EtapAssumptions = Field(default_factory=EtapAssumptions)
     jurisdiction: JurisdictionInput = Field(default_factory=JurisdictionInput)

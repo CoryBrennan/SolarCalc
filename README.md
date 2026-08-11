@@ -89,10 +89,9 @@ All three are wired into the HMI's Inverter Design panel ("PVCase planning
 brief" / "PVCase validation" / "PVCase routing-aware ampacity" cards),
 reusing its existing naming-convention and per-switchboard controls rather
 than duplicating that state. The routing card exposes per-leg conductor
-count and conduit material (the two inputs that actually change the
-answer); cable-tray physical sizing is supported by the API
-(`size_as_tray`/`tray_type`/`tray_width_in` on a leg) but not yet exposed as
-fields in that card.
+count, conduit material, and cable-tray sizing (`size_as_tray`/`tray_type`/
+`tray_width_in`) — check "Size as tray" on a free-air leg to get a real
+392.22 tray-width spec instead of true free air (no raceway to size).
 
 One limitation left, not fixable from this side:
 
