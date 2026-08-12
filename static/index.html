@@ -2837,7 +2837,7 @@
           </div>
           <span class="chip chip-pass">Live — persisted, survives a page reload</span>
         </div>
-        <p class="desc">Field commissioning record for inverters, switchboards, and load centers: torque verification against a design spec, wire/conductor inspection against design intent, and photo documentation of both. Unlike the rest of this app, this panel is backed by real persistence (app/db_models.py's CommissioningUnit/TorquePoint/WireInspectionItem/CommissioningPhoto tables) — a crew can close the tab mid-walkdown and pick up where they left off. No manufacturer torque values are pre-loaded — <b>enter design min/max from the equipment's own install manual/torque chart</b> before grading a connection; see the note below.</p>
+        <p class="desc">Field commissioning record for inverters, switchboards, and load centers, split into two groups: <b>Visual &amp; Mechanical Inspection</b> (enclosure/nameplate/labeling checks plus torque verification) and <b>Electrical Inspection</b> (conductor checks plus AC voltage readings), each with its own photos. Wire circuits and AC voltage bands can be pulled straight from this project's own design (Raceway (24) schedule and Inverter Spec (06)) with the "⟳ Sync" buttons below instead of typing every row by hand — matching/manual-fallback rules are in each card. Photos can be taken directly from the device camera or uploaded from a file. This panel is backed by real persistence (app/db_models.py), unlike most of this app's stateless /calculate flow — a crew can close the tab mid-walkdown and pick up where they left off.</p>
 
         <div class="card">
           <p class="card-title">Add equipment unit</p>
@@ -2885,11 +2885,11 @@
               <thead>
                 <tr>
                   <th>Tag</th><th>Type</th><th>Manufacturer / Model</th>
-                  <th style="text-align:right;">Torque</th><th style="text-align:right;">Wire</th>
-                  <th>Status</th><th>Signed off</th><th></th>
+                  <th style="text-align:right;">Visual/Mech.</th><th style="text-align:right;">Electrical</th>
+                  <th>Status</th><th>Signed off</th><th></th><th></th>
                 </tr>
               </thead>
-              <tbody id="cxUnitsBody"><tr class="empty"><td colspan="8">No units yet — add one above.</td></tr></tbody>
+              <tbody id="cxUnitsBody"><tr class="empty"><td colspan="9">No units yet — add one above.</td></tr></tbody>
             </table>
           </div>
         </div>
@@ -2910,7 +2910,29 @@
           </div>
 
           <div class="card">
-            <p class="card-title">Torque checklist</p>
+            <p class="card-title">Visual &amp; Mechanical Inspection</p>
+
+            <p class="desc" style="margin-bottom:8px;"><b>Visual checklist</b></p>
+            <div class="bulk-btns" style="margin-bottom:12px;" id="cxVmTemplateBtns"></div>
+            <div style="overflow-x:auto;">
+              <table class="etap">
+                <thead>
+                  <tr><th>Item</th><th>Result</th><th>Notes</th><th></th></tr>
+                </thead>
+                <tbody id="cxVmBody"><tr class="empty"><td colspan="4">No visual/mechanical items yet.</td></tr></tbody>
+              </table>
+            </div>
+            <div class="field-grid" style="margin-top:14px;margin-bottom:12px;">
+              <div class="field">
+                <label for="cxNewVmLabel">New checklist item</label>
+                <input class="prose" type="text" id="cxNewVmLabel" placeholder="e.g. Enclosure condition">
+              </div>
+            </div>
+            <div class="bulk-btns" style="margin-bottom:20px;">
+              <button class="btn" id="cxAddVmBtn" type="button">+ Add checklist item</button>
+            </div>
+
+            <p class="desc" style="margin-bottom:8px;"><b>Torque checklist</b></p>
             <div class="bulk-btns" style="margin-bottom:12px;" id="cxTorqueTemplateBtns"></div>
             <div style="overflow-x:auto;">
               <table class="etap">
@@ -2924,9 +2946,10 @@
                     <th>Wrench ID</th>
                     <th>Tech</th>
                     <th>Result</th>
+                    <th></th>
                   </tr>
                 </thead>
-                <tbody id="cxTorqueBody"><tr class="empty"><td colspan="8">No torque points yet.</td></tr></tbody>
+                <tbody id="cxTorqueBody"><tr class="empty"><td colspan="9">No torque points yet.</td></tr></tbody>
               </table>
             </div>
             <div class="field-grid" style="margin-top:14px;margin-bottom:12px;">
@@ -2951,13 +2974,30 @@
                 </select>
               </div>
             </div>
-            <div class="bulk-btns">
+            <div class="bulk-btns" style="margin-bottom:20px;">
               <button class="btn" id="cxAddTorqueBtn" type="button">+ Add torque point</button>
             </div>
+
+            <p class="desc" style="margin-bottom:8px;"><b>Visual &amp; Mechanical Photos</b></p>
+            <div class="bulk-btns" style="margin-bottom:12px;">
+              <input type="file" id="cxVmPhotoCameraInput" accept="image/*" capture="environment" style="display:none;">
+              <button class="btn" id="cxVmPhotoCameraBtn" type="button">📷 Take photo</button>
+              <input type="file" id="cxVmPhotoFileInput" accept="image/*" style="display:none;">
+              <button class="btn" id="cxVmPhotoFileBtn" type="button">📁 Upload file</button>
+              <input class="prose" type="text" id="cxVmPhotoCaption" placeholder="Caption (optional)" style="flex:1 1 220px;">
+            </div>
+            <p class="desc" id="cxVmPhotoStatus"></p>
+            <div id="cxVmPhotoGallery" style="display:flex;flex-wrap:wrap;gap:12px;margin-top:4px;"></div>
           </div>
 
           <div class="card">
-            <p class="card-title">Wire &amp; conductor inspection</p>
+            <p class="card-title">Electrical Inspection</p>
+
+            <p class="desc" style="margin-bottom:8px;"><b>Wire &amp; conductor inspection</b></p>
+            <div class="bulk-btns" style="margin-bottom:12px;">
+              <button class="btn btn-primary" id="cxSyncWiresBtn" type="button">⟳ Sync wires from design (Raceway 24)</button>
+            </div>
+            <p class="desc" id="cxSyncWiresStatus"></p>
             <div class="field-grid" style="margin-bottom:12px;">
               <div class="field">
                 <label for="cxIrFloor">Min insulation resistance <span class="unit">MΩ — rule of thumb, override per site standard</span></label>
@@ -2976,9 +3016,10 @@
                     <th>Continuity</th>
                     <th style="text-align:right;">IR (MΩ)</th>
                     <th>Result</th>
+                    <th></th>
                   </tr>
                 </thead>
-                <tbody id="cxWireBody"><tr class="empty"><td colspan="8">No wire inspection items yet.</td></tr></tbody>
+                <tbody id="cxWireBody"><tr class="empty"><td colspan="9">No wire inspection items yet.</td></tr></tbody>
               </table>
             </div>
             <div class="field-grid" style="margin-top:14px;margin-bottom:12px;">
@@ -2991,43 +3032,74 @@
                 <input class="prose" type="text" id="cxNewWireDesign" placeholder="e.g. 500 kcmil CU">
               </div>
             </div>
-            <div class="bulk-btns">
-              <button class="btn" id="cxAddWireBtn" type="button">+ Add wire item</button>
+            <div class="bulk-btns" style="margin-bottom:20px;">
+              <button class="btn" id="cxAddWireBtn" type="button">+ Add wire item manually</button>
             </div>
-          </div>
 
-          <div class="card">
-            <p class="card-title">Photos</p>
-            <div class="field-grid" style="margin-bottom:12px;">
+            <p class="desc" style="margin-bottom:8px;"><b>Electrical voltage readings</b></p>
+            <div class="bulk-btns" style="margin-bottom:12px;">
+              <button class="btn btn-primary" id="cxSyncVoltageBtn" type="button">⟳ Sync AC voltage readings from design (Inverter Spec 06)</button>
+              <input class="prose" type="text" id="cxVoltageTolerance" value="5.0" style="width:70px;" title="Tolerance %">
+              <span class="unit">% tolerance band</span>
+            </div>
+            <p class="desc" id="cxSyncVoltageStatus"></p>
+            <div style="overflow-x:auto;">
+              <table class="etap">
+                <thead>
+                  <tr>
+                    <th>Reading</th>
+                    <th style="text-align:right;">Design min</th>
+                    <th style="text-align:right;">Design max</th>
+                    <th>Unit</th>
+                    <th style="text-align:right;">Measured</th>
+                    <th>Result</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="cxElecBody"><tr class="empty"><td colspan="7">No electrical readings yet.</td></tr></tbody>
+              </table>
+            </div>
+            <div class="field-grid" style="margin-top:14px;margin-bottom:12px;">
               <div class="field">
-                <label for="cxPhotoFile">Photo</label>
-                <input type="file" id="cxPhotoFile" accept="image/*">
+                <label for="cxNewElecLabel">New reading label</label>
+                <input class="prose" type="text" id="cxNewElecLabel" placeholder="e.g. DC combiner 1 Voc">
               </div>
               <div class="field">
-                <label for="cxPhotoCategory">Category</label>
-                <select id="cxPhotoCategory">
-                  <option value="torque">Torque marking</option>
-                  <option value="wiring">Wiring</option>
-                  <option value="nameplate">Nameplate</option>
-                  <option value="general">General</option>
+                <label for="cxNewElecMin">Design min</label>
+                <input class="prose" type="text" id="cxNewElecMin" placeholder="optional">
+              </div>
+              <div class="field">
+                <label for="cxNewElecMax">Design max</label>
+                <input class="prose" type="text" id="cxNewElecMax" placeholder="optional">
+              </div>
+              <div class="field">
+                <label for="cxNewElecUnit">Unit</label>
+                <select id="cxNewElecUnit">
+                  <option value="VAC">VAC</option>
+                  <option value="VDC">VDC</option>
                 </select>
               </div>
-              <div class="field">
-                <label for="cxPhotoCaption">Caption</label>
-                <input class="prose" type="text" id="cxPhotoCaption" placeholder="e.g. AC lugs, paint-pen witness mark">
-              </div>
             </div>
-            <div class="bulk-btns">
-              <button class="btn btn-primary" id="cxUploadPhotoBtn" type="button">Upload photo</button>
+            <div class="bulk-btns" style="margin-bottom:20px;">
+              <button class="btn" id="cxAddElecBtn" type="button">+ Add reading manually</button>
             </div>
-            <p class="desc" id="cxPhotoStatus"></p>
-            <div id="cxPhotoGallery" style="display:flex;flex-wrap:wrap;gap:12px;margin-top:12px;"></div>
+
+            <p class="desc" style="margin-bottom:8px;"><b>Electrical Photos</b></p>
+            <div class="bulk-btns" style="margin-bottom:12px;">
+              <input type="file" id="cxElecPhotoCameraInput" accept="image/*" capture="environment" style="display:none;">
+              <button class="btn" id="cxElecPhotoCameraBtn" type="button">📷 Take photo</button>
+              <input type="file" id="cxElecPhotoFileInput" accept="image/*" style="display:none;">
+              <button class="btn" id="cxElecPhotoFileBtn" type="button">📁 Upload file</button>
+              <input class="prose" type="text" id="cxElecPhotoCaption" placeholder="Caption (optional)" style="flex:1 1 220px;">
+            </div>
+            <p class="desc" id="cxElecPhotoStatus"></p>
+            <div id="cxElecPhotoGallery" style="display:flex;flex-wrap:wrap;gap:12px;margin-top:4px;"></div>
           </div>
         </div>
 
         <div class="note">
           <span>ⓘ</span>
-          <span><b>No fabricated torque values.</b> UL 486A/B torque specs vary by lug and equipment, so this panel never pre-fills a design min/max — type it in from the equipment's own install manual or torque chart, per unit. The insulation-resistance floor (default 1 MΩ) is a common low-voltage rule of thumb, not a code-mandated figure — override it per reading if your site standard sets a different minimum. Photos are stored server-side against the unit's record, not on this device.</span>
+          <span><b>No fabricated torque values; voltage bands come from this project's own design.</b> UL 486A/B torque specs vary by lug and equipment, so torque design min/max is always typed in from the equipment's own install manual/torque chart — never pre-filled. AC voltage design bands, by contrast, are derived from this project's own Inverter Spec (06) nominal_ac_voltage_v (an ANSI C84.1 Range A-style +/- tolerance, default 5%, overridable above) since that number already lives in this app's design data. Wire circuits sync from the Raceway (24) schedule by matching a run's tag against the unit's tag (substring, case-insensitive) — runs that don't follow that naming convention need a manually-added row instead. The insulation-resistance floor (default 1 MΩ) is a common low-voltage rule of thumb, not a code-mandated figure. Photos are stored server-side against the unit's record, not on this device — "Take photo" opens the device camera where supported, "Upload file" picks an existing image.</span>
         </div>
       </section>
 
@@ -9812,8 +9884,9 @@
   });
 
   // ---- Commissioning & QC (28) — inverter/switchboard/load-center field
-  // commissioning: torque checks against a design spec, wire inspection
-  // against design conductor, and photo documentation
+  // commissioning, split into two groups: Visual & Mechanical Inspection
+  // (torque + checklist items) and Electrical Inspection (wire/conductor
+  // checks + AC voltage readings), each with its own photos
   // (app/commissioning_routes.py). Real persistence, unlike most of this
   // app's stateless /calculate flow -- see db_models.CommissioningUnit's
   // docstring for why status is re-derived from child rows on every write
@@ -9868,18 +9941,19 @@
   }
 
   function cxUnitRowHtml(u) {
-    const torque = u.summary.torque, wire = u.summary.wire;
-    const torqueText = torque.total ? (torque.pass + '/' + torque.total + (torque.fail ? ' (' + torque.fail + ' fail)' : '')) : '—';
-    const wireText = wire.total ? (wire.pass + '/' + wire.total + (wire.fail ? ' (' + wire.fail + ' fail)' : '')) : '—';
+    const vm = u.summary.visual_mechanical, elec = u.summary.electrical;
+    const vmText = vm.total ? (vm.pass + '/' + vm.total + (vm.fail ? ' (' + vm.fail + ' fail)' : '')) : '—';
+    const elecText = elec.total ? (elec.pass + '/' + elec.total + (elec.fail ? ' (' + elec.fail + ' fail)' : '')) : '—';
     return '<tr data-unit-id="' + escapeAttr(u.id) + '"' + (u.id === cxSelectedUnitId ? ' style="background:var(--accent-soft);"' : '') + '>' +
       '<td>' + escapeHtml(u.tag) + '</td>' +
       '<td>' + escapeHtml(u.equipment_type) + '</td>' +
       '<td>' + escapeHtml([u.manufacturer, u.model].filter(Boolean).join(' / ') || '—') + '</td>' +
-      '<td style="text-align:right;">' + torqueText + '</td>' +
-      '<td style="text-align:right;">' + wireText + '</td>' +
+      '<td style="text-align:right;">' + vmText + '</td>' +
+      '<td style="text-align:right;">' + elecText + '</td>' +
       '<td>' + cxUnitStatusChipHtml(u.status) + '</td>' +
       '<td>' + (u.commissioned_by ? escapeHtml(u.commissioned_by) : '—') + '</td>' +
       '<td><button class="btn" type="button" data-cx-select="' + escapeAttr(u.id) + '">Open</button></td>' +
+      '<td><button class="btn" type="button" data-cx-delete-unit="' + escapeAttr(u.id) + '">Delete</button></td>' +
       '</tr>';
   }
 
@@ -9893,20 +9967,38 @@
       const res = await fetch(cxBackendUrl() + '/commissioning/units' + (params.toString() ? '?' + params.toString() : ''));
       if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + (await res.text()).slice(0, 300));
       cxUnits = await res.json();
-      body.innerHTML = cxUnits.length ? cxUnits.map(cxUnitRowHtml).join('') : '<tr class="empty"><td colspan="8">No units yet — add one above.</td></tr>';
+      body.innerHTML = cxUnits.length ? cxUnits.map(cxUnitRowHtml).join('') : '<tr class="empty"><td colspan="9">No units yet — add one above.</td></tr>';
       countEl.textContent = cxUnits.length + ' unit(s)';
       cxUpdateRailDot();
     } catch (err) {
-      body.innerHTML = '<tr class="empty"><td colspan="8">Failed to load.</td></tr>';
+      body.innerHTML = '<tr class="empty"><td colspan="9">Failed to load.</td></tr>';
       countEl.textContent = 'load failed: ' + (err.message || err);
     }
   }
   document.getElementById('cxRefreshUnitsBtn').addEventListener('click', cxRefreshUnits);
   document.getElementById('cxFilterType').addEventListener('change', cxRefreshUnits);
-  document.getElementById('cxUnitsBody').addEventListener('click', (ev) => {
-    const btn = ev.target.closest('[data-cx-select]');
-    if (!btn) return;
-    cxSelectUnit(btn.dataset.cxSelect);
+  document.getElementById('cxUnitsBody').addEventListener('click', async (ev) => {
+    const selectBtn = ev.target.closest('[data-cx-select]');
+    if (selectBtn) { cxSelectUnit(selectBtn.dataset.cxSelect); return; }
+    const deleteBtn = ev.target.closest('[data-cx-delete-unit]');
+    if (deleteBtn) {
+      const id = deleteBtn.dataset.cxDeleteUnit;
+      if (!confirm('Delete this commissioning unit and all its torque points, checklist items, wire items, electrical readings, and photos? This cannot be undone.')) return;
+      deleteBtn.disabled = true;
+      try {
+        const res = await fetch(cxBackendUrl() + '/commissioning/units/' + encodeURIComponent(id), { method: 'DELETE' });
+        if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + (await res.text()).slice(0, 300));
+        if (cxSelectedUnitId === id) {
+          cxSelectedUnitId = null;
+          cxSelectedUnitDetail = null;
+          document.getElementById('cxDetail').style.display = 'none';
+        }
+        await cxRefreshUnits();
+      } catch (err) {
+        alert('Could not delete unit: ' + (err.message || err));
+        deleteBtn.disabled = false;
+      }
+    }
   });
 
   document.getElementById('cxAddUnitBtn').addEventListener('click', async () => {
@@ -9954,6 +10046,23 @@
     return el ? el.value : '';
   }
 
+  function cxDeleteBtnHtml(kind, id) {
+    return '<button class="btn" type="button" data-cx-delete-' + kind + '="' + escapeAttr(id) + '">Delete</button>';
+  }
+
+  function cxVmRowHtml(i) {
+    return '<tr data-vm-id="' + escapeAttr(i.id) + '">' +
+      '<td>' + escapeHtml(i.label) + '</td>' +
+      '<td><select data-cx-field="result">' +
+        '<option value="pending"' + (i.result === 'pending' ? ' selected' : '') + '>Pending</option>' +
+        '<option value="pass"' + (i.result === 'pass' ? ' selected' : '') + '>Pass</option>' +
+        '<option value="fail"' + (i.result === 'fail' ? ' selected' : '') + '>Fail</option>' +
+      '</select></td>' +
+      '<td><input type="text" data-cx-field="notes" value="' + escapeAttr(i.notes || '') + '" style="width:160px;"></td>' +
+      '<td>' + cxDeleteBtnHtml('vm', i.id) + '</td>' +
+      '</tr>';
+  }
+
   function cxTorqueRowHtml(t) {
     const min = t.design_torque_min != null ? t.design_torque_min : '';
     const max = t.design_torque_max != null ? t.design_torque_max : '';
@@ -9971,6 +10080,7 @@
       '<td><input type="text" data-cx-field="wrench_id" value="' + escapeAttr(t.wrench_id || '') + '" style="width:80px;"></td>' +
       '<td><input type="text" data-cx-field="tech_initials" value="' + escapeAttr(t.tech_initials || '') + '" style="width:60px;"></td>' +
       '<td>' + cxResultChipHtml(t.result) + '</td>' +
+      '<td>' + cxDeleteBtnHtml('torque', t.id) + '</td>' +
       '</tr>';
   }
 
@@ -9985,6 +10095,25 @@
       '<td>' + cxTriStateSelectHtml('continuity_ok', w.continuity_ok) + '</td>' +
       '<td style="text-align:right;"><input type="text" data-cx-field="insulation_resistance_megohm" value="' + escapeAttr(ir) + '" style="width:70px;text-align:right;"></td>' +
       '<td>' + cxResultChipHtml(w.result) + '</td>' +
+      '<td>' + cxDeleteBtnHtml('wire', w.id) + '</td>' +
+      '</tr>';
+  }
+
+  function cxElecRowHtml(e) {
+    const min = e.design_min != null ? e.design_min : '';
+    const max = e.design_max != null ? e.design_max : '';
+    const measured = e.measured_value != null ? e.measured_value : '';
+    return '<tr data-elec-id="' + escapeAttr(e.id) + '">' +
+      '<td>' + escapeHtml(e.label) + '</td>' +
+      '<td style="text-align:right;"><input type="text" data-cx-field="design_min" value="' + escapeAttr(min) + '" style="width:70px;text-align:right;"></td>' +
+      '<td style="text-align:right;"><input type="text" data-cx-field="design_max" value="' + escapeAttr(max) + '" style="width:70px;text-align:right;"></td>' +
+      '<td><select data-cx-field="unit">' +
+        '<option value="VAC"' + (e.unit === 'VAC' ? ' selected' : '') + '>VAC</option>' +
+        '<option value="VDC"' + (e.unit === 'VDC' ? ' selected' : '') + '>VDC</option>' +
+      '</select></td>' +
+      '<td style="text-align:right;"><input type="text" data-cx-field="measured_value" value="' + escapeAttr(measured) + '" style="width:70px;text-align:right;"></td>' +
+      '<td>' + cxResultChipHtml(e.result) + '</td>' +
+      '<td>' + cxDeleteBtnHtml('elec', e.id) + '</td>' +
       '</tr>';
   }
 
@@ -10010,6 +10139,26 @@
       await cxRefreshUnits();
     } catch (err) {
       alert('Could not save torque point: ' + (err.message || err));
+    }
+  }
+
+  async function cxSaveVmRow(row) {
+    const id = row.dataset.vmId;
+    const payload = {
+      result: cxRowFieldValue(row, 'result'),
+      notes: cxRowFieldValue(row, 'notes').trim() || null,
+    };
+    try {
+      const res = await fetch(cxBackendUrl() + '/commissioning/inspection-items/' + encodeURIComponent(id), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + (await res.text()).slice(0, 300));
+      await cxSelectUnit(cxSelectedUnitId);
+      await cxRefreshUnits();
+    } catch (err) {
+      alert('Could not save checklist item: ' + (err.message || err));
     }
   }
 
@@ -10039,13 +10188,92 @@
       alert('Could not save wire item: ' + (err.message || err));
     }
   }
+
+  async function cxSaveElecRow(row) {
+    const id = row.dataset.elecId;
+    const numOrNull = (v) => v.trim() === '' ? null : parseNum(v);
+    const payload = {
+      design_min: numOrNull(cxRowFieldValue(row, 'design_min')),
+      design_max: numOrNull(cxRowFieldValue(row, 'design_max')),
+      unit: cxRowFieldValue(row, 'unit'),
+      measured_value: numOrNull(cxRowFieldValue(row, 'measured_value')),
+    };
+    try {
+      const res = await fetch(cxBackendUrl() + '/commissioning/electrical-readings/' + encodeURIComponent(id), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + (await res.text()).slice(0, 300));
+      await cxSelectUnit(cxSelectedUnitId);
+      await cxRefreshUnits();
+    } catch (err) {
+      alert('Could not save electrical reading: ' + (err.message || err));
+    }
+  }
+
+  async function cxDeleteRow(endpoint, id) {
+    if (!confirm('Delete this row?')) return;
+    try {
+      const res = await fetch(cxBackendUrl() + endpoint + '/' + encodeURIComponent(id), { method: 'DELETE' });
+      if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + (await res.text()).slice(0, 300));
+      await cxSelectUnit(cxSelectedUnitId);
+      await cxRefreshUnits();
+    } catch (err) {
+      alert('Could not delete row: ' + (err.message || err));
+    }
+  }
+
+  document.getElementById('cxVmBody').addEventListener('change', (ev) => {
+    const row = ev.target.closest('tr[data-vm-id]');
+    if (row) cxSaveVmRow(row);
+  });
+  document.getElementById('cxVmBody').addEventListener('click', (ev) => {
+    const btn = ev.target.closest('[data-cx-delete-vm]');
+    if (btn) cxDeleteRow('/commissioning/inspection-items', btn.dataset.cxDeleteVm);
+  });
   document.getElementById('cxTorqueBody').addEventListener('change', (ev) => {
     const row = ev.target.closest('tr[data-torque-id]');
     if (row) cxSaveTorqueRow(row);
   });
+  document.getElementById('cxTorqueBody').addEventListener('click', (ev) => {
+    const btn = ev.target.closest('[data-cx-delete-torque]');
+    if (btn) cxDeleteRow('/commissioning/torque-points', btn.dataset.cxDeleteTorque);
+  });
   document.getElementById('cxWireBody').addEventListener('change', (ev) => {
     const row = ev.target.closest('tr[data-wire-id]');
     if (row) cxSaveWireRow(row);
+  });
+  document.getElementById('cxWireBody').addEventListener('click', (ev) => {
+    const btn = ev.target.closest('[data-cx-delete-wire]');
+    if (btn) cxDeleteRow('/commissioning/wire-items', btn.dataset.cxDeleteWire);
+  });
+  document.getElementById('cxElecBody').addEventListener('change', (ev) => {
+    const row = ev.target.closest('tr[data-elec-id]');
+    if (row) cxSaveElecRow(row);
+  });
+  document.getElementById('cxElecBody').addEventListener('click', (ev) => {
+    const btn = ev.target.closest('[data-cx-delete-elec]');
+    if (btn) cxDeleteRow('/commissioning/electrical-readings', btn.dataset.cxDeleteElec);
+  });
+
+  document.getElementById('cxAddVmBtn').addEventListener('click', async () => {
+    if (!cxSelectedUnitId) { alert('Select or add a unit first.'); return; }
+    const label = document.getElementById('cxNewVmLabel').value.trim();
+    if (!label) { alert('Enter a checklist item label first.'); return; }
+    try {
+      const res = await fetch(cxBackendUrl() + '/commissioning/units/' + encodeURIComponent(cxSelectedUnitId) + '/inspection-items', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify([{ label: label }]),
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + (await res.text()).slice(0, 300));
+      document.getElementById('cxNewVmLabel').value = '';
+      await cxSelectUnit(cxSelectedUnitId);
+      await cxRefreshUnits();
+    } catch (err) {
+      alert('Could not add checklist item: ' + (err.message || err));
+    }
   });
 
   document.getElementById('cxAddTorqueBtn').addEventListener('click', async () => {
@@ -10098,28 +10326,114 @@
     }
   });
 
-  async function cxLoadTorqueTemplateButtons(equipmentType) {
-    const container = document.getElementById('cxTorqueTemplateBtns');
-    container.innerHTML = '<span class="desc" style="margin:0;">Loading quick-add template…</span>';
+  document.getElementById('cxAddElecBtn').addEventListener('click', async () => {
+    if (!cxSelectedUnitId) { alert('Select or add a unit first.'); return; }
+    const label = document.getElementById('cxNewElecLabel').value.trim();
+    if (!label) { alert('Enter a reading label first.'); return; }
+    const minRaw = document.getElementById('cxNewElecMin').value.trim();
+    const maxRaw = document.getElementById('cxNewElecMax').value.trim();
+    const unit = document.getElementById('cxNewElecUnit').value;
+    const payload = [{
+      label: label,
+      reading_type: unit === 'VDC' ? 'dc_voltage' : 'ac_voltage',
+      design_min: minRaw === '' ? null : parseNum(minRaw),
+      design_max: maxRaw === '' ? null : parseNum(maxRaw),
+      unit: unit,
+    }];
+    try {
+      const res = await fetch(cxBackendUrl() + '/commissioning/units/' + encodeURIComponent(cxSelectedUnitId) + '/electrical-readings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + (await res.text()).slice(0, 300));
+      document.getElementById('cxNewElecLabel').value = '';
+      document.getElementById('cxNewElecMin').value = '';
+      document.getElementById('cxNewElecMax').value = '';
+      await cxSelectUnit(cxSelectedUnitId);
+      await cxRefreshUnits();
+    } catch (err) {
+      alert('Could not add electrical reading: ' + (err.message || err));
+    }
+  });
+
+  document.getElementById('cxSyncWiresBtn').addEventListener('click', async () => {
+    const status = document.getElementById('cxSyncWiresStatus');
+    if (!cxSelectedUnitId) { status.textContent = 'Select or add a unit first.'; status.style.color = 'var(--fail)'; return; }
+    status.textContent = 'Syncing from Raceway (24) schedule…';
+    status.style.color = 'var(--ink-muted)';
+    try {
+      const res = await fetch(cxBackendUrl() + '/commissioning/units/' + encodeURIComponent(cxSelectedUnitId) + '/wire-items/auto-populate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ project: buildBackendPayload() }),
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + (await res.text()).slice(0, 300));
+      const data = await res.json();
+      const skippedText = data.skipped_tags.length ? (', ' + data.skipped_tags.length + ' matched run(s) had no NEC-compliant candidate: ' + data.skipped_tags.join(', ')) : '';
+      status.textContent = data.matched_run_count
+        ? ('Matched ' + data.matched_run_count + ' raceway run(s): ' + data.created.length + ' added, ' + data.updated.length + ' updated' + skippedText + ' — ' + new Date().toLocaleTimeString())
+        : 'No raceway runs match this unit\'s tag — add wire items manually below, or check the Raceway (24) schedule\'s tag naming.';
+      status.style.color = data.matched_run_count ? 'var(--pass)' : 'var(--warn)';
+      await cxSelectUnit(cxSelectedUnitId);
+      await cxRefreshUnits();
+    } catch (err) {
+      status.textContent = 'Sync failed: ' + (err.message || err);
+      status.style.color = 'var(--fail)';
+    }
+  });
+
+  document.getElementById('cxSyncVoltageBtn').addEventListener('click', async () => {
+    const status = document.getElementById('cxSyncVoltageStatus');
+    if (!cxSelectedUnitId) { status.textContent = 'Select or add a unit first.'; status.style.color = 'var(--fail)'; return; }
+    status.textContent = 'Syncing from Inverter Spec (06)…';
+    status.style.color = 'var(--ink-muted)';
+    try {
+      const res = await fetch(cxBackendUrl() + '/commissioning/units/' + encodeURIComponent(cxSelectedUnitId) + '/electrical-readings/auto-populate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ project: buildBackendPayload(), tolerance_pct: parseNum(document.getElementById('cxVoltageTolerance').value) || 5.0 }),
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + (await res.text()).slice(0, 300));
+      const data = await res.json();
+      status.textContent = data.derived_count
+        ? (data.created.length + ' added, ' + data.updated.length + ' updated — ' + new Date().toLocaleTimeString())
+        : (data.note || 'Nothing to derive for this equipment type.');
+      status.style.color = data.derived_count ? 'var(--pass)' : 'var(--warn)';
+      await cxSelectUnit(cxSelectedUnitId);
+      await cxRefreshUnits();
+    } catch (err) {
+      status.textContent = 'Sync failed: ' + (err.message || err);
+      status.style.color = 'var(--fail)';
+    }
+  });
+
+  async function cxLoadChecklistTemplates(equipmentType) {
+    const torqueContainer = document.getElementById('cxTorqueTemplateBtns');
+    const vmContainer = document.getElementById('cxVmTemplateBtns');
+    torqueContainer.innerHTML = vmContainer.innerHTML = '<span class="desc" style="margin:0;">Loading quick-add template…</span>';
     try {
       const res = await fetch(cxBackendUrl() + '/commissioning/checklist-templates?equipment_type=' + encodeURIComponent(equipmentType));
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
-      container.innerHTML = data.connection_labels.map(label =>
-        '<button class="btn" type="button" data-cx-quick-add="' + escapeAttr(label) + '">+ ' + escapeHtml(label) + '</button>'
+      torqueContainer.innerHTML = data.torque_labels.map(label =>
+        '<button class="btn" type="button" data-cx-quick-add-torque="' + escapeAttr(label) + '">+ ' + escapeHtml(label) + '</button>'
+      ).join('');
+      vmContainer.innerHTML = data.visual_mechanical_labels.map(label =>
+        '<button class="btn" type="button" data-cx-quick-add-vm="' + escapeAttr(label) + '">+ ' + escapeHtml(label) + '</button>'
       ).join('');
     } catch (err) {
-      container.innerHTML = '<span class="desc" style="margin:0;color:var(--fail);">Could not load quick-add template.</span>';
+      torqueContainer.innerHTML = vmContainer.innerHTML = '<span class="desc" style="margin:0;color:var(--fail);">Could not load quick-add template.</span>';
     }
   }
   document.getElementById('cxTorqueTemplateBtns').addEventListener('click', async (ev) => {
-    const btn = ev.target.closest('[data-cx-quick-add]');
+    const btn = ev.target.closest('[data-cx-quick-add-torque]');
     if (!btn || !cxSelectedUnitId) return;
     try {
       const res = await fetch(cxBackendUrl() + '/commissioning/units/' + encodeURIComponent(cxSelectedUnitId) + '/torque-points', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify([{ connection_label: btn.dataset.cxQuickAdd, torque_unit: 'ft-lb' }]),
+        body: JSON.stringify([{ connection_label: btn.dataset.cxQuickAddTorque, torque_unit: 'ft-lb' }]),
       });
       if (!res.ok) throw new Error(await res.text());
       await cxSelectUnit(cxSelectedUnitId);
@@ -10128,31 +10442,77 @@
       alert('Could not add torque point: ' + (err.message || err));
     }
   });
+  document.getElementById('cxVmTemplateBtns').addEventListener('click', async (ev) => {
+    const btn = ev.target.closest('[data-cx-quick-add-vm]');
+    if (!btn || !cxSelectedUnitId) return;
+    try {
+      const res = await fetch(cxBackendUrl() + '/commissioning/units/' + encodeURIComponent(cxSelectedUnitId) + '/inspection-items', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify([{ label: btn.dataset.cxQuickAddVm }]),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      await cxSelectUnit(cxSelectedUnitId);
+      await cxRefreshUnits();
+    } catch (err) {
+      alert('Could not add checklist item: ' + (err.message || err));
+    }
+  });
 
-  function cxRenderPhotoGallery(photos) {
-    const gallery = document.getElementById('cxPhotoGallery');
-    if (!photos.length) { gallery.innerHTML = '<p class="desc" style="margin:0;">No photos yet.</p>'; return; }
-    gallery.innerHTML = photos.map(p => {
+  function cxRenderPhotoGallery(photos, category, galleryId) {
+    const gallery = document.getElementById(galleryId);
+    const filtered = photos.filter(p => p.category === category);
+    if (!filtered.length) { gallery.innerHTML = '<p class="desc" style="margin:0;">No photos yet.</p>'; return; }
+    gallery.innerHTML = filtered.map(p => {
       const src = cxBackendUrl() + '/commissioning/photos/' + encodeURIComponent(p.id);
-      return '<a href="' + src + '" target="_blank" rel="noopener" style="display:block;width:140px;text-decoration:none;color:inherit;">' +
+      return '<div style="width:140px;">' +
+        '<a href="' + src + '" target="_blank" rel="noopener" style="display:block;text-decoration:none;color:inherit;">' +
         '<img src="' + src + '" style="width:140px;height:100px;object-fit:cover;border-radius:6px;border:1px solid var(--border);display:block;">' +
-        '<span style="font-size:11px;color:var(--ink-muted);display:block;margin-top:4px;">' + escapeHtml(p.category) + (p.caption ? ' — ' + escapeHtml(p.caption) : '') + '</span>' +
-        '</a>';
+        '</a>' +
+        '<span style="font-size:11px;color:var(--ink-muted);display:block;margin-top:4px;">' + (p.caption ? escapeHtml(p.caption) : escapeHtml(p.filename)) + '</span>' +
+        '<button class="btn" type="button" data-cx-delete-photo="' + escapeAttr(p.id) + '" style="margin-top:4px;font-size:11px;padding:2px 6px;">Delete</button>' +
+        '</div>';
     }).join('');
   }
+
+  async function cxDeletePhoto(id) {
+    if (!confirm('Delete this photo?')) return;
+    try {
+      const res = await fetch(cxBackendUrl() + '/commissioning/photos/' + encodeURIComponent(id), { method: 'DELETE' });
+      if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + (await res.text()).slice(0, 300));
+      await cxSelectUnit(cxSelectedUnitId);
+    } catch (err) {
+      alert('Could not delete photo: ' + (err.message || err));
+    }
+  }
+  document.getElementById('cxVmPhotoGallery').addEventListener('click', (ev) => {
+    const btn = ev.target.closest('[data-cx-delete-photo]');
+    if (btn) cxDeletePhoto(btn.dataset.cxDeletePhoto);
+  });
+  document.getElementById('cxElecPhotoGallery').addEventListener('click', (ev) => {
+    const btn = ev.target.closest('[data-cx-delete-photo]');
+    if (btn) cxDeletePhoto(btn.dataset.cxDeletePhoto);
+  });
 
   function cxRenderDetail() {
     const d = cxSelectedUnitDetail;
     if (!d) return;
     document.getElementById('cxDetail').style.display = '';
     document.getElementById('cxDetailTitle').textContent = d.tag + ' — ' + d.equipment_type + (d.manufacturer ? ' (' + d.manufacturer + (d.model ? ' ' + d.model : '') + ')' : '');
+    document.getElementById('cxVmBody').innerHTML = d.inspection_items.length
+      ? d.inspection_items.map(cxVmRowHtml).join('')
+      : '<tr class="empty"><td colspan="4">No visual/mechanical items yet.</td></tr>';
     document.getElementById('cxTorqueBody').innerHTML = d.torque_points.length
       ? d.torque_points.map(cxTorqueRowHtml).join('')
-      : '<tr class="empty"><td colspan="8">No torque points yet.</td></tr>';
+      : '<tr class="empty"><td colspan="9">No torque points yet.</td></tr>';
     document.getElementById('cxWireBody').innerHTML = d.wire_items.length
       ? d.wire_items.map(cxWireRowHtml).join('')
-      : '<tr class="empty"><td colspan="8">No wire inspection items yet.</td></tr>';
-    cxRenderPhotoGallery(d.photos);
+      : '<tr class="empty"><td colspan="9">No wire inspection items yet.</td></tr>';
+    document.getElementById('cxElecBody').innerHTML = d.electrical_readings.length
+      ? d.electrical_readings.map(cxElecRowHtml).join('')
+      : '<tr class="empty"><td colspan="7">No electrical readings yet.</td></tr>';
+    cxRenderPhotoGallery(d.photos, 'visual_mechanical', 'cxVmPhotoGallery');
+    cxRenderPhotoGallery(d.photos, 'electrical', 'cxElecPhotoGallery');
 
     const signoffBtn = document.getElementById('cxSignoffBtn');
     const signoffStatus = document.getElementById('cxSignoffStatus');
@@ -10163,15 +10523,15 @@
       document.getElementById('cxSignoffName').value = d.commissioned_by;
     } else if (d.summary.overall === 'complete') {
       signoffBtn.disabled = false;
-      signoffStatus.textContent = 'Every torque and wire item passes — ready to sign off.';
+      signoffStatus.textContent = 'Every visual/mechanical and electrical item passes — ready to sign off.';
       signoffStatus.style.color = 'var(--pass)';
     } else {
       signoffBtn.disabled = true;
-      signoffStatus.textContent = 'Status: ' + d.status.replace('_', ' ') + ' — resolve every torque/wire item before sign-off.';
+      signoffStatus.textContent = 'Status: ' + d.status.replace('_', ' ') + ' — resolve every item in both groups before sign-off.';
       signoffStatus.style.color = 'var(--ink-muted)';
     }
 
-    cxLoadTorqueTemplateButtons(d.equipment_type);
+    cxLoadChecklistTemplates(d.equipment_type);
   }
 
   async function cxSelectUnit(id) {
@@ -10207,23 +10567,26 @@
     }
   });
 
-  document.getElementById('cxUploadPhotoBtn').addEventListener('click', async () => {
-    const status = document.getElementById('cxPhotoStatus');
+  // Camera-capture vs. file-upload: two hidden inputs sharing one handler --
+  // `capture="environment"` opens the device's back camera directly where
+  // supported (most mobile browsers); the plain file input is the "pick an
+  // existing photo" fallback every browser (including desktop) supports.
+  async function cxUploadPhoto(file, category, captionElId, statusElId) {
+    const status = document.getElementById(statusElId);
     if (!cxSelectedUnitId) { status.textContent = 'Select a unit first.'; status.style.color = 'var(--fail)'; return; }
-    const file = document.getElementById('cxPhotoFile').files[0];
-    if (!file) { status.textContent = 'Choose a photo first.'; status.style.color = 'var(--fail)'; return; }
+    if (!file) return;
     const form = new FormData();
     form.append('file', file, file.name);
-    form.append('category', document.getElementById('cxPhotoCategory').value);
-    const caption = document.getElementById('cxPhotoCaption').value.trim();
+    form.append('category', category);
+    const captionEl = document.getElementById(captionElId);
+    const caption = captionEl.value.trim();
     if (caption) form.append('caption', caption);
     status.textContent = 'Uploading…';
     status.style.color = 'var(--ink-muted)';
     try {
       const res = await fetch(cxBackendUrl() + '/commissioning/units/' + encodeURIComponent(cxSelectedUnitId) + '/photos', { method: 'POST', body: form });
       if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + (await res.text()).slice(0, 300));
-      document.getElementById('cxPhotoFile').value = '';
-      document.getElementById('cxPhotoCaption').value = '';
+      captionEl.value = '';
       status.textContent = 'Uploaded — ' + new Date().toLocaleTimeString();
       status.style.color = 'var(--pass)';
       await cxSelectUnit(cxSelectedUnitId);
@@ -10231,6 +10594,28 @@
       status.textContent = 'Upload failed: ' + (err.message || err);
       status.style.color = 'var(--fail)';
     }
+  }
+
+  document.getElementById('cxVmPhotoCameraBtn').addEventListener('click', () => document.getElementById('cxVmPhotoCameraInput').click());
+  document.getElementById('cxVmPhotoFileBtn').addEventListener('click', () => document.getElementById('cxVmPhotoFileInput').click());
+  document.getElementById('cxVmPhotoCameraInput').addEventListener('change', (ev) => {
+    cxUploadPhoto(ev.target.files[0], 'visual_mechanical', 'cxVmPhotoCaption', 'cxVmPhotoStatus');
+    ev.target.value = '';
+  });
+  document.getElementById('cxVmPhotoFileInput').addEventListener('change', (ev) => {
+    cxUploadPhoto(ev.target.files[0], 'visual_mechanical', 'cxVmPhotoCaption', 'cxVmPhotoStatus');
+    ev.target.value = '';
+  });
+
+  document.getElementById('cxElecPhotoCameraBtn').addEventListener('click', () => document.getElementById('cxElecPhotoCameraInput').click());
+  document.getElementById('cxElecPhotoFileBtn').addEventListener('click', () => document.getElementById('cxElecPhotoFileInput').click());
+  document.getElementById('cxElecPhotoCameraInput').addEventListener('change', (ev) => {
+    cxUploadPhoto(ev.target.files[0], 'electrical', 'cxElecPhotoCaption', 'cxElecPhotoStatus');
+    ev.target.value = '';
+  });
+  document.getElementById('cxElecPhotoFileInput').addEventListener('change', (ev) => {
+    cxUploadPhoto(ev.target.files[0], 'electrical', 'cxElecPhotoCaption', 'cxElecPhotoStatus');
+    ev.target.value = '';
   });
 
   // ---- now that every panel above has defined its bindings, run the first pass ----

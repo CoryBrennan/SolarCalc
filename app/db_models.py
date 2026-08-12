@@ -132,6 +132,14 @@ def _new_commissioning_photo_id() -> str:
     return f"cxp-{uuid.uuid4().hex[:12]}"
 
 
+def _new_inspection_item_id() -> str:
+    return f"insp-{uuid.uuid4().hex[:12]}"
+
+
+def _new_electrical_reading_id() -> str:
+    return f"elec-{uuid.uuid4().hex[:12]}"
+
+
 class CommissioningUnit(SQLModel, table=True):
     """One physical piece of equipment going through field commissioning --
     an inverter, switchboard, or load center. Ties torque checks, wire
@@ -140,10 +148,13 @@ class CommissioningUnit(SQLModel, table=True):
     for "INV-04" lines up with the same tag the design and CAD side use.
 
     status is derived, not hand-set -- app/commissioning_calc.summarize_unit
-    recomputes it from the unit's own torque points + wire items every time
-    one of them changes (see commissioning_routes), the same "status reflects
-    child state" approach Changeset/IngestionJob use for their own status
-    columns.
+    recomputes it from the unit's own torque points, visual/mechanical
+    InspectionItems, wire items, and ElectricalReadings every time one of
+    them changes (see commissioning_routes), the same "status reflects child
+    state" approach Changeset/IngestionJob use for their own status columns.
+    The four child types split into the two groups the HMI panel shows:
+    torque + InspectionItem = Visual & Mechanical Inspection, WireInspectionItem
+    + ElectricalReading = Electrical Inspection.
     """
 
     id: str = Field(default_factory=_new_commissioning_unit_id, primary_key=True)
@@ -215,6 +226,51 @@ class WireInspectionItem(SQLModel, table=True):
     created_at: datetime = Field(default_factory=_now)
 
 
+class InspectionItem(SQLModel, table=True):
+    """One visual/mechanical checklist item on a CommissioningUnit --
+    enclosure condition, nameplate legibility, conduit entries sealed,
+    mounting hardware secure, required labels/placards present, etc.
+    Unlike TorquePoint this has no numeric design band; a technician just
+    marks it pass/fail directly (see commissioning_routes.InspectionItemUpdate),
+    since "is the enclosure dented" isn't a measurement to grade against a
+    spec the way torque or a voltage reading is.
+    """
+
+    id: str = Field(default_factory=_new_inspection_item_id, primary_key=True)
+    unit_id: str = Field(foreign_key="commissioningunit.id", index=True)
+    label: str  # "Enclosure condition / no physical damage", etc.
+    notes: str | None = Field(default=None)
+    result: str = Field(default="pending", index=True)  # pending | pass | fail
+    checked_at: datetime | None = Field(default=None)
+    created_at: datetime = Field(default_factory=_now)
+
+
+class ElectricalReading(SQLModel, table=True):
+    """One electrical measurement on a CommissioningUnit -- AC line-to-line/
+    line-to-neutral voltage, DC string/combiner voltage, etc. Same
+    design-band-vs-measured shape as TorquePoint (see
+    commissioning_calc.score_measurement_band, which both call), but
+    design_min/max here can also be derived automatically from the project's
+    own design data (app/commissioning_routes.auto_populate_electrical_readings
+    uses ProjectInput.inverter.nominal_ac_voltage_v +/- a tolerance for
+    inverter/switchboard units) rather than always requiring manual entry
+    the way a torque spec does -- unlike a lug's torque rating, nominal
+    system voltage already lives in this app's own design data.
+    """
+
+    id: str = Field(default_factory=_new_electrical_reading_id, primary_key=True)
+    unit_id: str = Field(foreign_key="commissioningunit.id", index=True)
+    label: str  # "AC output L1-L2", "DC combiner 1 Voc", etc.
+    reading_type: str = Field(default="ac_voltage")  # ac_voltage | dc_voltage | other
+    design_min: float | None = Field(default=None)
+    design_max: float | None = Field(default=None)
+    unit: str = Field(default="VAC")  # "VAC" | "VDC"
+    measured_value: float | None = Field(default=None)
+    result: str = Field(default="pending", index=True)  # pending | pass | fail
+    checked_at: datetime | None = Field(default=None)
+    created_at: datetime = Field(default_factory=_now)
+
+
 class CommissioningPhoto(SQLModel, table=True):
     """A field photo attached to a CommissioningUnit -- nameplate, a torque
     stripe/paint-pen mark, a wiring close-up, etc. Stored as a DB blob
@@ -226,7 +282,7 @@ class CommissioningPhoto(SQLModel, table=True):
 
     id: str = Field(default_factory=_new_commissioning_photo_id, primary_key=True)
     unit_id: str = Field(foreign_key="commissioningunit.id", index=True)
-    category: str = Field(default="general", index=True)  # torque | wiring | nameplate | general
+    category: str = Field(default="visual_mechanical", index=True)  # visual_mechanical | electrical
     torque_point_id: str | None = Field(default=None, foreign_key="torquepoint.id")
     wire_item_id: str | None = Field(default=None, foreign_key="wireinspectionitem.id")
     caption: str | None = Field(default=None)
