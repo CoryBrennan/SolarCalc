@@ -43,6 +43,7 @@ from app import (
 )
 from app.catalog_routes import router as catalog_router
 from app.changeset_routes import router as changeset_router
+from app.commissioning_routes import router as commissioning_router
 from app.db import create_db_and_tables
 from app.skyvisor_routes import router as skyvisor_router
 from app.fluke_export_import import FlukeImportError
@@ -75,6 +76,7 @@ app.add_middleware(
 app.include_router(changeset_router)
 app.include_router(catalog_router)
 app.include_router(skyvisor_router)
+app.include_router(commissioning_router)
 create_db_and_tables()
 
 

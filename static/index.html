@@ -531,6 +531,7 @@
       <li><button class="rail-btn" data-target="sec-skyvisor"><span><span class="rail-num">25</span> SkyVisor Integration</span><span class="rail-dot dot-warn" id="skyvisorDot"></span></button></li>
       <li><button class="rail-btn" data-target="sec-gps-validate"><span><span class="rail-num">26</span> GPS As-Built Validation</span><span class="rail-dot dot-pass" id="gpsValidateDot"></span></button></li>
       <li><button class="rail-btn" data-target="sec-value-engineering"><span><span class="rail-num">27</span> Wire Value Engineering</span><span class="rail-dot dot-neutral" id="veDot"></span></button></li>
+      <li><button class="rail-btn" data-target="sec-commissioning"><span><span class="rail-num">28</span> Commissioning &amp; QC</span><span class="rail-dot dot-neutral" id="commissioningDot"></span></button></li>
     </ul>
     <div class="rail-foot">
       NEC edition resolved from <b>jurisdiction_lookup.py</b><br>
@@ -2828,6 +2829,208 @@
         </div>
       </section>
 
+      <section class="panel" id="sec-commissioning">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">commissioning_routes.py → /commissioning</p>
+            <h2>Commissioning &amp; QC</h2>
+          </div>
+          <span class="chip chip-pass">Live — persisted, survives a page reload</span>
+        </div>
+        <p class="desc">Field commissioning record for inverters, switchboards, and load centers: torque verification against a design spec, wire/conductor inspection against design intent, and photo documentation of both. Unlike the rest of this app, this panel is backed by real persistence (app/db_models.py's CommissioningUnit/TorquePoint/WireInspectionItem/CommissioningPhoto tables) — a crew can close the tab mid-walkdown and pick up where they left off. No manufacturer torque values are pre-loaded — <b>enter design min/max from the equipment's own install manual/torque chart</b> before grading a connection; see the note below.</p>
+
+        <div class="card">
+          <p class="card-title">Add equipment unit</p>
+          <div class="field-grid" style="margin-bottom:12px;">
+            <div class="field">
+              <label for="cxNewType">Equipment type</label>
+              <select id="cxNewType">
+                <option value="inverter">Inverter</option>
+                <option value="switchboard">Switchboard</option>
+                <option value="load_center">Load center</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="cxNewTag">Tag <span class="unit">e.g. INV-04, SWBD-1, LC-2</span></label>
+              <input class="prose" type="text" id="cxNewTag" placeholder="INV-04">
+            </div>
+            <div class="field">
+              <label for="cxNewMfr">Manufacturer</label>
+              <input class="prose" type="text" id="cxNewMfr">
+            </div>
+            <div class="field">
+              <label for="cxNewModel">Model</label>
+              <input class="prose" type="text" id="cxNewModel">
+            </div>
+          </div>
+          <div class="bulk-btns">
+            <button class="btn btn-primary" id="cxAddUnitBtn" type="button">+ Add unit</button>
+          </div>
+          <p class="desc" id="cxAddUnitStatus" style="margin-bottom:0;"></p>
+        </div>
+
+        <div class="card">
+          <p class="card-title">Units <span class="unit" id="cxUnitsCount"></span></p>
+          <div class="bulk-btns" style="margin-bottom:12px;">
+            <select id="cxFilterType" style="width:auto;">
+              <option value="">All equipment types</option>
+              <option value="inverter">Inverter</option>
+              <option value="switchboard">Switchboard</option>
+              <option value="load_center">Load center</option>
+            </select>
+            <button class="btn" id="cxRefreshUnitsBtn" type="button">⟳ Refresh</button>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="etap">
+              <thead>
+                <tr>
+                  <th>Tag</th><th>Type</th><th>Manufacturer / Model</th>
+                  <th style="text-align:right;">Torque</th><th style="text-align:right;">Wire</th>
+                  <th>Status</th><th>Signed off</th><th></th>
+                </tr>
+              </thead>
+              <tbody id="cxUnitsBody"><tr class="empty"><td colspan="8">No units yet — add one above.</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="cxDetail" style="display:none;">
+          <div class="card">
+            <p class="card-title" id="cxDetailTitle">Unit</p>
+            <div class="field-grid" style="margin-bottom:12px;">
+              <div class="field">
+                <label for="cxSignoffName">Sign off as <span class="unit">only enabled once every item below passes</span></label>
+                <input class="prose" type="text" id="cxSignoffName" placeholder="Initials or name">
+              </div>
+            </div>
+            <div class="bulk-btns">
+              <button class="btn btn-primary" id="cxSignoffBtn" type="button" disabled>Sign off unit</button>
+            </div>
+            <p class="desc" id="cxSignoffStatus" style="margin-bottom:0;"></p>
+          </div>
+
+          <div class="card">
+            <p class="card-title">Torque checklist</p>
+            <div class="bulk-btns" style="margin-bottom:12px;" id="cxTorqueTemplateBtns"></div>
+            <div style="overflow-x:auto;">
+              <table class="etap">
+                <thead>
+                  <tr>
+                    <th>Connection</th>
+                    <th style="text-align:right;">Design min</th>
+                    <th style="text-align:right;">Design max</th>
+                    <th>Unit</th>
+                    <th style="text-align:right;">Measured</th>
+                    <th>Wrench ID</th>
+                    <th>Tech</th>
+                    <th>Result</th>
+                  </tr>
+                </thead>
+                <tbody id="cxTorqueBody"><tr class="empty"><td colspan="8">No torque points yet.</td></tr></tbody>
+              </table>
+            </div>
+            <div class="field-grid" style="margin-top:14px;margin-bottom:12px;">
+              <div class="field">
+                <label for="cxNewTorqueLabel">New connection label</label>
+                <input class="prose" type="text" id="cxNewTorqueLabel" placeholder="e.g. AC output lugs (L1)">
+              </div>
+              <div class="field">
+                <label for="cxNewTorqueMin">Design min</label>
+                <input class="prose" type="text" id="cxNewTorqueMin" placeholder="from install manual">
+              </div>
+              <div class="field">
+                <label for="cxNewTorqueMax">Design max</label>
+                <input class="prose" type="text" id="cxNewTorqueMax" placeholder="from install manual">
+              </div>
+              <div class="field">
+                <label for="cxNewTorqueUnit">Unit</label>
+                <select id="cxNewTorqueUnit">
+                  <option value="ft-lb">ft-lb</option>
+                  <option value="in-lb">in-lb</option>
+                  <option value="Nm">Nm</option>
+                </select>
+              </div>
+            </div>
+            <div class="bulk-btns">
+              <button class="btn" id="cxAddTorqueBtn" type="button">+ Add torque point</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <p class="card-title">Wire &amp; conductor inspection</p>
+            <div class="field-grid" style="margin-bottom:12px;">
+              <div class="field">
+                <label for="cxIrFloor">Min insulation resistance <span class="unit">MΩ — rule of thumb, override per site standard</span></label>
+                <input class="prose" type="text" id="cxIrFloor" value="1.0">
+              </div>
+            </div>
+            <div style="overflow-x:auto;">
+              <table class="etap">
+                <thead>
+                  <tr>
+                    <th>Circuit</th>
+                    <th>Design conductor</th>
+                    <th>As-built conductor</th>
+                    <th>Termination</th>
+                    <th>Labeling</th>
+                    <th>Continuity</th>
+                    <th style="text-align:right;">IR (MΩ)</th>
+                    <th>Result</th>
+                  </tr>
+                </thead>
+                <tbody id="cxWireBody"><tr class="empty"><td colspan="8">No wire inspection items yet.</td></tr></tbody>
+              </table>
+            </div>
+            <div class="field-grid" style="margin-top:14px;margin-bottom:12px;">
+              <div class="field">
+                <label for="cxNewWireLabel">New circuit label</label>
+                <input class="prose" type="text" id="cxNewWireLabel" placeholder="e.g. DC input MPPT1">
+              </div>
+              <div class="field">
+                <label for="cxNewWireDesign">Design conductor <span class="unit">from Ampacity (13) / Raceway (24)</span></label>
+                <input class="prose" type="text" id="cxNewWireDesign" placeholder="e.g. 500 kcmil CU">
+              </div>
+            </div>
+            <div class="bulk-btns">
+              <button class="btn" id="cxAddWireBtn" type="button">+ Add wire item</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <p class="card-title">Photos</p>
+            <div class="field-grid" style="margin-bottom:12px;">
+              <div class="field">
+                <label for="cxPhotoFile">Photo</label>
+                <input type="file" id="cxPhotoFile" accept="image/*">
+              </div>
+              <div class="field">
+                <label for="cxPhotoCategory">Category</label>
+                <select id="cxPhotoCategory">
+                  <option value="torque">Torque marking</option>
+                  <option value="wiring">Wiring</option>
+                  <option value="nameplate">Nameplate</option>
+                  <option value="general">General</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="cxPhotoCaption">Caption</label>
+                <input class="prose" type="text" id="cxPhotoCaption" placeholder="e.g. AC lugs, paint-pen witness mark">
+              </div>
+            </div>
+            <div class="bulk-btns">
+              <button class="btn btn-primary" id="cxUploadPhotoBtn" type="button">Upload photo</button>
+            </div>
+            <p class="desc" id="cxPhotoStatus"></p>
+            <div id="cxPhotoGallery" style="display:flex;flex-wrap:wrap;gap:12px;margin-top:12px;"></div>
+          </div>
+        </div>
+
+        <div class="note">
+          <span>ⓘ</span>
+          <span><b>No fabricated torque values.</b> UL 486A/B torque specs vary by lug and equipment, so this panel never pre-fills a design min/max — type it in from the equipment's own install manual or torque chart, per unit. The insulation-resistance floor (default 1 MΩ) is a common low-voltage rule of thumb, not a code-mandated figure — override it per reading if your site standard sets a different minimum. Photos are stored server-side against the unit's record, not on this device.</span>
+        </div>
+      </section>
+
     </div>
   </div>
 </div>
@@ -2837,7 +3040,7 @@
   const WIDE_PANELS = [
     'sec-site', 'sec-directory', 'sec-inverter-design',
     'sec-combiner', 'sec-switchboard-design', 'sec-mv-design', 'sec-backend', 'sec-catalog-review', 'sec-raceway',
-    'sec-skyvisor', 'sec-gps-validate', 'sec-value-engineering',
+    'sec-skyvisor', 'sec-gps-validate', 'sec-value-engineering', 'sec-commissioning',
   ];
   const railBtns = document.querySelectorAll('.rail-btn');
   railBtns.forEach(btn => {
@@ -2850,6 +3053,7 @@
       // The map can't lay itself out while Site Config is hidden, so anything
       // that moved the pin in the meantime gets drawn on the way back in.
       if (btn.dataset.target === 'sec-site' && mapNeedsRender) renderMap();
+      if (btn.dataset.target === 'sec-commissioning' && cxNeedsInitialLoad) { cxNeedsInitialLoad = false; cxRefreshUnits(); }
     });
   });
 
@@ -9603,6 +9807,428 @@
     } catch (err) {
       result.style.display = 'none';
       status.textContent = 'Validation failed: ' + (err.message || err);
+      status.style.color = 'var(--fail)';
+    }
+  });
+
+  // ---- Commissioning & QC (28) — inverter/switchboard/load-center field
+  // commissioning: torque checks against a design spec, wire inspection
+  // against design conductor, and photo documentation
+  // (app/commissioning_routes.py). Real persistence, unlike most of this
+  // app's stateless /calculate flow -- see db_models.CommissioningUnit's
+  // docstring for why status is re-derived from child rows on every write
+  // instead of hand-set.
+  let cxUnits = [];
+  let cxSelectedUnitId = null;
+  let cxSelectedUnitDetail = null;
+  let cxNeedsInitialLoad = true;
+
+  function cxBackendUrl() {
+    return document.getElementById('backendUrlInput').value.trim().replace(/\/$/, '');
+  }
+
+  function cxUnitStatusChipHtml(status) {
+    const map = {
+      not_started: ['chip-muted', 'Not started'],
+      in_progress: ['chip-warn', 'In progress'],
+      complete: ['chip-pass', 'Complete'],
+      needs_attention: ['chip-fail', 'Needs attention'],
+    };
+    const entry = map[status] || ['chip-muted', status];
+    return '<span class="chip ' + entry[0] + '">' + escapeHtml(entry[1]) + '</span>';
+  }
+
+  function cxResultChipHtml(result) {
+    const map = {
+      pending: ['status-queued', 'Pending'],
+      pass: ['status-extracted', 'Pass'],
+      fail: ['status-fail', 'Fail'],
+    };
+    const entry = map[result] || ['status-queued', result];
+    return '<span class="status-chip ' + entry[0] + '"><span class="p"></span>' + escapeHtml(entry[1]) + '</span>';
+  }
+
+  function cxUnitRailDotClass(status) {
+    if (status === 'needs_attention') return 'dot-fail';
+    if (status === 'complete') return 'dot-pass';
+    if (status === 'in_progress') return 'dot-warn';
+    return 'dot-neutral';
+  }
+
+  function cxUpdateRailDot() {
+    const dot = document.getElementById('commissioningDot');
+    if (!dot) return;
+    if (!cxUnits.length) { dot.className = 'rail-dot dot-neutral'; return; }
+    let worst;
+    if (cxUnits.some(u => u.status === 'needs_attention')) worst = 'needs_attention';
+    else if (cxUnits.every(u => u.status === 'complete')) worst = 'complete';
+    else if (cxUnits.some(u => u.status !== 'not_started')) worst = 'in_progress';
+    else worst = 'not_started';
+    dot.className = 'rail-dot ' + cxUnitRailDotClass(worst);
+  }
+
+  function cxUnitRowHtml(u) {
+    const torque = u.summary.torque, wire = u.summary.wire;
+    const torqueText = torque.total ? (torque.pass + '/' + torque.total + (torque.fail ? ' (' + torque.fail + ' fail)' : '')) : '—';
+    const wireText = wire.total ? (wire.pass + '/' + wire.total + (wire.fail ? ' (' + wire.fail + ' fail)' : '')) : '—';
+    return '<tr data-unit-id="' + escapeAttr(u.id) + '"' + (u.id === cxSelectedUnitId ? ' style="background:var(--accent-soft);"' : '') + '>' +
+      '<td>' + escapeHtml(u.tag) + '</td>' +
+      '<td>' + escapeHtml(u.equipment_type) + '</td>' +
+      '<td>' + escapeHtml([u.manufacturer, u.model].filter(Boolean).join(' / ') || '—') + '</td>' +
+      '<td style="text-align:right;">' + torqueText + '</td>' +
+      '<td style="text-align:right;">' + wireText + '</td>' +
+      '<td>' + cxUnitStatusChipHtml(u.status) + '</td>' +
+      '<td>' + (u.commissioned_by ? escapeHtml(u.commissioned_by) : '—') + '</td>' +
+      '<td><button class="btn" type="button" data-cx-select="' + escapeAttr(u.id) + '">Open</button></td>' +
+      '</tr>';
+  }
+
+  async function cxRefreshUnits() {
+    const body = document.getElementById('cxUnitsBody');
+    const countEl = document.getElementById('cxUnitsCount');
+    const filterType = document.getElementById('cxFilterType').value;
+    const params = new URLSearchParams();
+    if (filterType) params.set('equipment_type', filterType);
+    try {
+      const res = await fetch(cxBackendUrl() + '/commissioning/units' + (params.toString() ? '?' + params.toString() : ''));
+      if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + (await res.text()).slice(0, 300));
+      cxUnits = await res.json();
+      body.innerHTML = cxUnits.length ? cxUnits.map(cxUnitRowHtml).join('') : '<tr class="empty"><td colspan="8">No units yet — add one above.</td></tr>';
+      countEl.textContent = cxUnits.length + ' unit(s)';
+      cxUpdateRailDot();
+    } catch (err) {
+      body.innerHTML = '<tr class="empty"><td colspan="8">Failed to load.</td></tr>';
+      countEl.textContent = 'load failed: ' + (err.message || err);
+    }
+  }
+  document.getElementById('cxRefreshUnitsBtn').addEventListener('click', cxRefreshUnits);
+  document.getElementById('cxFilterType').addEventListener('change', cxRefreshUnits);
+  document.getElementById('cxUnitsBody').addEventListener('click', (ev) => {
+    const btn = ev.target.closest('[data-cx-select]');
+    if (!btn) return;
+    cxSelectUnit(btn.dataset.cxSelect);
+  });
+
+  document.getElementById('cxAddUnitBtn').addEventListener('click', async () => {
+    const status = document.getElementById('cxAddUnitStatus');
+    const tag = document.getElementById('cxNewTag').value.trim();
+    if (!tag) { status.textContent = 'Enter a tag first.'; status.style.color = 'var(--fail)'; return; }
+    status.textContent = 'Adding…';
+    status.style.color = 'var(--ink-muted)';
+    try {
+      const res = await fetch(cxBackendUrl() + '/commissioning/units', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          equipment_type: document.getElementById('cxNewType').value,
+          tag: tag,
+          manufacturer: document.getElementById('cxNewMfr').value.trim() || null,
+          model: document.getElementById('cxNewModel').value.trim() || null,
+        }),
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + (await res.text()).slice(0, 300));
+      const unit = await res.json();
+      document.getElementById('cxNewTag').value = '';
+      document.getElementById('cxNewMfr').value = '';
+      document.getElementById('cxNewModel').value = '';
+      status.textContent = 'Added ' + unit.tag + ' — ' + new Date().toLocaleTimeString();
+      status.style.color = 'var(--pass)';
+      await cxRefreshUnits();
+      await cxSelectUnit(unit.id);
+    } catch (err) {
+      status.textContent = 'Could not add unit: ' + (err.message || err);
+      status.style.color = 'var(--fail)';
+    }
+  });
+
+  function cxTriStateSelectHtml(field, value) {
+    return '<select data-cx-field="' + field + '">' +
+      '<option value=""' + (value === null || value === undefined ? ' selected' : '') + '>—</option>' +
+      '<option value="true"' + (value === true ? ' selected' : '') + '>Pass</option>' +
+      '<option value="false"' + (value === false ? ' selected' : '') + '>Fail</option>' +
+      '</select>';
+  }
+
+  function cxRowFieldValue(row, field) {
+    const el = row.querySelector('[data-cx-field="' + field + '"]');
+    return el ? el.value : '';
+  }
+
+  function cxTorqueRowHtml(t) {
+    const min = t.design_torque_min != null ? t.design_torque_min : '';
+    const max = t.design_torque_max != null ? t.design_torque_max : '';
+    const measured = t.measured_torque_value != null ? t.measured_torque_value : '';
+    return '<tr data-torque-id="' + escapeAttr(t.id) + '">' +
+      '<td>' + escapeHtml(t.connection_label) + '</td>' +
+      '<td style="text-align:right;"><input type="text" data-cx-field="design_torque_min" value="' + escapeAttr(min) + '" style="width:70px;text-align:right;"></td>' +
+      '<td style="text-align:right;"><input type="text" data-cx-field="design_torque_max" value="' + escapeAttr(max) + '" style="width:70px;text-align:right;"></td>' +
+      '<td><select data-cx-field="torque_unit">' +
+        '<option value="ft-lb"' + (t.torque_unit === 'ft-lb' ? ' selected' : '') + '>ft-lb</option>' +
+        '<option value="in-lb"' + (t.torque_unit === 'in-lb' ? ' selected' : '') + '>in-lb</option>' +
+        '<option value="Nm"' + (t.torque_unit === 'Nm' ? ' selected' : '') + '>Nm</option>' +
+      '</select></td>' +
+      '<td style="text-align:right;"><input type="text" data-cx-field="measured_torque_value" value="' + escapeAttr(measured) + '" style="width:70px;text-align:right;"></td>' +
+      '<td><input type="text" data-cx-field="wrench_id" value="' + escapeAttr(t.wrench_id || '') + '" style="width:80px;"></td>' +
+      '<td><input type="text" data-cx-field="tech_initials" value="' + escapeAttr(t.tech_initials || '') + '" style="width:60px;"></td>' +
+      '<td>' + cxResultChipHtml(t.result) + '</td>' +
+      '</tr>';
+  }
+
+  function cxWireRowHtml(w) {
+    const ir = w.insulation_resistance_megohm != null ? w.insulation_resistance_megohm : '';
+    return '<tr data-wire-id="' + escapeAttr(w.id) + '">' +
+      '<td>' + escapeHtml(w.circuit_label) + '</td>' +
+      '<td>' + escapeHtml(w.design_conductor) + '</td>' +
+      '<td><input type="text" data-cx-field="as_built_conductor" value="' + escapeAttr(w.as_built_conductor || '') + '" style="width:120px;"></td>' +
+      '<td>' + cxTriStateSelectHtml('termination_ok', w.termination_ok) + '</td>' +
+      '<td>' + cxTriStateSelectHtml('labeling_ok', w.labeling_ok) + '</td>' +
+      '<td>' + cxTriStateSelectHtml('continuity_ok', w.continuity_ok) + '</td>' +
+      '<td style="text-align:right;"><input type="text" data-cx-field="insulation_resistance_megohm" value="' + escapeAttr(ir) + '" style="width:70px;text-align:right;"></td>' +
+      '<td>' + cxResultChipHtml(w.result) + '</td>' +
+      '</tr>';
+  }
+
+  async function cxSaveTorqueRow(row) {
+    const id = row.dataset.torqueId;
+    const numOrNull = (v) => v.trim() === '' ? null : parseNum(v);
+    const payload = {
+      design_torque_min: numOrNull(cxRowFieldValue(row, 'design_torque_min')),
+      design_torque_max: numOrNull(cxRowFieldValue(row, 'design_torque_max')),
+      torque_unit: cxRowFieldValue(row, 'torque_unit'),
+      measured_torque_value: numOrNull(cxRowFieldValue(row, 'measured_torque_value')),
+      wrench_id: cxRowFieldValue(row, 'wrench_id').trim() || null,
+      tech_initials: cxRowFieldValue(row, 'tech_initials').trim() || null,
+    };
+    try {
+      const res = await fetch(cxBackendUrl() + '/commissioning/torque-points/' + encodeURIComponent(id), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + (await res.text()).slice(0, 300));
+      await cxSelectUnit(cxSelectedUnitId);
+      await cxRefreshUnits();
+    } catch (err) {
+      alert('Could not save torque point: ' + (err.message || err));
+    }
+  }
+
+  async function cxSaveWireRow(row) {
+    const id = row.dataset.wireId;
+    const triState = (v) => v === 'true' ? true : (v === 'false' ? false : null);
+    const irRaw = cxRowFieldValue(row, 'insulation_resistance_megohm').trim();
+    const floorRaw = document.getElementById('cxIrFloor').value.trim();
+    const payload = {
+      as_built_conductor: cxRowFieldValue(row, 'as_built_conductor').trim() || null,
+      termination_ok: triState(cxRowFieldValue(row, 'termination_ok')),
+      labeling_ok: triState(cxRowFieldValue(row, 'labeling_ok')),
+      continuity_ok: triState(cxRowFieldValue(row, 'continuity_ok')),
+      insulation_resistance_megohm: irRaw === '' ? null : parseNum(irRaw),
+      min_insulation_resistance_megohm: floorRaw === '' ? 1.0 : parseNum(floorRaw),
+    };
+    try {
+      const res = await fetch(cxBackendUrl() + '/commissioning/wire-items/' + encodeURIComponent(id), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + (await res.text()).slice(0, 300));
+      await cxSelectUnit(cxSelectedUnitId);
+      await cxRefreshUnits();
+    } catch (err) {
+      alert('Could not save wire item: ' + (err.message || err));
+    }
+  }
+  document.getElementById('cxTorqueBody').addEventListener('change', (ev) => {
+    const row = ev.target.closest('tr[data-torque-id]');
+    if (row) cxSaveTorqueRow(row);
+  });
+  document.getElementById('cxWireBody').addEventListener('change', (ev) => {
+    const row = ev.target.closest('tr[data-wire-id]');
+    if (row) cxSaveWireRow(row);
+  });
+
+  document.getElementById('cxAddTorqueBtn').addEventListener('click', async () => {
+    if (!cxSelectedUnitId) { alert('Select or add a unit first.'); return; }
+    const label = document.getElementById('cxNewTorqueLabel').value.trim();
+    if (!label) { alert('Enter a connection label first.'); return; }
+    const minRaw = document.getElementById('cxNewTorqueMin').value.trim();
+    const maxRaw = document.getElementById('cxNewTorqueMax').value.trim();
+    const payload = [{
+      connection_label: label,
+      design_torque_min: minRaw === '' ? null : parseNum(minRaw),
+      design_torque_max: maxRaw === '' ? null : parseNum(maxRaw),
+      torque_unit: document.getElementById('cxNewTorqueUnit').value,
+    }];
+    try {
+      const res = await fetch(cxBackendUrl() + '/commissioning/units/' + encodeURIComponent(cxSelectedUnitId) + '/torque-points', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + (await res.text()).slice(0, 300));
+      document.getElementById('cxNewTorqueLabel').value = '';
+      document.getElementById('cxNewTorqueMin').value = '';
+      document.getElementById('cxNewTorqueMax').value = '';
+      await cxSelectUnit(cxSelectedUnitId);
+      await cxRefreshUnits();
+    } catch (err) {
+      alert('Could not add torque point: ' + (err.message || err));
+    }
+  });
+
+  document.getElementById('cxAddWireBtn').addEventListener('click', async () => {
+    if (!cxSelectedUnitId) { alert('Select or add a unit first.'); return; }
+    const label = document.getElementById('cxNewWireLabel').value.trim();
+    const design = document.getElementById('cxNewWireDesign').value.trim();
+    if (!label || !design) { alert('Enter both a circuit label and a design conductor first.'); return; }
+    try {
+      const res = await fetch(cxBackendUrl() + '/commissioning/units/' + encodeURIComponent(cxSelectedUnitId) + '/wire-items', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify([{ circuit_label: label, design_conductor: design }]),
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + (await res.text()).slice(0, 300));
+      document.getElementById('cxNewWireLabel').value = '';
+      document.getElementById('cxNewWireDesign').value = '';
+      await cxSelectUnit(cxSelectedUnitId);
+      await cxRefreshUnits();
+    } catch (err) {
+      alert('Could not add wire item: ' + (err.message || err));
+    }
+  });
+
+  async function cxLoadTorqueTemplateButtons(equipmentType) {
+    const container = document.getElementById('cxTorqueTemplateBtns');
+    container.innerHTML = '<span class="desc" style="margin:0;">Loading quick-add template…</span>';
+    try {
+      const res = await fetch(cxBackendUrl() + '/commissioning/checklist-templates?equipment_type=' + encodeURIComponent(equipmentType));
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      container.innerHTML = data.connection_labels.map(label =>
+        '<button class="btn" type="button" data-cx-quick-add="' + escapeAttr(label) + '">+ ' + escapeHtml(label) + '</button>'
+      ).join('');
+    } catch (err) {
+      container.innerHTML = '<span class="desc" style="margin:0;color:var(--fail);">Could not load quick-add template.</span>';
+    }
+  }
+  document.getElementById('cxTorqueTemplateBtns').addEventListener('click', async (ev) => {
+    const btn = ev.target.closest('[data-cx-quick-add]');
+    if (!btn || !cxSelectedUnitId) return;
+    try {
+      const res = await fetch(cxBackendUrl() + '/commissioning/units/' + encodeURIComponent(cxSelectedUnitId) + '/torque-points', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify([{ connection_label: btn.dataset.cxQuickAdd, torque_unit: 'ft-lb' }]),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      await cxSelectUnit(cxSelectedUnitId);
+      await cxRefreshUnits();
+    } catch (err) {
+      alert('Could not add torque point: ' + (err.message || err));
+    }
+  });
+
+  function cxRenderPhotoGallery(photos) {
+    const gallery = document.getElementById('cxPhotoGallery');
+    if (!photos.length) { gallery.innerHTML = '<p class="desc" style="margin:0;">No photos yet.</p>'; return; }
+    gallery.innerHTML = photos.map(p => {
+      const src = cxBackendUrl() + '/commissioning/photos/' + encodeURIComponent(p.id);
+      return '<a href="' + src + '" target="_blank" rel="noopener" style="display:block;width:140px;text-decoration:none;color:inherit;">' +
+        '<img src="' + src + '" style="width:140px;height:100px;object-fit:cover;border-radius:6px;border:1px solid var(--border);display:block;">' +
+        '<span style="font-size:11px;color:var(--ink-muted);display:block;margin-top:4px;">' + escapeHtml(p.category) + (p.caption ? ' — ' + escapeHtml(p.caption) : '') + '</span>' +
+        '</a>';
+    }).join('');
+  }
+
+  function cxRenderDetail() {
+    const d = cxSelectedUnitDetail;
+    if (!d) return;
+    document.getElementById('cxDetail').style.display = '';
+    document.getElementById('cxDetailTitle').textContent = d.tag + ' — ' + d.equipment_type + (d.manufacturer ? ' (' + d.manufacturer + (d.model ? ' ' + d.model : '') + ')' : '');
+    document.getElementById('cxTorqueBody').innerHTML = d.torque_points.length
+      ? d.torque_points.map(cxTorqueRowHtml).join('')
+      : '<tr class="empty"><td colspan="8">No torque points yet.</td></tr>';
+    document.getElementById('cxWireBody').innerHTML = d.wire_items.length
+      ? d.wire_items.map(cxWireRowHtml).join('')
+      : '<tr class="empty"><td colspan="8">No wire inspection items yet.</td></tr>';
+    cxRenderPhotoGallery(d.photos);
+
+    const signoffBtn = document.getElementById('cxSignoffBtn');
+    const signoffStatus = document.getElementById('cxSignoffStatus');
+    if (d.commissioned_by) {
+      signoffBtn.disabled = true;
+      signoffStatus.textContent = 'Signed off by ' + d.commissioned_by + ' at ' + new Date(d.commissioned_at).toLocaleString();
+      signoffStatus.style.color = 'var(--pass)';
+      document.getElementById('cxSignoffName').value = d.commissioned_by;
+    } else if (d.summary.overall === 'complete') {
+      signoffBtn.disabled = false;
+      signoffStatus.textContent = 'Every torque and wire item passes — ready to sign off.';
+      signoffStatus.style.color = 'var(--pass)';
+    } else {
+      signoffBtn.disabled = true;
+      signoffStatus.textContent = 'Status: ' + d.status.replace('_', ' ') + ' — resolve every torque/wire item before sign-off.';
+      signoffStatus.style.color = 'var(--ink-muted)';
+    }
+
+    cxLoadTorqueTemplateButtons(d.equipment_type);
+  }
+
+  async function cxSelectUnit(id) {
+    cxSelectedUnitId = id;
+    try {
+      const res = await fetch(cxBackendUrl() + '/commissioning/units/' + encodeURIComponent(id));
+      if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + (await res.text()).slice(0, 300));
+      cxSelectedUnitDetail = await res.json();
+      cxRenderDetail();
+      document.querySelectorAll('#cxUnitsBody tr[data-unit-id]').forEach(tr => {
+        tr.style.background = tr.dataset.unitId === cxSelectedUnitId ? 'var(--accent-soft)' : '';
+      });
+    } catch (err) {
+      alert('Could not load unit: ' + (err.message || err));
+    }
+  }
+
+  document.getElementById('cxSignoffBtn').addEventListener('click', async () => {
+    if (!cxSelectedUnitId) return;
+    const name = document.getElementById('cxSignoffName').value.trim();
+    if (!name) { alert('Enter a name/initials to sign off with.'); return; }
+    try {
+      const res = await fetch(cxBackendUrl() + '/commissioning/units/' + encodeURIComponent(cxSelectedUnitId), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ commissioned_by: name }),
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + (await res.text()).slice(0, 300));
+      await cxSelectUnit(cxSelectedUnitId);
+      await cxRefreshUnits();
+    } catch (err) {
+      alert('Could not sign off: ' + (err.message || err));
+    }
+  });
+
+  document.getElementById('cxUploadPhotoBtn').addEventListener('click', async () => {
+    const status = document.getElementById('cxPhotoStatus');
+    if (!cxSelectedUnitId) { status.textContent = 'Select a unit first.'; status.style.color = 'var(--fail)'; return; }
+    const file = document.getElementById('cxPhotoFile').files[0];
+    if (!file) { status.textContent = 'Choose a photo first.'; status.style.color = 'var(--fail)'; return; }
+    const form = new FormData();
+    form.append('file', file, file.name);
+    form.append('category', document.getElementById('cxPhotoCategory').value);
+    const caption = document.getElementById('cxPhotoCaption').value.trim();
+    if (caption) form.append('caption', caption);
+    status.textContent = 'Uploading…';
+    status.style.color = 'var(--ink-muted)';
+    try {
+      const res = await fetch(cxBackendUrl() + '/commissioning/units/' + encodeURIComponent(cxSelectedUnitId) + '/photos', { method: 'POST', body: form });
+      if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + (await res.text()).slice(0, 300));
+      document.getElementById('cxPhotoFile').value = '';
+      document.getElementById('cxPhotoCaption').value = '';
+      status.textContent = 'Uploaded — ' + new Date().toLocaleTimeString();
+      status.style.color = 'var(--pass)';
+      await cxSelectUnit(cxSelectedUnitId);
+    } catch (err) {
+      status.textContent = 'Upload failed: ' + (err.message || err);
       status.style.color = 'var(--fail)';
     }
   });
