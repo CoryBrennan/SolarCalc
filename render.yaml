@@ -1,7 +1,5 @@
-databases:
-  - name: azimuth-solar-calc-db
-    plan: basic-256mb
-    postgresMajorVersion: "17"
+# Postgres lives on Supabase, not Render, so there is no `databases:` block
+# here -- DATABASE_URL is supplied as a secret env var instead (see below).
 
 services:
   - type: web
@@ -14,7 +12,18 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.0
+      # Supabase Postgres connection string. `sync: false` keeps the password
+      # out of the repo -- Render prompts for the value on the first blueprint
+      # deploy and stores it as a secret from then on.
+      #
+      # Use the **Session pooler** string from the Supabase dashboard
+      # ("Connect" at the top of the project -> shared pooler, Session mode):
+      #
+      #   postgres://postgres.<project-ref>:<password>@aws-<n>-<region>.pooler.supabase.com:5432/postgres
+      #
+      # NOT the direct `db.<project-ref>.supabase.co:5432` string. The shared
+      # pooler is IPv4 on every tier; the project host is IPv6-only without
+      # the paid IPv4 add-on, and Render has no IPv6 egress -- that failure
+      # reads as an opaque "Network is unreachable" at connect time.
       - key: DATABASE_URL
-        fromDatabase:
-          name: azimuth-solar-calc-db
-          property: connectionString
+        sync: false

@@ -5,3 +5,12 @@ __pycache__/
 uvicorn.log
 *.db
 *.pvapx
+
+# Local secrets. .supabase-url holds the Postgres connection string (password
+# included) for the seed script -- never commit it.
+.env
+.env.*
+.supabase-url
+
+# AutoCAD crash-reporter dumps, written here when a DWG scan crashes Core Console.
+ErrorReports/
