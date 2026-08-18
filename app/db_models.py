@@ -140,6 +140,22 @@ def _new_electrical_reading_id() -> str:
     return f"elec-{uuid.uuid4().hex[:12]}"
 
 
+def _new_review_set_id() -> str:
+    return f"rev-{uuid.uuid4().hex[:12]}"
+
+
+def _new_submission_id() -> str:
+    return f"sub-{uuid.uuid4().hex[:12]}"
+
+
+def _new_markup_item_id() -> str:
+    return f"mki-{uuid.uuid4().hex[:12]}"
+
+
+def _new_markup_audit_id() -> str:
+    return f"mka-{uuid.uuid4().hex[:12]}"
+
+
 class CommissioningUnit(SQLModel, table=True):
     """One physical piece of equipment going through field commissioning --
     an inverter, switchboard, or load center. Ties torque checks, wire
@@ -312,3 +328,137 @@ class SkyvisorAnomaly(SQLModel, table=True):
     image_url: str | None = Field(default=None)
     resolution_status: str = Field(default="open", index=True)  # open | resolved | false_positive
     created_at: datetime = Field(default_factory=_now)
+
+
+class PlanReviewSet(SQLModel, table=True):
+    """One drawing set out for review — the thing reviewers mark up and the
+    thing that eventually gets approved.
+
+    Holds the *clean* master set the copies were all issued from. Consolidation
+    clones every reviewer's markups onto this, so it has to be the unmarked
+    original; sending a marked-up copy as the master would leave those markups
+    unattributed and unlayered (see app/bluebeam_consolidate.consolidate).
+
+    Two ways in, matching how the rest of this codebase handles big files:
+    `file_data` for an HMI upload, or `source_path` for a file already sitting
+    in the Dropbox-synced project folder (the same local-path approach
+    pvcase_bom_import and fluke_export_import take, and the only practical one
+    for a full plan set, which routinely runs past what belongs in a DB row).
+    Exactly one of the two is set.
+
+    status is a real gate, not a label: it can only reach "approved" through
+    bluebeam_review.approval_gate, which refuses while any markup is still
+    open, accepted-but-not-drawn, or deferred.
+    """
+
+    id: str = Field(default_factory=_new_review_set_id, primary_key=True)
+    name: str = Field(index=True)
+    revision_label: str | None = Field(default=None)  # "IFC Rev C", "90% CD", ...
+    discipline: str | None = Field(default=None)  # "Electrical", "Civil", ...
+    master_filename: str | None = Field(default=None)
+    master_source_path: str | None = Field(default=None)
+    master_data: bytes | None = Field(default=None)
+    page_count: int | None = Field(default=None)
+    current_round: int = Field(default=0)
+    status: str = Field(default="open", index=True)  # open | consolidated | approved
+    consolidated_data: bytes | None = Field(default=None)
+    consolidated_at: datetime | None = Field(default=None)
+    approved_by: str | None = Field(default=None)
+    approved_at: datetime | None = Field(default=None)
+    approval_note: str | None = Field(default=None)
+    created_at: datetime = Field(default_factory=_now)
+    updated_at: datetime = Field(default_factory=_now)
+
+
+class MarkupSubmission(SQLModel, table=True):
+    """One reviewer's marked-up copy of a PlanReviewSet, as handed back.
+
+    `label` is what the reviewer is called throughout — it becomes the PDF
+    layer name in the consolidated set and the source column in the review
+    table, so it wants to be a person or firm, not a filename.
+
+    `round_number` is what makes "trackable changes" work: uploading the same
+    reviewer's set again at round N+1 does not overwrite round N, it sits
+    beside it, and bluebeam_review.diff_rounds reports what moved between the
+    two. Nothing is ever replaced in place.
+    """
+
+    id: str = Field(default_factory=_new_submission_id, primary_key=True)
+    review_set_id: str = Field(foreign_key="planreviewset.id", index=True)
+    label: str = Field(index=True)
+    round_number: int = Field(default=1, index=True)
+    filename: str | None = Field(default=None)
+    source_path: str | None = Field(default=None)
+    file_data: bytes | None = Field(default=None)
+    page_count: int | None = Field(default=None)
+    markup_count: int = Field(default=0)
+    uploaded_by: str | None = Field(default=None)
+    uploaded_at: datetime = Field(default_factory=_now)
+
+
+class MarkupItem(SQLModel, table=True):
+    """One markup, lifted out of a submission and given a disposition.
+
+    The PDF-side columns (page/subtype/author/contents/rect/revu_status) are a
+    snapshot of what the annotation said when it was imported — deliberately
+    copied rather than re-read on demand, so the review log still reads
+    correctly after someone edits or deletes the markup in their own copy.
+
+    `disposition` is the app's authoritative decision and is distinct from
+    `revu_status`, which is whatever the Markups List status column happened
+    to say. See app/bluebeam_review's module docstring for why those are two
+    columns and not one.
+    """
+
+    id: str = Field(default_factory=_new_markup_item_id, primary_key=True)
+    review_set_id: str = Field(foreign_key="planreviewset.id", index=True)
+    submission_id: str = Field(foreign_key="markupsubmission.id", index=True)
+    round_number: int = Field(default=1, index=True)
+    markup_key: str = Field(index=True)  # /NM GUID, or a content-hash fallback
+    fingerprint: str = Field(default="")  # change detection across rounds
+    source_label: str | None = Field(default=None, index=True)
+    # Other reviewers whose copy carried this same markup. A comment from a
+    # prior round is inherited by every copy issued from that set, so the same
+    # /NM arrives several times in one round; it is stored once (mirroring how
+    # bluebeam_consolidate merges it once) with the extra sources recorded here,
+    # rather than as duplicate rows that would each need dispositioning.
+    also_from_json: str | None = Field(default=None)
+    page: int = Field(default=0, index=True)
+    subtype: str | None = Field(default=None)
+    author: str | None = Field(default=None)
+    subject: str | None = Field(default=None)
+    contents: str | None = Field(default=None)
+    colour: str | None = Field(default=None)
+    rect_json: str | None = Field(default=None)
+    custom_json: str | None = Field(default=None)
+    revu_status: str | None = Field(default=None)  # advisory, from the /IRT reply chain
+    markup_created_at: datetime | None = Field(default=None)
+    markup_modified_at: datetime | None = Field(default=None)
+    change: str | None = Field(default=None, index=True)  # added|modified|unchanged|withdrawn
+    equipment_tag: str | None = Field(default=None, index=True)  # from /SolarCalcTag when present
+    disposition: str = Field(default="open", index=True)
+    response: str | None = Field(default=None)
+    assigned_to: str | None = Field(default=None, index=True)
+    resolved_by: str | None = Field(default=None)
+    resolved_at: datetime | None = Field(default=None)
+    created_at: datetime = Field(default_factory=_now)
+    updated_at: datetime = Field(default_factory=_now)
+
+
+class MarkupAudit(SQLModel, table=True):
+    """Append-only record of every disposition change on a MarkupItem.
+
+    This is the thing a PDF cannot give you, and the reason disposition is
+    tracked in the app at all: Revu's status column holds only the current
+    value, overwritable by anyone with the file and with no record of who
+    changed it or when. A review that gates a drawing revision has to be able
+    to answer "who accepted this, and when" months later.
+    """
+
+    id: str = Field(default_factory=_new_markup_audit_id, primary_key=True)
+    markup_item_id: str = Field(foreign_key="markupitem.id", index=True)
+    from_disposition: str | None = Field(default=None)
+    to_disposition: str = Field(index=True)
+    actor: str | None = Field(default=None)
+    note: str | None = Field(default=None)
+    at: datetime = Field(default_factory=_now)

@@ -532,6 +532,8 @@
       <li><button class="rail-btn" data-target="sec-gps-validate"><span><span class="rail-num">26</span> GPS As-Built Validation</span><span class="rail-dot dot-pass" id="gpsValidateDot"></span></button></li>
       <li><button class="rail-btn" data-target="sec-value-engineering"><span><span class="rail-num">27</span> Wire Value Engineering</span><span class="rail-dot dot-neutral" id="veDot"></span></button></li>
       <li><button class="rail-btn" data-target="sec-commissioning"><span><span class="rail-num">28</span> Commissioning &amp; QC</span><span class="rail-dot dot-neutral" id="commissioningDot"></span></button></li>
+      <li><button class="rail-btn" data-target="sec-trench"><span><span class="rail-num">29</span> Trench Thermal Design</span><span class="rail-dot dot-neutral" id="trenchDot"></span></button></li>
+      <li><button class="rail-btn" data-target="sec-planreview"><span><span class="rail-num">30</span> Plan Review &amp; Markups</span><span class="rail-dot dot-neutral" id="planReviewDot"></span></button></li>
     </ul>
     <div class="rail-foot">
       NEC edition resolved from <b>jurisdiction_lookup.py</b><br>
@@ -3103,6 +3105,263 @@
         </div>
       </section>
 
+      <section class="panel" id="sec-trench">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">trench_calc.py → /trench/thermal-design</p>
+            <h2>Trench Thermal Design</h2>
+          </div>
+          <span class="chip chip-muted" id="trenchModeChip">Numerical — finite-volume soil conduction</span>
+        </div>
+        <p class="desc">Conduits sharing a trench heat each other through the soil. That is <b>not</b> the same effect as NEC 310.15(C)(1) conduit fill — fill adjustment is conductors crowding each other <i>inside</i> one conduit, this is conduits competing to reject heat into the same soil <i>outside</i> — and no NEC table covers it. This solves the actual 2D steady-state heat conduction across the trench section (finite volume, so an irregular engineered-backfill envelope is handled directly rather than assumed away), then searches layer count and 1.5"-on-centre spacing for the smallest trench that keeps every conductor at or under its insulation rating. Current, conductor size, and conduit trade size are all pulled from the <a href="#sec-raceway" onclick="document.querySelector('[data-target=sec-raceway]')?.click();">Raceway schedule (24)</a> — nothing is re-entered, and the NEC derate factors are <b>not</b> reapplied to the heat term (they change which conductor is selected, not how much current flows). Direct-buried conduit only in v1; tray and messenger runs are reported as skipped.</p>
+
+        <div class="card">
+          <p class="card-title">Soil thermal properties <span class="unit">thermal resistivity, °C·cm/W — not electrical resistivity</span></p>
+          <div class="field-grid">
+            <div class="field">
+              <label for="trenchNativeRho">Native soil <span class="unit">°C·cm/W</span></label>
+              <input class="prose" type="text" id="trenchNativeRho" value="90">
+            </div>
+            <div class="field">
+              <label for="trenchBackfillRho">Engineered backfill <span class="unit">°C·cm/W</span></label>
+              <input class="prose" type="text" id="trenchBackfillRho" value="60">
+            </div>
+            <div class="field">
+              <label for="trenchRhoSource">Resistivity source <span class="unit">which field test this came from</span></label>
+              <select id="trenchRhoSource">
+                <option value="assumed_default">Assumed default (no site test)</option>
+                <option value="astm_d5334_thermal_probe">ASTM D5334 thermal needle probe</option>
+                <option value="ieee_442_thermal_probe">IEEE 442 thermal probe</option>
+                <option value="manufacturer_backfill_spec">Manufacturer backfill spec</option>
+                <option value="wenner_electrical">Wenner four-point (electrical, Ω·m)</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="trenchDeepEarthTemp">Deep-earth ambient <span class="unit">°C</span></label>
+              <input class="prose" type="text" id="trenchDeepEarthTemp" value="20">
+            </div>
+            <div class="field">
+              <label for="trenchAirTemp">Surface air temp <span class="unit">°C, blank = ASHRAE (04) max design temp</span></label>
+              <input class="prose" type="text" id="trenchAirTemp" value="" placeholder="from ASHRAE (04)">
+            </div>
+            <div class="field">
+              <label for="trenchHConv">Surface film coefficient <span class="unit">W/m²·K at grade</span></label>
+              <input class="prose" type="text" id="trenchHConv" value="15">
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <p class="card-title">Trench geometry</p>
+          <div class="field-grid">
+            <div class="field">
+              <label for="trenchDepth">Depth to top row centre <span class="unit">in below grade</span></label>
+              <input class="prose" type="text" id="trenchDepth" value="36">
+            </div>
+            <div class="field">
+              <label for="trenchMargin">Backfill margin <span class="unit">in beyond outermost conduit</span></label>
+              <input class="prose" type="text" id="trenchMargin" value="4">
+            </div>
+            <div class="field">
+              <label for="trenchMinClear">Minimum clear spacing <span class="unit">in between conduit walls</span></label>
+              <input class="prose" type="text" id="trenchMinClear" value="3">
+            </div>
+            <div class="field">
+              <label for="trenchTempLimit">Conductor temp limit <span class="unit">°C, blank = each run's insulation rating</span></label>
+              <input class="prose" type="text" id="trenchTempLimit" value="" placeholder="insulation rating">
+            </div>
+          </div>
+          <div class="field" style="margin-top:14px;">
+            <label for="trenchPolygon">Irregular backfill envelope <span class="unit">optional — vertices as <code>x_in, depth_in</code> per line, x from trench centreline. Blank = rectangle around the conduits.</span></label>
+            <textarea class="prose" id="trenchPolygon" rows="3" placeholder="-24, 30&#10;24, 30&#10;24, 60&#10;-24, 60"></textarea>
+          </div>
+        </div>
+
+        <div class="card">
+          <p class="card-title">Calculation mode</p>
+          <div class="field-grid" style="margin-bottom:14px;">
+            <div class="field">
+              <label for="trenchMode">Mode</label>
+              <select id="trenchMode">
+                <option value="check">Check an as-drawn layout (fast)</option>
+                <option value="optimize">Optimize layers &amp; spacing (slow — full search)</option>
+              </select>
+            </div>
+            <div class="field" data-trench-fixed>
+              <label for="trenchRows">Rows (layers) <span class="unit">as drawn</span></label>
+              <input class="prose" type="text" id="trenchRows" value="1">
+            </div>
+            <div class="field" data-trench-fixed>
+              <label for="trenchSpacingH">Horizontal spacing <span class="unit">in O.C.</span></label>
+              <input class="prose" type="text" id="trenchSpacingH" value="12">
+            </div>
+            <div class="field" data-trench-fixed>
+              <label for="trenchSpacingV">Vertical spacing <span class="unit">in O.C., multi-row only</span></label>
+              <input class="prose" type="text" id="trenchSpacingV" value="12">
+            </div>
+          </div>
+          <p class="desc" id="trenchModeHelp"></p>
+        </div>
+
+        <div class="card">
+          <p class="card-title">Per-run trench assignment</p>
+          <p class="desc" style="margin-bottom:14px;">One row per Raceway (24) run, a second view onto the same rows — a raceway row knows its conductors and current but not which trench it shares or how many physical conduits it represents. Use <b>Sync rows from Raceway schedule</b> after adding or removing rows over on Raceway (24).</p>
+          <div class="bulk-btns" style="margin-bottom:14px;">
+            <button class="btn btn-primary" id="trenchSyncBtn" type="button">⟳ Sync rows from Raceway schedule (24)</button>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="etap">
+              <thead>
+                <tr>
+                  <th>Run</th>
+                  <th>Include</th>
+                  <th>Trench group</th>
+                  <th style="text-align:right;">Conduits in trench</th>
+                  <th style="text-align:right;">CCC per conduit</th>
+                  <th>Conductor metal</th>
+                  <th>From schedule (24)</th>
+                </tr>
+              </thead>
+              <tbody id="trenchSettingsBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="bulk-btns" style="margin-bottom:14px;">
+          <button class="btn btn-primary" id="trenchRunBtn" type="button">Run trench thermal calc</button>
+        </div>
+        <p class="desc" id="trenchStatus"></p>
+        <div id="trenchResult" style="display:none;"></div>
+
+        <div class="note">
+          <span>ⓘ</span>
+          <span><b>Soil thermal resistivity is not soil electrical resistivity.</b> They come from different field tests (ASTM D5334 / IEEE 442 thermal needle probe vs. Wenner four-point, ASTM G57) and their numeric ranges overlap almost completely, so a grounding-study value typed in here reads as perfectly plausible and silently produces a wrong answer — which is why the source has to be declared and a Wenner value is rejected outright rather than warned about. Pull the thermal value at the design moisture condition; dry soil is dramatically worse than the same soil at field capacity. Every conduit is loaded at 100% simultaneously with no diversity credit (conservative by design). Conduit wall thicknesses, insulation thermal resistivities (IEC 60287-2-1), and the internal resistance chain are representative standard values — verify against manufacturer cable and conduit data before issue. Concrete-encased duct banks are out of scope for v1.</span>
+        </div>
+      </section>
+
+      <!-- 30 PLAN REVIEW & MARKUPS (Bluebeam) -->
+      <section class="panel" id="sec-planreview">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">bluebeam_consolidate.py / bluebeam_review.py → /bluebeam/*</p>
+            <h2>Plan Review &amp; Markups</h2>
+          </div>
+          <span class="chip chip-muted" id="planReviewModeChip">File-based — no Studio Prime needed</span>
+        </div>
+        <p class="desc">A drawing set goes out to several reviewers, each marks up their own copy in Bluebeam Revu, and several PDFs come back. Revu can't combine those without a Studio Session — which needs a Studio Prime subscription — so the merge happens here instead. Bluebeam markups are ordinary PDF annotations, so every reviewer's comments are <b>cloned onto one consolidated set as live markups</b>: still selectable, still editable, still individually listed in Revu's Markups List with their original author and timestamp. Nothing is flattened. Each reviewer also becomes a <b>toggleable PDF layer</b>, so their comments can be switched on and off over the base drawing from Revu's Layers panel. Dispositions are tracked here rather than in the file, because Revu's own status column holds only a current value that anyone with the file can overwrite, with no record of who changed it or when.</p>
+
+        <div class="card">
+          <p class="card-title">Review set <span class="unit">the drawing set that's out for review</span></p>
+          <div class="field-grid">
+            <div class="field">
+              <label for="prSetSelect">Active set</label>
+              <select id="prSetSelect"><option value="">— none —</option></select>
+            </div>
+            <div class="field">
+              <label for="prNewName">New set name</label>
+              <input class="prose" type="text" id="prNewName" placeholder="Encore Brighton 2 — Electrical">
+            </div>
+            <div class="field">
+              <label for="prNewRev">Revision label <span class="unit">what was issued</span></label>
+              <input class="prose" type="text" id="prNewRev" placeholder="IFC Rev C">
+            </div>
+            <div class="field">
+              <label for="prNewDiscipline">Discipline</label>
+              <input class="prose" type="text" id="prNewDiscipline" placeholder="Electrical">
+            </div>
+          </div>
+          <div class="bulk-btns" style="margin-bottom:12px;">
+            <button class="btn btn-primary" id="prCreateBtn" type="button">Create review set</button>
+            <button class="btn btn-quiet" id="prRefreshBtn" type="button">Refresh</button>
+            <button class="btn btn-quiet" id="prDeleteBtn" type="button">Delete set</button>
+          </div>
+          <p class="desc" id="prSetStatus"></p>
+        </div>
+
+        <div class="card">
+          <p class="card-title">Master set <span class="unit">the clean, unmarked copy the reviewers were issued</span></p>
+          <p class="desc">Consolidation clones every reviewer's markups onto this file, so it has to be the unmarked original — sending a marked-up copy would leave that copy's comments unattributed and unlayered.</p>
+          <div class="field-grid">
+            <div class="field">
+              <label for="prMasterFile">Upload master PDF <span class="unit">up to 150 MB</span></label>
+              <input type="file" id="prMasterFile" accept="application/pdf">
+            </div>
+          </div>
+          <p class="desc" id="prMasterStatus"></p>
+        </div>
+
+        <div class="card">
+          <p class="card-title">Reviewer submissions <span class="unit">one marked-up copy per reviewer</span></p>
+          <p class="desc">Upload each returned copy under the reviewer's name — that name becomes the PDF layer in the consolidated set and the source column below. A submission whose page count doesn't match the master is refused: markup coordinates are page coordinates, so merging mismatched sets would drop comments on the wrong sheets. Bump the round number to submit a later review cycle; earlier rounds are kept, not overwritten.</p>
+          <div class="field-grid">
+            <div class="field">
+              <label for="prSubLabel">Reviewer / firm</label>
+              <input class="prose" type="text" id="prSubLabel" placeholder="A. Ruiz">
+            </div>
+            <div class="field">
+              <label for="prSubRound">Round</label>
+              <input class="prose" type="number" id="prSubRound" value="1" min="1" step="1">
+            </div>
+            <div class="field">
+              <label for="prSubFile">Marked-up PDF</label>
+              <input type="file" id="prSubFile" accept="application/pdf">
+            </div>
+          </div>
+          <p class="desc" id="prSubStatus"></p>
+          <div id="prSubList"></div>
+        </div>
+
+        <div class="card">
+          <p class="card-title">Consolidate <span class="unit">merge every submission in the round onto one set</span></p>
+          <div class="bulk-btns" style="margin-bottom:12px;">
+            <button class="btn btn-quiet" id="prCheckBtn" type="button">Check compatibility</button>
+            <button class="btn btn-primary" id="prConsolidateBtn" type="button">Consolidate round</button>
+            <button class="btn btn-quiet" id="prDownloadBtn" type="button">Download consolidated PDF</button>
+            <button class="btn btn-quiet" id="prCsvBtn" type="button">Markup summary CSV</button>
+          </div>
+          <p class="desc" id="prConsolidateStatus"></p>
+          <div id="prConsolidateResult"></div>
+        </div>
+
+        <div class="card">
+          <p class="card-title">Markups &amp; disposition <span class="unit">current round</span></p>
+          <p class="desc"><b>Accepted</b> means the reviewer is right; <b>incorporated</b> means the drawing has actually been changed. They are two separate steps on purpose — collapsing them is how a set gets signed off with a dozen accepted comments nobody drew. Rejecting or deferring requires a written reason, which lands in the audit trail alongside who changed what and when.</p>
+          <div class="bulk-btns" style="margin-bottom:12px;">
+            <button class="btn btn-quiet" id="prBulkAcceptBtn" type="button">Accept selected</button>
+            <button class="btn btn-quiet" id="prBulkIncorpBtn" type="button">Mark selected incorporated</button>
+            <input class="prose" type="text" id="prActor" placeholder="your initials" style="max-width:160px;">
+          </div>
+          <p class="desc" id="prMarkupStatus"></p>
+          <div id="prMarkupTable"></div>
+        </div>
+
+        <div class="card">
+          <p class="card-title">Round-over-round changes <span class="unit">what moved since the last cycle</span></p>
+          <div class="bulk-btns" style="margin-bottom:12px;">
+            <input class="prose" type="number" id="prDiffRound" value="2" min="2" step="1" style="max-width:120px;">
+            <button class="btn btn-quiet" id="prDiffBtn" type="button">Diff against previous round</button>
+          </div>
+          <p class="desc" id="prDiffStatus"></p>
+          <div id="prDiffResult"></div>
+        </div>
+
+        <div class="card">
+          <p class="card-title">Approval <span class="unit">sign-off gate</span></p>
+          <div class="bulk-btns" style="margin-bottom:12px;">
+            <input class="prose" type="text" id="prApprover" placeholder="approved by" style="max-width:200px;">
+            <input class="prose" type="text" id="prApproveNote" placeholder="note (optional)" style="max-width:320px;">
+            <button class="btn btn-primary" id="prApproveBtn" type="button">Approve set</button>
+          </div>
+          <p class="desc" id="prApproveStatus"></p>
+          <div id="prApprovalResult"></div>
+        </div>
+
+        <div class="note">
+          <span>ⓘ</span>
+          <span><b>Verify the consolidated set in Revu before issuing it.</b> The merge is built on standard PDF annotation structure and is checked end-to-end by <code>tests/test_bluebeam_markups.py</code> — markups survive as live annotations, appearance streams intact, one layer per reviewer — but those tests read the merged file with the same library that wrote it. They cannot prove Bluebeam Revu itself renders it as expected, the same validation gate the generated <code>.pvapx</code> files carry. Two further limits: a markup with no Revu <code>/NM</code> GUID (some non-Revu PDF tools omit it) is matched across rounds by a content hash, so <i>moving</i> one reads as withdraw-plus-add rather than as a modification — reported as <code>unmatchable_count</code> rather than guessed at with a proximity heuristic. And markups that merely overlap are never auto-merged: two reviewers circling the same conduit are two opinions, so both are kept and the pair is flagged for a human. <b>Uploaded files live in the database row</b>, which on the hosted instance is wiped on every redeploy — for a real review cycle, run this locally or use the <code>source_path</code> endpoints against the Dropbox-synced project folder.</span>
+        </div>
+      </section>
+
     </div>
   </div>
 </div>
@@ -3112,7 +3371,8 @@
   const WIDE_PANELS = [
     'sec-site', 'sec-directory', 'sec-inverter-design',
     'sec-combiner', 'sec-switchboard-design', 'sec-mv-design', 'sec-backend', 'sec-catalog-review', 'sec-raceway',
-    'sec-skyvisor', 'sec-gps-validate', 'sec-value-engineering', 'sec-commissioning',
+    'sec-skyvisor', 'sec-gps-validate', 'sec-value-engineering', 'sec-commissioning', 'sec-trench',
+    'sec-planreview',
   ];
   const railBtns = document.querySelectorAll('.rail-btn');
   railBtns.forEach(btn => {
@@ -7198,6 +7458,11 @@
       veCcc: 3, veNeutralPresent: true, veNeutralCountsAsCcc: false, veGroundOcpdA: '',
       veMaterialCu: true, veMaterialAl: true, veGroundMaterial: 'auto', veMaxParallelSets: 2,
       veConduitMaterials: ['PVC_SCH40'],
+      // Trench thermal settings (29) -- same reasoning as the veXxx fields:
+      // which trench a run shares, and how many physical conduits it puts in
+      // it, are the only things the raceway row itself can't say. trCcc blank
+      // means "use this run's own conductor count."
+      trInclude: true, trGroup: 'TRENCH-1', trConduitCount: 1, trCcc: '', trMaterial: 'CU',
     };
   }
   let racewayRows = [defaultRacewayRow('RW-1')];
@@ -7367,11 +7632,14 @@
     const note = document.getElementById('racewaySummaryNote');
     note.textContent = failingTags.length ? ('Failing: ' + failingTags.join(', ')) : 'All runs pass.';
     document.getElementById('racewayDot').className = 'rail-dot ' + (failingTags.length ? 'dot-fail' : 'dot-pass');
-    // Value-engineering (27) settings table shares racewayRows as its data
-    // source (see defaultRacewayRow's veXxx fields) -- keep its "Run" labels
-    // live off every raceway edit, not just structural add/remove/type
-    // changes, since a renamed tag is also this table's row identity.
+    // Value-engineering (27) and Trench Thermal (29) settings tables share
+    // racewayRows as their data source (see defaultRacewayRow's veXxx/trXxx
+    // fields) -- keep their "Run" labels live off every raceway edit, not just
+    // structural add/remove/type changes, since a renamed tag is also those
+    // tables' row identity. Panel 29 additionally echoes each run's selected
+    // conductor and trade size, which move with any electrical edit here.
     if (typeof renderVeSettingsRows === 'function') renderVeSettingsRows();
+    if (typeof renderTrenchSettingsRows === 'function') renderTrenchSettingsRows();
   }
 
   function racewayRecomputeAll() {
@@ -8516,6 +8784,14 @@
     'etapConductor', 'etapLength', 'etapOcpd', 'etapOcpdType',
     'ivIrradiance', 'ivCellTemp', 'ivModulesPerString', 'ivTolerance',
     'ivStringId', 'ivMeasVoc', 'ivMeasIsc', 'ivMeasVmp', 'ivMeasImp',
+    // Trench Thermal Design (29). Soil thermal resistivity and trench geometry
+    // are project data off the geotech report and the trench detail, so they
+    // save with the project -- unlike the Value Engineering (27) metal prices,
+    // which are a moment-in-time market input and deliberately aren't saved.
+    'trenchNativeRho', 'trenchBackfillRho', 'trenchRhoSource', 'trenchDeepEarthTemp',
+    'trenchAirTemp', 'trenchHConv', 'trenchDepth', 'trenchMargin', 'trenchMinClear',
+    'trenchTempLimit', 'trenchPolygon', 'trenchMode', 'trenchRows',
+    'trenchSpacingH', 'trenchSpacingV',
   ];
   const CHECKBOX_FIELD_IDS = ['siteIsE911Address'];
   const RADIO_GROUP_NAMES = ['modUnitSystem', 'invUnitSystem', 'gpsFormat'];
@@ -8698,6 +8974,10 @@
       racewayRows = project.racewayRows.map(r => Object.assign(defaultRacewayRow('RW-1'), r));
       renderRacewayRows();
     }
+    // Trench (29): the mode select drives which layout fields are visible, and
+    // its restored value won't have fired a change event.
+    if (typeof refreshTrenchMode === 'function') refreshTrenchMode();
+    if (typeof renderTrenchSettingsRows === 'function') renderTrenchSettingsRows();
     refreshInverterBulkOptions();
     recomputeInverterDesign();
     recomputeSwitchboardDesign();
@@ -9533,6 +9813,272 @@
     }
   }
   document.getElementById('veRunBtn').addEventListener('click', runValueEngineering);
+
+  // ---- Trench Thermal Design (29) — numerical soil-conduction ampacity for
+  // direct-buried conduits (app/trench_calc.py over app/trench_thermal/).
+  // Settings live on the same racewayRows objects the Raceway (24) panel owns
+  // (see defaultRacewayRow's trXxx fields), so this table is a third view onto
+  // that array rather than another array to keep in sync by hand.
+  function trenchSettingsRowHtml(row, i) {
+    const computed = racewayComputeRow(row);
+    const fromSchedule = row.racewayType === 'conduit'
+      ? ((computed.conductor || '—') + ' in ' + escapeHtml(computed.headline))
+      : '<span style="color:var(--ink-muted);">' + escapeHtml(row.racewayType.replace('_', ' ')) + ' — not buried conduit</span>';
+    return '<tr data-idx="' + i + '">' +
+      '<td>' + escapeHtml(row.tag) + '</td>' +
+      '<td><input type="checkbox" data-idx="' + i + '" data-field="trInclude"' + (row.trInclude ? ' checked' : '') + '></td>' +
+      '<td><input type="text" data-idx="' + i + '" data-field="trGroup" value="' + escapeAttr(row.trGroup) + '" style="width:110px;"></td>' +
+      '<td style="text-align:right;"><input type="text" data-idx="' + i + '" data-field="trConduitCount" value="' + escapeAttr(row.trConduitCount) + '" style="width:50px;text-align:right;"></td>' +
+      '<td style="text-align:right;"><input type="text" data-idx="' + i + '" data-field="trCcc" value="' + escapeAttr(row.trCcc) + '" placeholder="' + row.conductorCount + '" style="width:60px;text-align:right;"></td>' +
+      '<td><select data-idx="' + i + '" data-field="trMaterial">' +
+        '<option value="CU"' + (row.trMaterial === 'CU' ? ' selected' : '') + '>Copper</option>' +
+        '<option value="AL"' + (row.trMaterial === 'AL' ? ' selected' : '') + '>Aluminum</option>' +
+      '</select></td>' +
+      '<td style="font-size:12px;">' + fromSchedule + '</td>' +
+      '</tr>';
+  }
+
+  function renderTrenchSettingsRows() {
+    const body = document.getElementById('trenchSettingsBody');
+    if (!body) return;
+    body.innerHTML = racewayRows.map((row, i) => trenchSettingsRowHtml(row, i)).join('');
+  }
+
+  function handleTrenchFieldChange(e) {
+    const idx = e.target.dataset.idx;
+    const field = e.target.dataset.field;
+    if (idx === undefined || !field) return;
+    const row = racewayRows[idx];
+    if (!row) return;
+    if (field === 'trInclude') row.trInclude = e.target.checked;
+    else if (field === 'trConduitCount') row.trConduitCount = Math.max(1, parseInt(e.target.value, 10) || 1);
+    else if (field === 'trCcc') row.trCcc = e.target.value; // blank means "the run's own conductor count"
+    else row[field] = e.target.value;                       // trGroup, trMaterial
+  }
+  const trenchSettingsBodyEl = document.getElementById('trenchSettingsBody');
+  trenchSettingsBodyEl.addEventListener('input', handleTrenchFieldChange);
+  trenchSettingsBodyEl.addEventListener('change', handleTrenchFieldChange);
+  document.getElementById('trenchSyncBtn').addEventListener('click', renderTrenchSettingsRows);
+  renderTrenchSettingsRows();
+
+  const trenchModeEl = document.getElementById('trenchMode');
+  function refreshTrenchMode() {
+    const optimizing = trenchModeEl.value === 'optimize';
+    document.querySelectorAll('[data-trench-fixed]').forEach(el => { el.style.display = optimizing ? 'none' : ''; });
+    document.getElementById('trenchModeHelp').innerHTML = optimizing
+      ? 'Searches every row/column split and 1.5"-on-centre spacing for the smallest trench that holds every conductor at or under the limit, and reports both the raw computed minimum spacing and the snapped value to build to. Each candidate is a fresh grid and sparse factorization — expect tens of seconds for a large trench, so this is a deliberate "run calc" step, not a live recompute.'
+      : 'Solves the arrangement exactly as entered above and reports whether it holds. Nothing is minimized, so no "computed minimum spacing" is reported — switch to Optimize for that. Fast enough to iterate on by hand.';
+  }
+  trenchModeEl.addEventListener('change', refreshTrenchMode);
+  refreshTrenchMode();
+
+  function buildTrenchSettingsPayload() {
+    const settings = {};
+    racewayRows.forEach(row => {
+      settings[row.tag] = {
+        include: !!row.trInclude,
+        trench_group: row.trGroup || 'TRENCH-1',
+        conduit_count: parseInt(row.trConduitCount, 10) || 1,
+        ccc_per_conduit: row.trCcc === '' ? null : (parseInt(row.trCcc, 10) || null),
+        conductor_material: row.trMaterial || 'CU',
+      };
+    });
+    return settings;
+  }
+
+  function parseTrenchPolygon() {
+    const raw = document.getElementById('trenchPolygon').value.trim();
+    if (!raw) return null;
+    const vertices = raw.split(/[\n;]+/).map(line => line.trim()).filter(Boolean).map(line => {
+      const parts = line.split(/[,\s]+/).filter(Boolean).map(parseNum);
+      if (parts.length < 2) throw new Error('Backfill envelope line "' + line + '" needs an x and a depth, in inches.');
+      return [parts[0], parts[1]];
+    });
+    if (vertices.length < 3) throw new Error('A backfill envelope needs at least 3 vertices.');
+    return vertices;
+  }
+
+  function buildTrenchConditions() {
+    const airTemp = document.getElementById('trenchAirTemp').value.trim();
+    const tempLimit = document.getElementById('trenchTempLimit').value.trim();
+    const conditions = {
+      native_soil_rho_cm: parseNum(document.getElementById('trenchNativeRho').value),
+      backfill_rho_cm: parseNum(document.getElementById('trenchBackfillRho').value),
+      soil_resistivity_source: document.getElementById('trenchRhoSource').value,
+      depth_of_cover_in: parseNum(document.getElementById('trenchDepth').value),
+      backfill_margin_in: parseNum(document.getElementById('trenchMargin').value),
+      min_clear_spacing_in: parseNum(document.getElementById('trenchMinClear').value),
+      deep_earth_temp_c: parseNum(document.getElementById('trenchDeepEarthTemp').value),
+      surface_h_conv_w_m2k: parseNum(document.getElementById('trenchHConv').value),
+      air_temp_c: airTemp === '' ? null : parseNum(airTemp),
+      conductor_temp_limit_c: tempLimit === '' ? null : parseNum(tempLimit),
+      backfill_polygon_in: parseTrenchPolygon(),
+      include_drawing: true,
+    };
+    if (trenchModeEl.value === 'check') {
+      conditions.fixed_layout = {
+        rows: parseInt(document.getElementById('trenchRows').value, 10) || 1,
+        spacing_horizontal_in: parseNum(document.getElementById('trenchSpacingH').value),
+        spacing_vertical_in: parseNum(document.getElementById('trenchSpacingV').value),
+      };
+    }
+    return conditions;
+  }
+
+  function trenchLayoutSummaryHtml(trench) {
+    const l = trench.layout;
+    const rows = [
+      ['Arrangement', l.rows + ' row(s) × ' + l.cols + ' column(s)'],
+      ['Spacing (as solved)', l.spacing_horizontal_in + '" horizontal' + (l.spacing_vertical_in ? ' × ' + l.spacing_vertical_in + '" vertical' : '') + ' O.C.'],
+      // Both numbers, per the same convention the wire sizing comparisons use:
+      // show what was computed AND the conservative value to build to.
+      ['Raw computed minimum', l.raw_computed_min_spacing_in !== null
+        ? l.raw_computed_min_spacing_in + '" (' + escapeHtml(l.spacing_governed_by) + '-governed)'
+        : '<span style="color:var(--ink-muted);">not computed in check mode</span>'],
+      ['<b>Recommended (snapped to 1.5" O.C.)</b>', '<b>' + l.recommended_snapped_spacing_in + '"</b>'],
+      ['Depth of cover to top row', l.depth_of_cover_in + '"'],
+      ['Trench envelope', l.trench_width_in + '" wide × ' + l.trench_depth_in + '" deep'],
+      ['Hottest conductor', trench.max_conductor_temp_c + ' °C vs. ' + trench.target_temp_c + ' °C limit (' + trench.margin_to_limit_c + ' °C margin)'],
+      ['Thermal headroom', '×' + trench.thermal_headroom_scale + ' of design current' +
+        (trench.thermal_headroom_scale < 1 ? ' — the trench binds before the NEC derate chain does' : '')],
+    ];
+    return '<table class="etap"><tbody>' + rows.map(r =>
+      '<tr><td style="width:38%;">' + r[0] + '</td><td>' + r[1] + '</td></tr>').join('') + '</tbody></table>';
+  }
+
+  function trenchConduitTableHtml(trench) {
+    return '<div style="overflow-x:auto;"><table class="etap"><thead><tr>' +
+      '<th>Conduit</th><th style="text-align:right;">Depth (in)</th><th style="text-align:right;">Offset (in)</th>' +
+      '<th style="text-align:right;">CCC</th><th style="text-align:right;">Current (A)</th>' +
+      '<th style="text-align:right;">Conductor °C</th><th style="text-align:right;">Duct wall °C</th>' +
+      '<th style="text-align:right;">Margin °C</th><th style="text-align:right;">Heat (W/m)</th>' +
+      '<th style="text-align:right;">AC/DC</th></tr></thead><tbody>' +
+      trench.conduits.map(c => {
+        const over = c.margin_to_limit_c < 0;
+        const style = over ? ' style="background:var(--fail-soft);"' : '';
+        return '<tr' + style + '><td>' + escapeHtml(c.id) + '</td>' +
+          '<td style="text-align:right;">' + c.depth_in + '</td>' +
+          '<td style="text-align:right;">' + c.x_in + '</td>' +
+          '<td style="text-align:right;">' + c.ccc + '</td>' +
+          '<td style="text-align:right;">' + c.current_a + '</td>' +
+          '<td style="text-align:right;"><b>' + c.conductor_temp_c + '</b></td>' +
+          '<td style="text-align:right;">' + c.duct_wall_temp_c + '</td>' +
+          '<td style="text-align:right;">' + c.margin_to_limit_c + '</td>' +
+          '<td style="text-align:right;">' + c.loss_total_w_per_m + '</td>' +
+          '<td style="text-align:right;">' + c.ac_dc_ratio + '</td></tr>';
+      }).join('') + '</tbody></table></div>';
+  }
+
+  function trenchDerateTableHtml(tag, stack) {
+    const factorRows = stack.rows.map(r =>
+      '<tr><td>' + escapeHtml(r.mechanism) + '</td><td style="text-align:right;">×' + r.factor + '</td>' +
+      '<td style="font-size:12px;color:var(--ink-muted);">' + escapeHtml(r.acts_on) + '</td>' +
+      '<td style="font-size:12px;color:var(--ink-muted);">' + escapeHtml(r.applied_by) + '</td></tr>').join('');
+    const verdict = stack.trench_governs
+      ? '<span class="chip chip-fail">Trench governs — ' + (stack.conductor_with_trench || 'no size clears') + ' vs. ' + stack.conductor_nec_only + ' from the NEC chain alone</span>'
+      : '<span class="chip chip-pass">NEC chain governs — ' + stack.conductor_nec_only + ' still clears with the trench factor applied</span>';
+    return '<div class="card" style="margin-top:14px;">' +
+      '<p class="card-title">' + escapeHtml(tag) + ' — derating stack</p>' +
+      '<div style="overflow-x:auto;"><table class="etap"><thead><tr><th>Mechanism</th>' +
+      '<th style="text-align:right;">Factor</th><th>Acts on</th><th>Applied by</th></tr></thead><tbody>' +
+      factorRows +
+      '<tr style="background:var(--surface-2);"><td><b>Combined (multiplied)</b></td>' +
+      '<td style="text-align:right;"><b>×' + stack.combined_factor + '</b></td>' +
+      '<td colspan="2" style="font-size:12px;">NEC chain alone is ×' + stack.nec_only_factor +
+      ' — the trench factor is a separate mechanism, never folded into it.</td></tr>' +
+      '</tbody></table></div>' +
+      '<p style="margin:12px 0 0;">' + verdict + '</p>' +
+      '<p class="desc" style="margin-top:8px;">Required ampacity ' + stack.required_ampacity_nec_only_a +
+      ' A on the NEC chain alone, ' + (stack.required_ampacity_with_trench_a === null ? '—' : stack.required_ampacity_with_trench_a + ' A') +
+      ' with trench mutual heating included.</p></div>';
+  }
+
+  function trenchCardHtml(tag, trench) {
+    if (!trench.solved) {
+      return '<div class="card" style="margin-bottom:16px;">' +
+        '<p class="card-title">' + escapeHtml(tag) + '</p>' +
+        '<p><span class="chip chip-fail">No feasible arrangement</span></p>' +
+        '<p class="desc" style="margin-top:8px;">' + escapeHtml(trench.message || '') + '</p></div>';
+    }
+    const headline = trench.passes
+      ? '<span class="chip chip-pass">Passes — hottest conductor ' + trench.max_conductor_temp_c + ' °C of ' + trench.target_temp_c + ' °C</span>'
+      : '<span class="chip chip-fail">Exceeds limit — hottest conductor ' + trench.max_conductor_temp_c + ' °C vs. ' + trench.target_temp_c + ' °C</span>';
+    const warnings = (trench.warnings && trench.warnings.length)
+      ? '<ul class="desc" style="margin-top:10px;">' + trench.warnings.map(w => '<li>' + escapeHtml(w) + '</li>').join('') + '</ul>'
+      : '';
+    const drawing = trench.drawing_svg
+      ? '<div style="overflow-x:auto;margin-top:14px;background:#fff;border:1px solid var(--border);border-radius:6px;padding:8px;">' +
+        trench.drawing_svg.replace('<svg ', '<svg style="max-width:100%;height:auto;" ') + '</div>'
+      : '';
+    const derates = Object.keys(trench.derating_stack)
+      .map(runTag => trenchDerateTableHtml(runTag, trench.derating_stack[runTag])).join('');
+
+    return '<div class="card" style="margin-bottom:16px;">' +
+      '<p class="card-title">' + escapeHtml(tag) + ' <span class="unit">' + trench.conduit_count +
+      ' conduits · ' + escapeHtml(trench.mode) + ' mode' +
+      (trench.solver_runs ? ' · ' + trench.solver_runs + ' solver runs' : '') + '</span></p>' +
+      '<p style="margin:0 0 12px;">' + headline + '</p>' +
+      trenchLayoutSummaryHtml(trench) + drawing +
+      '<p class="card-title" style="margin-top:18px;">Per-conduit results</p>' +
+      trenchConduitTableHtml(trench) + warnings + derates + '</div>';
+  }
+
+  function renderTrenchResults(data) {
+    const container = document.getElementById('trenchResult');
+    const tags = Object.keys(data.trenches);
+    let html = '';
+    if (data.warnings && data.warnings.length) {
+      html += '<div class="note" style="margin-bottom:14px;"><span>⚠</span><span>' +
+        data.warnings.map(escapeHtml).join('<br>') + '</span></div>';
+    }
+    if (data.skipped_runs && data.skipped_runs.length) {
+      html += '<div class="note" style="margin-bottom:14px;"><span>ⓘ</span><span><b>Runs not included:</b> ' +
+        data.skipped_runs.map(s => escapeHtml(s.tag + ' (' + s.reason + ')')).join('; ') + '</span></div>';
+    }
+    html += tags.map(tag => trenchCardHtml(tag, data.trenches[tag])).join('');
+    if (!tags.length) html += '<p class="desc">No raceway run is assigned to a trench.</p>';
+    container.innerHTML = html;
+    document.getElementById('trenchDot').className = 'rail-dot ' +
+      (!tags.length ? 'dot-neutral' : (data.all_pass ? 'dot-pass' : 'dot-fail'));
+  }
+
+  async function runTrenchDesign() {
+    const status = document.getElementById('trenchStatus');
+    const result = document.getElementById('trenchResult');
+    const url = document.getElementById('backendUrlInput').value.trim().replace(/\/$/, '');
+    let body;
+    try {
+      body = JSON.stringify({
+        project: buildBackendPayload(),
+        settings: buildTrenchSettingsPayload(),
+        conditions: buildTrenchConditions(),
+      });
+    } catch (err) {
+      result.style.display = 'none';
+      status.textContent = 'Check the inputs: ' + (err.message || err);
+      status.style.color = 'var(--fail)';
+      return;
+    }
+    status.textContent = trenchModeEl.value === 'optimize'
+      ? 'Searching layouts — a full search runs a few hundred sparse solves and can take tens of seconds…'
+      : 'Solving…';
+    status.style.color = 'var(--ink-muted)';
+    try {
+      const res = await fetch(url + '/trench/thermal-design', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body,
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + (await res.text()).slice(0, 400));
+      renderTrenchResults(await res.json());
+      result.style.display = '';
+      status.textContent = 'Computed ' + new Date().toLocaleTimeString();
+      status.style.color = 'var(--pass)';
+    } catch (err) {
+      result.style.display = 'none';
+      status.textContent = 'Could not compute: ' + (err.message || err);
+      status.style.color = 'var(--fail)';
+    }
+  }
+  document.getElementById('trenchRunBtn').addEventListener('click', runTrenchDesign);
 
   if (window.top !== window.self) {
     const warning = document.getElementById('embeddedArtifactWarning');
@@ -10616,6 +11162,434 @@
   document.getElementById('cxElecPhotoFileInput').addEventListener('change', (ev) => {
     cxUploadPhoto(ev.target.files[0], 'electrical', 'cxElecPhotoCaption', 'cxElecPhotoStatus');
     ev.target.value = '';
+  });
+
+
+  // ---- Plan Review & Markups (30) — Bluebeam consolidation + approval.
+  // Talks to /bluebeam/*. Uploads go through the browser, which is why the
+  // panel points at source_path for anything past the 150 MB cap; a full
+  // plan set belongs in the project folder, not a DB row.
+  const PR_DISPOSITIONS = ['open', 'accepted', 'rejected', 'deferred', 'incorporated'];
+  const PR_DISPO_CHIP = {
+    open: 'chip-warn', accepted: 'chip-muted', deferred: 'chip-warn',
+    rejected: 'chip-fail', incorporated: 'chip-pass',
+  };
+  const PR_CHANGE_CHIP = {
+    added: 'chip-pass', modified: 'chip-warn', unchanged: 'chip-muted', withdrawn: 'chip-fail',
+  };
+  let prActiveSetId = '';
+  let prLastDetail = null;
+
+  function prBase() {
+    return document.getElementById('backendUrlInput').value.trim().replace(/\/$/, '');
+  }
+  function prSay(id, message, tone) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = message || '';
+    el.style.color = tone === 'ok' ? 'var(--pass)' : (tone === 'bad' ? 'var(--fail)' : 'var(--ink-muted)');
+  }
+  async function prFetch(path, options) {
+    const res = await fetch(prBase() + path, options || {});
+    if (!res.ok) {
+      let detail = 'HTTP ' + res.status;
+      try {
+        const body = await res.json();
+        if (body && body.detail) detail = typeof body.detail === 'string' ? body.detail : JSON.stringify(body.detail);
+      } catch (err) { /* non-JSON error body; the status alone will have to do */ }
+      throw new Error(detail);
+    }
+    return res.status === 204 ? null : res.json();
+  }
+  function prNeedSet() {
+    if (!prActiveSetId) throw new Error('pick or create a review set first');
+    return prActiveSetId;
+  }
+
+  async function prLoadSets(selectId) {
+    const sets = await prFetch('/bluebeam/review-sets');
+    const select = document.getElementById('prSetSelect');
+    const wanted = selectId || prActiveSetId;
+    select.innerHTML = '<option value="">— none —</option>' + sets.map(s =>
+      '<option value="' + escapeAttr(s.id) + '">' + escapeText(
+        s.name + (s.revision_label ? ' · ' + s.revision_label : '') + ' · ' + s.status
+      ) + '</option>').join('');
+    if (wanted && sets.some(s => s.id === wanted)) {
+      select.value = wanted;
+      prActiveSetId = wanted;
+    } else {
+      prActiveSetId = select.value || '';
+    }
+    return sets;
+  }
+
+  function prSubmissionsHtml(subs) {
+    if (!subs || !subs.length) return '<p class="desc">No submissions yet.</p>';
+    return '<div style="overflow-x:auto;"><table class="manifest"><thead><tr>' +
+      '<th>Reviewer</th><th>Round</th><th>File</th><th>Pages</th><th>Markups</th><th>Uploaded</th><th></th>' +
+      '</tr></thead><tbody>' + subs.map(s =>
+        '<tr>' +
+        '<td class="fname">' + escapeText(s.label) + '</td>' +
+        '<td>' + s.round_number + '</td>' +
+        '<td>' + escapeText(s.filename || s.source_path || '—') + '</td>' +
+        '<td>' + (s.page_count == null ? '—' : s.page_count) + '</td>' +
+        '<td>' + s.markup_count + '</td>' +
+        '<td style="color:var(--ink-muted);font-size:12px;">' + escapeText((s.uploaded_at || '').slice(0, 19).replace('T', ' ')) + '</td>' +
+        '<td><button class="btn btn-quiet" type="button" data-pr-del-sub="' + escapeAttr(s.id) + '">Remove</button></td>' +
+        '</tr>').join('') + '</tbody></table></div>';
+  }
+
+  function prMarkupRowHtml(m) {
+    const dispo = m.disposition || 'open';
+    const options = PR_DISPOSITIONS.map(d =>
+      '<option value="' + d + '"' + (d === dispo ? ' selected' : '') + '>' + d + '</option>').join('');
+    const alsoFrom = (m.also_from && m.also_from.length)
+      ? '<br><span style="color:var(--ink-muted);font-size:11px;">also in: ' + escapeText(m.also_from.join(', ')) + '</span>' : '';
+    const changeChip = m.change
+      ? '<span class="chip ' + (PR_CHANGE_CHIP[m.change] || 'chip-muted') + '" style="margin-left:6px;">' + escapeText(m.change) + '</span>' : '';
+    const revu = m.revu_status
+      ? '<br><span style="color:var(--ink-muted);font-size:11px;">Revu says: ' + escapeText(m.revu_status) + '</span>' : '';
+    const tag = m.equipment_tag
+      ? '<span class="chip chip-muted" style="margin-left:6px;">' + escapeText(m.equipment_tag) + '</span>' : '';
+    return '<tr>' +
+      '<td><input type="checkbox" data-pr-pick="' + escapeAttr(m.id) + '"></td>' +
+      '<td>' + m.page_label + '</td>' +
+      '<td class="fname">' + escapeText(m.source_label || '—') + alsoFrom + '</td>' +
+      '<td>' + escapeText(m.subject || m.subtype || '—') + tag + '</td>' +
+      '<td>' + escapeText(m.contents || '') + revu + '</td>' +
+      '<td><span class="chip ' + (PR_DISPO_CHIP[dispo] || 'chip-muted') + '">' + escapeText(dispo) + '</span>' + changeChip + '</td>' +
+      '<td><select data-pr-dispo="' + escapeAttr(m.id) + '">' + options + '</select></td>' +
+      '<td><input type="text" class="prose" data-pr-response="' + escapeAttr(m.id) + '" value="' +
+        escapeAttr(m.response || '') + '" placeholder="reason / response"></td>' +
+      '<td><button class="btn btn-quiet" type="button" data-pr-audit="' + escapeAttr(m.id) + '">Audit</button></td>' +
+      '</tr>';
+  }
+
+  function prRenderMarkups(detail) {
+    const container = document.getElementById('prMarkupTable');
+    const markups = detail.markups || [];
+    if (!markups.length) {
+      container.innerHTML = '<p class="desc">No markups in the current round.</p>';
+      return;
+    }
+    const s = detail.summary || {};
+    const counts = s.by_disposition || {};
+    container.innerHTML =
+      '<p class="desc"><b>' + s.resolved + ' of ' + s.total + '</b> resolved (' + s.percent_resolved + '%) — ' +
+      PR_DISPOSITIONS.map(d => (counts[d] || 0) + ' ' + d).join(', ') + '</p>' +
+      '<div style="overflow-x:auto;"><table class="manifest"><thead><tr>' +
+      '<th></th><th>Sheet</th><th>Source</th><th>Type</th><th>Comment</th><th>Status</th>' +
+      '<th>Set to</th><th>Response</th><th></th></tr></thead><tbody>' +
+      markups.map(prMarkupRowHtml).join('') + '</tbody></table></div>';
+  }
+
+  function prRenderApproval(approval) {
+    const container = document.getElementById('prApprovalResult');
+    if (!approval) { container.innerHTML = ''; return; }
+    if (approval.ready_to_approve) {
+      container.innerHTML = '<div class="note"><span>✓</span><span>Every markup is resolved — this set can be signed off.</span></div>';
+      return;
+    }
+    if (approval.empty) {
+      container.innerHTML = '<p class="desc">Nothing to approve yet.</p>';
+      return;
+    }
+    container.innerHTML = '<div class="note"><span>ⓘ</span><span><b>' + approval.blocker_count +
+      ' markup(s) block sign-off.</b><br>' + approval.blockers.map(b =>
+        escapeText(b.count + ' ' + b.disposition + ' — ' + b.reason)).join('<br>') + '</span></div>';
+  }
+
+  function prRenderDot(detail) {
+    const dot = document.getElementById('planReviewDot');
+    if (!detail || !detail.markups || !detail.markups.length) { dot.className = 'rail-dot dot-neutral'; return; }
+    if (detail.status === 'approved') { dot.className = 'rail-dot dot-pass'; return; }
+    dot.className = 'rail-dot ' + ((detail.summary && detail.summary.outstanding) ? 'dot-warn' : 'dot-pass');
+  }
+
+  async function prRefreshDetail() {
+    if (!prActiveSetId) {
+      document.getElementById('prSubList').innerHTML = '';
+      document.getElementById('prMarkupTable').innerHTML = '';
+      document.getElementById('prApprovalResult').innerHTML = '';
+      prRenderDot(null);
+      return;
+    }
+    const detail = await prFetch('/bluebeam/review-sets/' + prActiveSetId);
+    prLastDetail = detail;
+    document.getElementById('prSubList').innerHTML = prSubmissionsHtml(detail.submissions);
+    prRenderMarkups(detail);
+    prRenderApproval(detail.approval);
+    prRenderDot(detail);
+    prSay('prSetStatus', detail.name + ' — round ' + detail.current_round + ', status ' + detail.status +
+      (detail.page_count ? ', ' + detail.page_count + ' pages' : '') +
+      (detail.master_filename ? ', master: ' + detail.master_filename : ', no master set yet'),
+      detail.master_filename ? 'ok' : null);
+    const roundInput = document.getElementById('prDiffRound');
+    if (detail.current_round > 1) roundInput.value = detail.current_round;
+    return detail;
+  }
+
+  async function prGuard(statusId, working, fn) {
+    try {
+      prSay(statusId, working);
+      await fn();
+    } catch (err) {
+      prSay(statusId, (err && err.message) || String(err), 'bad');
+    }
+  }
+
+  document.getElementById('prSetSelect').addEventListener('change', ev => {
+    prActiveSetId = ev.target.value;
+    prGuard('prSetStatus', 'Loading…', prRefreshDetail);
+  });
+
+  document.getElementById('prRefreshBtn').addEventListener('click', () => {
+    prGuard('prSetStatus', 'Loading…', async () => {
+      await prLoadSets();
+      await prRefreshDetail();
+    });
+  });
+
+  document.getElementById('prCreateBtn').addEventListener('click', () => {
+    prGuard('prSetStatus', 'Creating…', async () => {
+      const name = document.getElementById('prNewName').value.trim();
+      if (!name) throw new Error('give the review set a name');
+      const created = await prFetch('/bluebeam/review-sets', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: name,
+          revision_label: document.getElementById('prNewRev').value.trim() || null,
+          discipline: document.getElementById('prNewDiscipline').value.trim() || null,
+        }),
+      });
+      prActiveSetId = created.id;
+      await prLoadSets(created.id);
+      await prRefreshDetail();
+    });
+  });
+
+  document.getElementById('prDeleteBtn').addEventListener('click', () => {
+    prGuard('prSetStatus', 'Deleting…', async () => {
+      const id = prNeedSet();
+      const gone = await prFetch('/bluebeam/review-sets/' + id, { method: 'DELETE' });
+      prActiveSetId = '';
+      await prLoadSets();
+      await prRefreshDetail();
+      prSay('prSetStatus', 'Deleted, along with ' + gone.markup_items_deleted + ' markup(s).', 'ok');
+    });
+  });
+
+  document.getElementById('prMasterFile').addEventListener('change', ev => {
+    const file = ev.target.files && ev.target.files[0];
+    if (!file) return;
+    prGuard('prMasterStatus', 'Uploading ' + file.name + '…', async () => {
+      const id = prNeedSet();
+      const form = new FormData();
+      form.append('file', file);
+      const updated = await prFetch('/bluebeam/review-sets/' + id + '/master', { method: 'POST', body: form });
+      prSay('prMasterStatus', 'Master set: ' + updated.master_filename + ' — ' + updated.page_count + ' pages.', 'ok');
+      await prRefreshDetail();
+    }).then(() => { ev.target.value = ''; });
+  });
+
+  document.getElementById('prSubFile').addEventListener('change', ev => {
+    const file = ev.target.files && ev.target.files[0];
+    if (!file) return;
+    prGuard('prSubStatus', 'Uploading ' + file.name + '…', async () => {
+      const id = prNeedSet();
+      const label = document.getElementById('prSubLabel').value.trim();
+      if (!label) throw new Error("name the reviewer first — it becomes the PDF layer in the consolidated set");
+      const form = new FormData();
+      form.append('label', label);
+      form.append('round_number', document.getElementById('prSubRound').value || '1');
+      form.append('file', file);
+      const sub = await prFetch('/bluebeam/review-sets/' + id + '/submissions', { method: 'POST', body: form });
+      const dupNote = sub.already_recorded_from_another_copy
+        ? ' (' + sub.already_recorded_from_another_copy + ' already recorded from another copy)' : '';
+      const carried = sub.carried_forward ? ', ' + sub.carried_forward + ' disposition(s) carried forward' : '';
+      prSay('prSubStatus', label + ': ' + sub.markup_count + ' markup(s) read' + dupNote + carried + '.', 'ok');
+      await prRefreshDetail();
+    }).then(() => { ev.target.value = ''; });
+  });
+
+  document.getElementById('prSubList').addEventListener('click', ev => {
+    const btn = ev.target.closest('[data-pr-del-sub]');
+    if (!btn) return;
+    prGuard('prSubStatus', 'Removing…', async () => {
+      const gone = await prFetch('/bluebeam/submissions/' + btn.getAttribute('data-pr-del-sub'), { method: 'DELETE' });
+      prSay('prSubStatus', 'Removed, along with ' + gone.markup_items_deleted + ' markup(s).', 'ok');
+      await prRefreshDetail();
+    });
+  });
+
+  function prConsolidationHtml(body) {
+    let html = '<p class="desc"><b>' + body.markup_count + ' markup(s)</b> merged across ' +
+      body.layers.length + ' layer(s): ' + escapeText(body.layers.join(', ')) + '. ' +
+      Object.keys(body.markups_by_source).map(k =>
+        escapeText(k) + ' ' + body.markups_by_source[k]).join(' · ') + '</p>';
+    if (body.duplicate_count) {
+      html += '<div class="note"><span>ⓘ</span><span><b>' + body.duplicate_count +
+        ' comment(s) appeared in more than one copy</b> and were merged once — inherited from an earlier round: ' +
+        body.duplicates.map(d => escapeText('sheet ' + d.page_label + ' ' + d.first_from + ' + ' + d.also_from)).join('; ') +
+        '</span></div>';
+    }
+    if (body.overlap_cluster_count) {
+      html += '<div class="note"><span>⚠</span><span><b>' + body.overlap_cluster_count +
+        ' overlapping markup group(s) from different reviewers</b> — kept separately, never auto-merged, since two people marking the same spot are two opinions:<br>' +
+        body.overlap_clusters.map(c => escapeText('sheet ' + c.page_label + ': ' + c.sources.join(' vs ')) + ' — ' +
+          c.markups.map(m => escapeText('“' + (m.contents || m.subject || '') + '”')).join(' / ')).join('<br>') +
+        '</span></div>';
+    }
+    if (body.skipped && body.skipped.length) {
+      html += '<div class="note"><span>⚠</span><span>Skipped: ' +
+        body.skipped.map(x => escapeText(x.label + ' sheet ' + x.page_label + ' — ' + x.reason)).join('; ') + '</span></div>';
+    }
+    return html;
+  }
+
+  document.getElementById('prCheckBtn').addEventListener('click', () => {
+    prGuard('prConsolidateStatus', 'Checking page grids…', async () => {
+      const id = prNeedSet();
+      const body = await prFetch('/bluebeam/review-sets/' + id + '/check-compatibility', { method: 'POST' });
+      if (body.compatible) {
+        prSay('prConsolidateStatus', 'All ' + body.submission_count + ' submission(s) match the master set.', 'ok');
+        document.getElementById('prConsolidateResult').innerHTML = '';
+      } else {
+        prSay('prConsolidateStatus', body.problems.length + ' submission(s) do not match the master.', 'bad');
+        document.getElementById('prConsolidateResult').innerHTML =
+          '<div class="note"><span>⚠</span><span>' + body.problems.map(p =>
+            '<b>' + escapeText(p.label) + '</b>: ' + escapeText(p.detail)).join('<br>') +
+          '<br>Every copy has to be the same revision of the same set — check whether a reviewer was issued a stale one.</span></div>';
+      }
+    });
+  });
+
+  document.getElementById('prConsolidateBtn').addEventListener('click', () => {
+    prGuard('prConsolidateStatus', 'Merging markups onto the master set…', async () => {
+      const id = prNeedSet();
+      const body = await prFetch('/bluebeam/review-sets/' + id + '/consolidate', { method: 'POST' });
+      document.getElementById('prConsolidateResult').innerHTML = prConsolidationHtml(body);
+      prSay('prConsolidateStatus', 'Consolidated round ' + body.round_number + ' — ' +
+        (body.size_bytes / 1e6).toFixed(1) + ' MB. Verify it in Revu before issuing.', 'ok');
+      await prRefreshDetail();
+    });
+  });
+
+  document.getElementById('prDownloadBtn').addEventListener('click', () => {
+    if (!prActiveSetId) { prSay('prConsolidateStatus', 'pick a review set first', 'bad'); return; }
+    window.open(prBase() + '/bluebeam/review-sets/' + prActiveSetId + '/consolidated.pdf', '_blank');
+  });
+
+  document.getElementById('prCsvBtn').addEventListener('click', () => {
+    if (!prActiveSetId) { prSay('prConsolidateStatus', 'pick a review set first', 'bad'); return; }
+    window.open(prBase() + '/bluebeam/review-sets/' + prActiveSetId + '/markups.csv', '_blank');
+  });
+
+  document.getElementById('prMarkupTable').addEventListener('change', ev => {
+    const select = ev.target.closest('[data-pr-dispo]');
+    if (!select) return;
+    const itemId = select.getAttribute('data-pr-dispo');
+    const response = document.querySelector('[data-pr-response="' + itemId + '"]');
+    prGuard('prMarkupStatus', 'Saving…', async () => {
+      await prFetch('/bluebeam/markups/' + itemId + '/disposition', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          disposition: select.value,
+          actor: document.getElementById('prActor').value.trim() || null,
+          response: response ? response.value.trim() : null,
+        }),
+      });
+      prSay('prMarkupStatus', 'Saved.', 'ok');
+      await prRefreshDetail();
+    });
+  });
+
+  document.getElementById('prMarkupTable').addEventListener('click', ev => {
+    const btn = ev.target.closest('[data-pr-audit]');
+    if (!btn) return;
+    prGuard('prMarkupStatus', 'Loading audit trail…', async () => {
+      const rows = await prFetch('/bluebeam/markups/' + btn.getAttribute('data-pr-audit') + '/audit');
+      prSay('prMarkupStatus', rows.length
+        ? rows.map(r => (r.from_disposition || '—') + ' → ' + r.to_disposition +
+            ' by ' + (r.actor || 'unattributed') + ' at ' + (r.at || '').slice(0, 19).replace('T', ' ') +
+            (r.note ? ' (' + r.note + ')' : '')).join('   |   ')
+        : 'No disposition changes recorded yet.', 'ok');
+    });
+  });
+
+  function prSelectedIds() {
+    return Array.from(document.querySelectorAll('[data-pr-pick]:checked'))
+      .map(el => el.getAttribute('data-pr-pick'));
+  }
+
+  function prBulk(disposition) {
+    prGuard('prMarkupStatus', 'Updating…', async () => {
+      const id = prNeedSet();
+      const ids = prSelectedIds();
+      if (!ids.length) throw new Error('tick the markups to update first');
+      const body = await prFetch('/bluebeam/review-sets/' + id + '/dispositions/bulk', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          markup_item_ids: ids, disposition: disposition,
+          actor: document.getElementById('prActor').value.trim() || null,
+        }),
+      });
+      const failed = body.failed.length
+        ? ' — ' + body.failed.length + ' refused: ' + body.failed.map(f => f.error).join('; ') : '';
+      prSay('prMarkupStatus', body.updated_count + ' set to ' + disposition + failed,
+        body.failed.length ? 'bad' : 'ok');
+      await prRefreshDetail();
+    });
+  }
+  document.getElementById('prBulkAcceptBtn').addEventListener('click', () => prBulk('accepted'));
+  document.getElementById('prBulkIncorpBtn').addEventListener('click', () => prBulk('incorporated'));
+
+  document.getElementById('prDiffBtn').addEventListener('click', () => {
+    prGuard('prDiffStatus', 'Comparing rounds…', async () => {
+      const id = prNeedSet();
+      const round = parseInt(document.getElementById('prDiffRound').value, 10) || 2;
+      const body = await prFetch('/bluebeam/review-sets/' + id + '/rounds/' + round + '/diff');
+      const c = body.counts;
+      let html = '<p class="desc">Round ' + body.from_round + ' → ' + body.to_round + ': <b>' +
+        c.added + ' added</b>, ' + c.modified + ' modified, ' + c.unchanged + ' unchanged, ' +
+        c.withdrawn + ' withdrawn.</p>';
+      const groups = [['added', body.added], ['modified', body.modified], ['withdrawn', body.withdrawn]];
+      const rows = groups.flatMap(([kind, list]) => (list || []).map(m =>
+        '<tr><td><span class="chip ' + (PR_CHANGE_CHIP[kind] || 'chip-muted') + '">' + kind + '</span></td>' +
+        '<td>' + m.page_label + '</td>' +
+        '<td class="fname">' + escapeText(m.source_label || m.author || '—') + '</td>' +
+        '<td>' + escapeText(m.contents || '') +
+          (m.previous ? '<br><span style="color:var(--ink-muted);font-size:11px;">was: ' +
+            escapeText(m.previous.contents || '') + '</span>' : '') + '</td></tr>'));
+      if (rows.length) {
+        html += '<div style="overflow-x:auto;"><table class="manifest"><thead><tr>' +
+          '<th>Change</th><th>Sheet</th><th>Source</th><th>Comment</th></tr></thead><tbody>' +
+          rows.join('') + '</tbody></table></div>';
+      }
+      if (body.unmatchable_note) {
+        html += '<div class="note"><span>ⓘ</span><span>' + escapeText(body.unmatchable_note) + '</span></div>';
+      }
+      document.getElementById('prDiffResult').innerHTML = html;
+      prSay('prDiffStatus', 'Compared round ' + body.from_round + ' with round ' + body.to_round + '.', 'ok');
+    });
+  });
+
+  document.getElementById('prApproveBtn').addEventListener('click', () => {
+    prGuard('prApproveStatus', 'Checking the gate…', async () => {
+      const id = prNeedSet();
+      const approver = document.getElementById('prApprover').value.trim();
+      if (!approver) throw new Error('sign-off needs a name');
+      const body = await prFetch('/bluebeam/review-sets/' + id + '/approve', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          approved_by: approver,
+          note: document.getElementById('prApproveNote').value.trim() || null,
+        }),
+      });
+      prSay('prApproveStatus', 'Approved by ' + body.approved_by + '.', 'ok');
+      await prLoadSets(id);
+      await prRefreshDetail();
+    });
   });
 
   // ---- now that every panel above has defined its bindings, run the first pass ----

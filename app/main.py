@@ -38,9 +38,11 @@ from app import (
     raceway_calc,
     string_design_calc,
     switchboard_block,
+    trench_calc,
     voltage_drop_calc,
     wire_cost_calc,
 )
+from app.bluebeam_routes import router as bluebeam_router
 from app.catalog_routes import router as catalog_router
 from app.changeset_routes import router as changeset_router
 from app.commissioning_routes import router as commissioning_router
@@ -59,6 +61,7 @@ from app.pvcase_dwg_scan import PvcaseDwgError
 from app.pvcase_plan import PvcasePlanRequest
 from app.pvcase_routing import PvcaseRoutingRequest
 from app.pvcase_validate import PvcaseValidateRequest
+from app.trench_calc import TrenchDesignRequest, TrenchInputError
 from app.wire_cost_calc import FeederValueEngineeringRequest, ProjectFeederVeRequest
 
 app = FastAPI(title="Solar Calc Engine", version="0.1.0")
@@ -76,6 +79,7 @@ app.add_middleware(
 app.include_router(changeset_router)
 app.include_router(catalog_router)
 app.include_router(skyvisor_router)
+app.include_router(bluebeam_router)
 app.include_router(commissioning_router)
 create_db_and_tables()
 
@@ -327,6 +331,30 @@ def value_engineering_project_feeders(request: ProjectFeederVeRequest) -> dict:
     feeders can be value-engineered without retyping current/voltage/length
     that's already on file."""
     return wire_cost_calc.evaluate_project_feeders(request)
+
+
+@app.post("/trench/thermal-design")
+def trench_thermal_design(request: TrenchDesignRequest) -> dict:
+    """Trench ampacity for direct-buried conduits — app/trench_calc.py over the
+    numerical solver in app/trench_thermal/.
+
+    Conduits sharing a trench mutually heat each other through the soil, which
+    is a different mechanism from NEC 310.15(C)(1) conduit fill (conductors
+    crowding INSIDE one conduit) and is not covered by any table: the response
+    reports the two as separate multiplying rows, never folded together.
+    Inputs are pulled from the project's own raceway_runs — current, conductor,
+    and trade size all come from what the Raceway (24) panel already sized, so
+    nothing is re-entered and the NEC derates are not reapplied to the I^2*R
+    heat term.
+
+    Two modes. With `conditions.fixed_layout` set it checks one already-drawn
+    arrangement (a fraction of a second). Without it, the full layer-count and
+    1.5"-on-centre spacing search runs — tens of seconds for a large trench,
+    which is why this is a "run calc" button and not a live recompute."""
+    try:
+        return trench_calc.compute_trench_design(request)
+    except TrenchInputError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 @app.post("/pvcase/gps-validate")
