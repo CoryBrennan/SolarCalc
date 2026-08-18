@@ -3,7 +3,13 @@ from __future__ import annotations
 import pytest
 from sqlalchemy.pool import NullPool
 
-from app.db import _engine_kwargs, _normalize_database_url, _resolve_database_url
+import app.db
+from app.db import (
+    _enable_row_level_security,
+    _engine_kwargs,
+    _normalize_database_url,
+    _resolve_database_url,
+)
 
 
 def test_normalize_leaves_sqlite_url_untouched():
@@ -162,3 +168,41 @@ def test_the_error_never_echoes_the_whole_credential():
     with pytest.raises(RuntimeError) as exc:
         _resolve_database_url(secret)
     assert secret not in str(exc.value)
+
+
+def test_rls_is_skipped_entirely_on_sqlite(monkeypatch):
+    """SQLite has no row-level security and nothing serving it over HTTP, so
+    local dev and the test suite must not so much as open a connection for
+    this."""
+
+    class ExplodingEngine:
+        dialect = type("D", (), {"name": "sqlite"})()
+
+        def begin(self):
+            raise AssertionError("should not have connected")
+
+    monkeypatch.setattr(app.db, "engine", ExplodingEngine())
+    _enable_row_level_security()
+
+
+def test_rls_failure_is_logged_but_never_raised(monkeypatch, caplog):
+    """A locked-down role that cannot ALTER these tables should cost a warning,
+    not the whole service: create_all has already run by this point."""
+
+    class FailingEngine:
+        dialect = type("D", (), {"name": "postgresql"})()
+
+        def begin(self):
+            raise RuntimeError("permission denied for table ingestionjob")
+
+    monkeypatch.setattr(app.db, "engine", FailingEngine())
+    with caplog.at_level("WARNING"):
+        _enable_row_level_security()
+    assert "anon key" in caplog.text
+
+
+def test_only_tables_owned_by_the_connecting_role_are_altered():
+    """ALTER TABLE fails on a table you do not own, so the scan filters by
+    owner rather than trying and swallowing the error."""
+    assert "rolname = current_user" in app.db._TABLES_MISSING_RLS
+    assert "not c.relrowsecurity" in app.db._TABLES_MISSING_RLS

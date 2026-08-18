@@ -176,8 +176,77 @@ DATABASE_URL = _resolve_database_url(os.environ.get("DATABASE_URL"))
 engine = create_engine(DATABASE_URL, **_engine_kwargs(DATABASE_URL))
 
 
+# Every table create_all() makes lands in the `public` schema, and Supabase
+# serves that schema over HTTPS through PostgREST. With row-level security off,
+# the project's publishable anon key -- a value that is designed to ship to
+# browsers -- is enough to read and write every row: commissioning photos,
+# plan-set markups, project data, all of it.
+#
+# Nothing in this app goes through PostgREST. The engine above connects
+# straight to Postgres as the role that owns these tables, and an owner
+# bypasses RLS unless the table is set FORCE, so switching RLS on with no
+# policies at all shuts out the anon and authenticated roles while leaving
+# every query in this service working exactly as before. "Enable RLS but write
+# no policies" is usually a way to lock yourself out of your own data; here it
+# is the whole point.
+#
+# This runs on each startup rather than living in a one-off migration because
+# create_all() keeps adding tables as models are added, and a brand-new table
+# arrives with RLS off and the anon grants already on it. Keeping it next to
+# the call that creates the tables means the protection travels with the code
+# instead of depending on someone re-running SQL in the dashboard.
+_TABLES_MISSING_RLS = """
+select c.oid::regclass::text
+from pg_class c
+join pg_namespace n on n.oid = c.relnamespace
+where n.nspname = 'public'
+  and c.relkind = 'r'
+  and not c.relrowsecurity
+  and c.relowner = (select oid from pg_roles where rolname = current_user)
+order by 1
+"""
+
+
+def _enable_row_level_security() -> None:
+    """Turn RLS on for any public table that owns up to not having it yet.
+
+    Restricted to tables this connection's role actually owns, since ALTER
+    TABLE fails on anything else -- that keeps a least-privileged or
+    self-hosted deployment from tripping over tables it has no business
+    touching.
+
+    Never raises: a failure here leaves the schema exactly as create_all() left
+    it, which is worth a loud warning but not a dead service. SQLite has no
+    such concept and no PostgREST in front of it, so local dev and the test
+    suite skip the whole thing."""
+    if engine.dialect.name != "postgresql":
+        return
+    try:
+        with engine.begin() as conn:
+            secured = [row[0] for row in conn.exec_driver_sql(_TABLES_MISSING_RLS)]
+            for table in secured:
+                # `table` is regclass output, so it is already a valid and
+                # correctly quoted identifier -- it cannot be interpolated
+                # into anything but the table name it names.
+                conn.exec_driver_sql(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY")
+        if secured:
+            _log.info(
+                "Enabled row-level security on %d newly created table(s): %s",
+                len(secured),
+                ", ".join(secured),
+            )
+    except Exception:
+        _log.warning(
+            "Could not enable row-level security on the public schema. Any table "
+            "left without it is readable and writable by anyone holding the "
+            "project's anon key.",
+            exc_info=True,
+        )
+
+
 def create_db_and_tables() -> None:
     SQLModel.metadata.create_all(engine)
+    _enable_row_level_security()
 
 
 def get_session() -> Generator[Session, None, None]:
