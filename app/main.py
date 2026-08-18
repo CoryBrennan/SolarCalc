@@ -10,6 +10,7 @@ use persistence, for the AutoCAD sync loop.
 from __future__ import annotations
 
 import dataclasses
+import logging
 from pathlib import Path
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
@@ -81,7 +82,26 @@ app.include_router(catalog_router)
 app.include_router(skyvisor_router)
 app.include_router(bluebeam_router)
 app.include_router(commissioning_router)
-create_db_and_tables()
+
+# A database that is merely unreachable must not stop the service booting.
+# uvicorn imports this module to find `app`, so anything raised here kills the
+# process outright -- and on the free tiers that is a routine occurrence, not
+# an exotic one: the Render instance spins down on inactivity and re-imports on
+# every wake, while a free Supabase project pauses after a week idle. Letting
+# that abort startup would take down /calculate and /health too, neither of
+# which touches a database. DB-backed routes fail individually instead, which
+# is both a smaller blast radius and a clearer signal.
+#
+# A malformed DATABASE_URL is deliberately NOT caught here: app.db raises that
+# before this line, because it is a config error someone has to fix rather than
+# a transient one to serve around.
+try:
+    create_db_and_tables()
+except Exception:
+    logging.getLogger(__name__).exception(
+        "Could not reach the database at startup -- serving anyway. "
+        "Stateless routes work; database-backed routes will fail until it is reachable."
+    )
 
 
 _STATIC_DIR = Path(__file__).resolve().parent.parent / "static"

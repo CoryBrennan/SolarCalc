@@ -6,11 +6,14 @@ decided here and nowhere else.
 
 from __future__ import annotations
 
+import logging
 import os
 from collections.abc import Generator
 from typing import Any
 from urllib.parse import parse_qs, urlsplit
 
+from sqlalchemy.engine import make_url
+from sqlalchemy.exc import ArgumentError
 from sqlalchemy.pool import NullPool
 from sqlmodel import Session, SQLModel, create_engine
 
@@ -44,7 +47,7 @@ def _normalize_database_url(url: str) -> str:
     to `postgresql+psycopg://` both fixes that and pins the driver explicitly
     to psycopg3 (the one in requirements.txt) -- plain `postgresql://` would
     default to psycopg2, which isn't installed."""
-    url = url.strip()
+    url = _clean_pasted_url(url)
     if url.startswith("postgres://"):
         url = "postgresql://" + url[len("postgres://") :]
     if url.startswith("postgresql://"):
@@ -111,10 +114,64 @@ def _engine_kwargs(url: str) -> dict[str, Any]:
     return kwargs
 
 
+_SQLITE_FALLBACK = "sqlite:///./solar_calc.db"
+
+_log = logging.getLogger(__name__)
+
+
+def _clean_pasted_url(raw: str) -> str:
+    """Undo the two paste artifacts that turn a correct connection string into
+    an unparseable one.
+
+    Both come from copying the right value from the wrong place: the dotenv
+    line (`DATABASE_URL=postgres://...`) instead of just its value, and a
+    string that arrived wrapped in quotes. SQLAlchemy rejects either with the
+    same `Could not parse SQLAlchemy URL` message it gives for a blank value or
+    a psql command line, so the error alone never says which mistake it was."""
+    url = raw.strip()
+    if url.upper().startswith("DATABASE_URL="):
+        url = url[len("DATABASE_URL=") :].strip()
+    if len(url) >= 2 and url[0] == url[-1] and url[0] in "\"'":
+        url = url[1:-1].strip()
+    return url
+
+
+def _resolve_database_url(raw: str | None) -> str:
+    """Turn the raw env var into a URL SQLAlchemy will accept, or fail with an
+    error that names the actual problem."""
+    if raw is None or not raw.strip():
+        # Blank is treated as unset -- an env var set to "" should behave no
+        # worse than an absent one. Warned about loudly rather than passed over
+        # in silence, because in a deployed environment it means the service is
+        # about to write real data to a container-local file that the next
+        # restart throws away.
+        if raw is not None:
+            _log.warning(
+                "DATABASE_URL is set but empty -- falling back to local SQLite (%s). "
+                "Data written here does NOT survive a restart or redeploy.",
+                _SQLITE_FALLBACK,
+            )
+        return _SQLITE_FALLBACK
+
+    url = _normalize_database_url(raw)
+    try:
+        make_url(url)
+    except ArgumentError as exc:
+        raise RuntimeError(
+            "DATABASE_URL is set but is not a connection URL SQLAlchemy can parse. "
+            "It should look like "
+            "postgresql://postgres.<project-ref>:<password>@aws-<n>-<region>"
+            ".pooler.supabase.com:5432/postgres -- the value only, not the "
+            "'DATABASE_URL=' prefix, not a psql command line, and not just the "
+            f"password. Got {len(url)} characters starting {url[:12]!r}."
+        ) from exc
+    return url
+
+
 # Unset (local dev, tests) falls back to a SQLite file; in production this is
 # the Supabase session-pooler connection string, set as an env var on the web
 # service (see render.yaml and the deploy notes in README.md).
-DATABASE_URL = _normalize_database_url(os.environ.get("DATABASE_URL", "sqlite:///./solar_calc.db"))
+DATABASE_URL = _resolve_database_url(os.environ.get("DATABASE_URL"))
 
 engine = create_engine(DATABASE_URL, **_engine_kwargs(DATABASE_URL))
 

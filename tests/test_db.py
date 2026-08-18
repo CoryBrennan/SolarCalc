@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import pytest
 from sqlalchemy.pool import NullPool
 
-from app.db import _engine_kwargs, _normalize_database_url
+from app.db import _engine_kwargs, _normalize_database_url, _resolve_database_url
 
 
 def test_normalize_leaves_sqlite_url_untouched():
@@ -112,3 +113,52 @@ def test_normalize_strips_whitespace_from_a_pasted_url():
         _normalize_database_url(url)
         == "postgresql+psycopg://postgres.abcdef:pw@aws-0-us-east-1.pooler.supabase.com:5432/postgres"
     )
+
+
+# --- resolving the raw env var -------------------------------------------
+#
+# Four different paste mistakes all produce SQLAlchemy's single opaque
+# "Could not parse SQLAlchemy URL from given URL string", which is what turned
+# one bad Render env var into a failed deploy with no indication of the cause.
+# Two of them are unambiguous and get repaired; the rest fail with an error
+# that names the problem.
+
+
+def test_unset_falls_back_to_local_sqlite():
+    assert _resolve_database_url(None) == "sqlite:///./solar_calc.db"
+
+
+def test_blank_is_treated_as_unset_rather_than_as_a_broken_url():
+    """An env var set to "" should behave no worse than an absent one. db.py
+    logs a warning in this case, because in a deployed environment it means
+    real data is about to go to a container-local file."""
+    assert _resolve_database_url("   ") == "sqlite:///./solar_calc.db"
+
+
+def test_dotenv_line_pasted_whole_is_repaired():
+    url = "DATABASE_URL=postgres://postgres.abc:pw@aws-0-us-east-1.pooler.supabase.com:5432/postgres"
+    assert _resolve_database_url(url).startswith("postgresql+psycopg://postgres.abc:pw@")
+
+
+def test_surrounding_quotes_are_stripped():
+    url = '"postgres://postgres.abc:pw@aws-0-us-east-1.pooler.supabase.com:5432/postgres"'
+    assert _resolve_database_url(url).startswith("postgresql+psycopg://postgres.abc:pw@")
+
+
+def test_a_psql_command_line_fails_with_an_actionable_message():
+    with pytest.raises(RuntimeError, match="not a connection URL"):
+        _resolve_database_url("psql -h aws-0-us-east-1.pooler.supabase.com -p 5432 -U postgres.abc")
+
+
+def test_the_password_alone_fails_with_an_actionable_message():
+    with pytest.raises(RuntimeError, match="not just the"):
+        _resolve_database_url("hunter2")
+
+
+def test_the_error_never_echoes_the_whole_credential():
+    """The message is going into a deploy log, so it reports a length and a
+    short prefix rather than the string it was handed."""
+    secret = "supersecretpasswordvalue"
+    with pytest.raises(RuntimeError) as exc:
+        _resolve_database_url(secret)
+    assert secret not in str(exc.value)
