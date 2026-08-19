@@ -19,6 +19,8 @@ from sqlmodel import Session
 from app import (
     aux_panelboard_block,
     changesets,
+    custom_device_block,
+    device_templates,
     inverter_ac_block,
     inverter_dc_block,
     static_device_block,
@@ -57,6 +59,7 @@ def _load_project(session: Session, project_id: str = "default") -> ProjectInput
 @router.put("/projects/{project_id}")
 def put_project(project_id: str, project: ProjectInput, session: Session = Depends(get_session)) -> dict:
     validate_module_skus(project)
+    custom_device_block.validate_custom_device_tags(project)
     existing = session.get(Project, project_id)
     payload = project.model_dump_json()
     if existing is None:
@@ -158,6 +161,34 @@ def refresh_inverter_ac_changesets(project_id: str = "default", session: Session
         results.append({"created": created, "changeset": _changeset_to_dict(changeset)})
 
     return {"inverter_count": project.inverter.quantity, "results": results}
+
+
+@router.post("/changesets/custom-device/refresh")
+def refresh_custom_device_changesets(project_id: str = "default", session: Session = Depends(get_session)) -> dict:
+    """One changeset per project.custom_devices entry, refreshed
+    independently — editing one device's connections doesn't re-enqueue the
+    rest. Always "regenerate": terminal composition is structural, so any
+    change (including just a connects-to edit) rebuilds the whole block —
+    see custom_device_block.py's module docstring for why an
+    attribute_update path was rejected."""
+    project = _load_project(session, project_id)
+    custom_device_block.validate_custom_device_tags(project)
+
+    results = []
+    for instance in project.custom_devices:
+        template = device_templates.get_template(session, instance.template_id)
+        if template is None:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Custom device {instance.tag!r} references unknown template {instance.template_id!r}",
+            )
+        config = custom_device_block.build_custom_device_config(instance, template)
+        changeset, created = changesets.refresh_changeset(
+            session, target_tag=config["tag"], block_type="CUSTOM_DEVICE", operation="regenerate", config=config
+        )
+        results.append({"created": created, "changeset": _changeset_to_dict(changeset)})
+
+    return {"device_count": len(project.custom_devices), "results": results}
 
 
 @router.post("/changesets/transformer/refresh")

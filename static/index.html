@@ -534,6 +534,7 @@
       <li><button class="rail-btn" data-target="sec-commissioning"><span><span class="rail-num">28</span> Commissioning &amp; QC</span><span class="rail-dot dot-neutral" id="commissioningDot"></span></button></li>
       <li><button class="rail-btn" data-target="sec-trench"><span><span class="rail-num">29</span> Trench Thermal Design</span><span class="rail-dot dot-neutral" id="trenchDot"></span></button></li>
       <li><button class="rail-btn" data-target="sec-planreview"><span><span class="rail-num">30</span> Plan Review &amp; Markups</span><span class="rail-dot dot-neutral" id="planReviewDot"></span></button></li>
+      <li><button class="rail-btn" data-target="sec-custom-devices"><span><span class="rail-num">31</span> Custom Device Builder</span><span class="rail-dot dot-neutral" id="customDeviceDot"></span></button></li>
     </ul>
     <div class="rail-foot">
       NEC edition resolved from <b>jurisdiction_lookup.py</b><br>
@@ -3362,6 +3363,84 @@
         </div>
       </section>
 
+      <section class="panel" id="sec-custom-devices">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">app/device_templates.py, custom_device_block.py → /device-templates, /connectable-targets, /changesets/custom-device/refresh</p>
+            <h2>Custom Device Builder</h2>
+          </div>
+        </div>
+        <p class="desc">Define a reusable SLD device by name and its wiring terminal groups — AC phases, neutral, ground, communications, DC — then create tagged instances of it, each terminal pointed at a real connection target. Instances flow through the same changeset sync loop as every other block and land in AutoCAD Electrical via the add-in's <code>CUSTOMDEVSYNCNOW</code> command. Two starter templates (Inverter w/ DC Combiner, Split-Phase Load) are seeded automatically on a fresh backend.</p>
+
+        <div class="card">
+          <p class="card-title">Template library <span class="unit">reusable device shapes</span></p>
+          <div id="cdTemplateList"></div>
+          <div class="bulk-btns" style="margin-top:12px;">
+            <button class="btn btn-primary" id="cdNewTemplateBtn" type="button">+ New template</button>
+            <button class="btn btn-quiet" id="cdRefreshTemplatesBtn" type="button">Refresh</button>
+          </div>
+          <p class="desc" id="cdTemplateListStatus"></p>
+
+          <div id="cdTemplateEditor" style="display:none; margin-top:16px; border-top:1px solid var(--border); padding-top:16px;">
+            <div class="field-grid">
+              <div class="field">
+                <label for="cdTemplateName">Template name</label>
+                <input class="prose" type="text" id="cdTemplateName" placeholder="Inverter w/ DC Combiner">
+              </div>
+            </div>
+            <p class="card-title" style="margin-top:14px;">Terminal groups</p>
+            <div id="cdGroupRows"></div>
+            <div class="bulk-btns" style="margin-top:10px;">
+              <button class="btn btn-quiet" id="cdAddGroupBtn" type="button">+ Add terminal group</button>
+            </div>
+            <div class="bulk-btns" style="margin-top:14px;">
+              <button class="btn btn-primary" id="cdSaveTemplateBtn" type="button">Save template</button>
+              <button class="btn btn-quiet" id="cdCancelTemplateBtn" type="button">Cancel</button>
+            </div>
+            <p class="desc" id="cdTemplateStatus"></p>
+          </div>
+        </div>
+
+        <div class="card">
+          <p class="card-title">Device instances <span class="unit">tagged devices on this project</span></p>
+          <div id="cdInstanceList"></div>
+          <div class="bulk-btns" style="margin-top:12px;">
+            <button class="btn btn-primary" id="cdNewInstanceBtn" type="button">+ New device</button>
+            <button class="btn btn-quiet" id="cdRefreshInstancesBtn" type="button">Refresh</button>
+          </div>
+          <p class="desc" id="cdInstanceListStatus"></p>
+
+          <div id="cdInstanceEditor" style="display:none; margin-top:16px; border-top:1px solid var(--border); padding-top:16px;">
+            <div class="field-grid">
+              <div class="field">
+                <label for="cdInstanceTemplateSelect">Template</label>
+                <select id="cdInstanceTemplateSelect"><option value="">— choose a template —</option></select>
+              </div>
+              <div class="field">
+                <label for="cdInstanceTag">Tag</label>
+                <input class="prose" type="text" id="cdInstanceTag" placeholder="LOAD-1">
+              </div>
+            </div>
+            <div id="cdInstanceGroupControls" style="margin-top:12px;"></div>
+            <p class="card-title" style="margin-top:14px;">Nameplate attributes <span class="unit">free key/value, e.g. MFG, CAT</span></p>
+            <div id="cdInstanceAttrRows"></div>
+            <div class="bulk-btns" style="margin-top:10px;">
+              <button class="btn btn-quiet" id="cdAddAttrBtn" type="button">+ Add attribute</button>
+            </div>
+            <div class="bulk-btns" style="margin-top:14px;">
+              <button class="btn btn-primary" id="cdSaveInstanceBtn" type="button">Save device &amp; refresh changeset</button>
+              <button class="btn btn-quiet" id="cdCancelInstanceBtn" type="button">Cancel</button>
+            </div>
+            <p class="desc" id="cdInstanceStatus"></p>
+          </div>
+        </div>
+
+        <div class="note">
+          <span>ⓘ</span>
+          <span>Connects-to targets are read live from <code>/connectable-targets</code> — real modeled objects only (aux panelboard circuits, other custom devices) plus one assumed ground/neutral bus per switchboard and aux panelboard, labeled as such. Switchboard breaker positions are <b>not</b> offered: they're synthesized one-per-inverter and aren't available connection points — see <code>custom-device-block-spec.md</code>'s Open items.</span>
+        </div>
+      </section>
+
     </div>
   </div>
 </div>
@@ -3372,7 +3451,7 @@
     'sec-site', 'sec-directory', 'sec-inverter-design',
     'sec-combiner', 'sec-switchboard-design', 'sec-mv-design', 'sec-backend', 'sec-catalog-review', 'sec-raceway',
     'sec-skyvisor', 'sec-gps-validate', 'sec-value-engineering', 'sec-commissioning', 'sec-trench',
-    'sec-planreview',
+    'sec-planreview', 'sec-custom-devices',
   ];
   const railBtns = document.querySelectorAll('.rail-btn');
   railBtns.forEach(btn => {
@@ -3386,6 +3465,7 @@
       // that moved the pin in the meantime gets drawn on the way back in.
       if (btn.dataset.target === 'sec-site' && mapNeedsRender) renderMap();
       if (btn.dataset.target === 'sec-commissioning' && cxNeedsInitialLoad) { cxNeedsInitialLoad = false; cxRefreshUnits(); }
+      if (btn.dataset.target === 'sec-custom-devices' && cdNeedsInitialLoad) { cdNeedsInitialLoad = false; cdInitialLoad(); }
     });
   });
 
@@ -11589,6 +11669,472 @@
       prSay('prApproveStatus', 'Approved by ' + body.approved_by + '.', 'ok');
       await prLoadSets(id);
       await prRefreshDetail();
+    });
+  });
+
+  // ---- Custom Device Builder (31) ----
+  // Same fetch/status idiom as the Plan Review panel's prFetch/prSay/prGuard
+  // (lines ~11262 onward), scoped to /device-templates, /connectable-targets,
+  // and /changesets/custom-device/refresh.
+  let cdNeedsInitialLoad = true;
+  let cdTemplates = [];
+  let cdInstances = [];
+  let cdConnectableTargets = [];
+  let cdEditingTemplateId = null; // null while creating a new template
+  let cdTemplateGroups = [];      // in-progress terminal_groups for the template editor
+  let cdEditingInstanceIndex = null; // null while creating a new instance
+  let cdInstanceDraft = null;     // { tag, template_id, group_counts, connections, attributes }
+  let cdInstanceAttrs = [];       // in-progress [{key,value}] for the instance editor
+
+  const CD_TERMINAL_TYPES = ['ac_phase', 'neutral', 'ground', 'comms', 'dc_positive', 'dc_negative', 'dc_generic', 'generic'];
+
+  function cdBase() {
+    return document.getElementById('backendUrlInput').value.trim().replace(/\/$/, '');
+  }
+  function cdSay(id, message, tone) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = message || '';
+    el.style.color = tone === 'ok' ? 'var(--pass)' : (tone === 'bad' ? 'var(--fail)' : 'var(--ink-muted)');
+  }
+  async function cdFetch(path, options) {
+    const res = await fetch(cdBase() + path, options || {});
+    if (!res.ok) {
+      let detail = 'HTTP ' + res.status;
+      try {
+        const body = await res.json();
+        if (body && body.detail) detail = typeof body.detail === 'string' ? body.detail : JSON.stringify(body.detail);
+      } catch (err) { /* non-JSON error body; the status alone will have to do */ }
+      throw new Error(detail);
+    }
+    return res.status === 204 ? null : res.json();
+  }
+  async function cdGuard(statusId, working, fn) {
+    try {
+      cdSay(statusId, working);
+      await fn();
+    } catch (err) {
+      cdSay(statusId, (err && err.message) || String(err), 'bad');
+    }
+  }
+
+  function cdSlugify(text, fallback) {
+    const slug = String(text || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+    return slug || fallback;
+  }
+  function cdCsvToList(text) {
+    return String(text || '').split(',').map(s => s.trim()).filter(Boolean);
+  }
+
+  async function cdInitialLoad() {
+    await cdGuard('cdTemplateListStatus', 'Loading…', cdLoadTemplates);
+    await cdGuard('cdInstanceListStatus', 'Loading…', cdLoadInstances);
+  }
+
+  // -------- Template library --------
+  async function cdLoadTemplates() {
+    cdTemplates = await cdFetch('/device-templates');
+    cdRenderTemplateList();
+    cdRenderInstanceTemplateSelect();
+    cdSay('cdTemplateListStatus', cdTemplates.length + ' template(s) loaded.', 'ok');
+  }
+
+  function cdRenderTemplateList() {
+    const el = document.getElementById('cdTemplateList');
+    if (!cdTemplates.length) { el.innerHTML = '<p class="desc">No templates yet.</p>'; return; }
+    el.innerHTML = '<table class="etap"><thead><tr><th>Name</th><th>Terminal groups</th><th></th></tr></thead><tbody>' +
+      cdTemplates.map(t => '<tr>' +
+        '<td>' + escapeText(t.name) + '</td>' +
+        '<td>' + t.terminal_groups.map(g =>
+          escapeText(g.label || g.id) + ' (' + g.terminal_type + (g.count_mode === 'one_or_more' ? ', 1+' : ', x' + g.count) + (g.optional ? ', optional' : '') + ')'
+        ).join('; ') + '</td>' +
+        '<td><button type="button" class="contact-remove" data-cd-edit-template="' + escapeAttr(t.id) + '">Edit</button> ' +
+        '<button type="button" class="contact-remove" data-cd-delete-template="' + escapeAttr(t.id) + '">Delete</button></td>' +
+        '</tr>').join('') + '</tbody></table>';
+  }
+
+  function cdRenderInstanceTemplateSelect() {
+    const select = document.getElementById('cdInstanceTemplateSelect');
+    const current = select.value;
+    select.innerHTML = '<option value="">— choose a template —</option>' +
+      cdTemplates.map(t => '<option value="' + escapeAttr(t.id) + '">' + escapeText(t.name) + '</option>').join('');
+    if (current && cdTemplates.some(t => t.id === current)) select.value = current;
+  }
+
+  function cdOpenTemplateEditor(template) {
+    cdEditingTemplateId = template ? template.id : null;
+    document.getElementById('cdTemplateName').value = template ? template.name : '';
+    cdTemplateGroups = template
+      ? template.terminal_groups.map(g => ({
+          id: g.id, label: g.label, terminal_type: g.terminal_type, count: g.count,
+          count_mode: g.count_mode, optional: g.optional,
+          phase_labels: (g.phase_labels || []).join(','),
+          protocol_options: (g.protocol_options || []).join(','),
+          connects_to_types: (g.connects_to_types || []).join(','),
+        }))
+      : [{ id: '', label: '', terminal_type: 'ac_phase', count: 1, count_mode: 'fixed', optional: false, phase_labels: '', protocol_options: '', connects_to_types: 'breaker' }];
+    cdRenderGroupRows();
+    cdSay('cdTemplateStatus', '', 'ok');
+    document.getElementById('cdTemplateEditor').style.display = '';
+  }
+
+  function cdRenderGroupRows() {
+    const el = document.getElementById('cdGroupRows');
+    el.innerHTML = '<table class="etap"><thead><tr>' +
+      '<th>Label</th><th>Type</th><th>Count</th><th>Mode</th><th>Optional</th>' +
+      '<th>Phase labels (CSV)</th><th>Protocols (CSV)</th><th>Connects-to types (CSV)</th><th></th>' +
+      '</tr></thead><tbody>' +
+      cdTemplateGroups.map((g, i) => '<tr data-idx="' + i + '">' +
+        '<td><input type="text" data-idx="' + i + '" data-field="label" value="' + escapeAttr(g.label) + '" placeholder="AC Input"></td>' +
+        '<td><select data-idx="' + i + '" data-field="terminal_type">' +
+          CD_TERMINAL_TYPES.map(tt => '<option value="' + tt + '" ' + (g.terminal_type === tt ? 'selected' : '') + '>' + tt + '</option>').join('') +
+        '</select></td>' +
+        '<td><input type="number" min="0" max="12" style="width:60px;" data-idx="' + i + '" data-field="count" value="' + g.count + '"></td>' +
+        '<td><select data-idx="' + i + '" data-field="count_mode">' +
+          '<option value="fixed" ' + (g.count_mode === 'fixed' ? 'selected' : '') + '>Fixed</option>' +
+          '<option value="one_or_more" ' + (g.count_mode === 'one_or_more' ? 'selected' : '') + '>1 or more (count = min)</option>' +
+        '</select></td>' +
+        '<td style="text-align:center;"><input type="checkbox" data-idx="' + i + '" data-field="optional" ' + (g.optional ? 'checked' : '') + '></td>' +
+        '<td><input type="text" data-idx="' + i + '" data-field="phase_labels" value="' + escapeAttr(g.phase_labels) + '" placeholder="L1-A,L2-B,L3-C"></td>' +
+        '<td><input type="text" data-idx="' + i + '" data-field="protocol_options" value="' + escapeAttr(g.protocol_options) + '" placeholder="RS485,Ethernet"></td>' +
+        '<td><input type="text" data-idx="' + i + '" data-field="connects_to_types" value="' + escapeAttr(g.connects_to_types) + '" placeholder="breaker,ground_bar"></td>' +
+        '<td>' + (cdTemplateGroups.length > 1 ? '<button type="button" class="contact-remove" data-cd-remove-group="' + i + '">Remove</button>' : '') + '</td>' +
+        '</tr>').join('') + '</tbody></table>';
+  }
+
+  document.getElementById('cdGroupRows').addEventListener('input', ev => {
+    const idx = ev.target.dataset.idx, field = ev.target.dataset.field;
+    if (idx === undefined || !field) return;
+    const boolFields = ['optional'];
+    const numFields = ['count'];
+    cdTemplateGroups[idx][field] = boolFields.includes(field) ? ev.target.checked
+      : numFields.includes(field) ? (parseInt(ev.target.value, 10) || 0)
+      : ev.target.value;
+  });
+  document.getElementById('cdGroupRows').addEventListener('change', ev => {
+    if (ev.target.dataset.field === 'optional' || ev.target.dataset.field === 'count') {
+      const idx = ev.target.dataset.idx, field = ev.target.dataset.field;
+      cdTemplateGroups[idx][field] = field === 'optional' ? ev.target.checked : (parseInt(ev.target.value, 10) || 0);
+    }
+  });
+  document.getElementById('cdGroupRows').addEventListener('click', ev => {
+    const btn = ev.target.closest('[data-cd-remove-group]');
+    if (!btn) return;
+    cdTemplateGroups.splice(parseInt(btn.dataset.cdRemoveGroup, 10), 1);
+    cdRenderGroupRows();
+  });
+  document.getElementById('cdAddGroupBtn').addEventListener('click', () => {
+    cdTemplateGroups.push({ id: '', label: '', terminal_type: 'generic', count: 1, count_mode: 'fixed', optional: false, phase_labels: '', protocol_options: '', connects_to_types: '' });
+    cdRenderGroupRows();
+  });
+
+  document.getElementById('cdNewTemplateBtn').addEventListener('click', () => cdOpenTemplateEditor(null));
+  document.getElementById('cdCancelTemplateBtn').addEventListener('click', () => {
+    document.getElementById('cdTemplateEditor').style.display = 'none';
+  });
+  document.getElementById('cdRefreshTemplatesBtn').addEventListener('click', () => cdGuard('cdTemplateListStatus', 'Loading…', cdLoadTemplates));
+
+  document.getElementById('cdTemplateList').addEventListener('click', ev => {
+    const editBtn = ev.target.closest('[data-cd-edit-template]');
+    if (editBtn) { cdOpenTemplateEditor(cdTemplates.find(t => t.id === editBtn.getAttribute('data-cd-edit-template'))); return; }
+    const delBtn = ev.target.closest('[data-cd-delete-template]');
+    if (delBtn) {
+      const id = delBtn.getAttribute('data-cd-delete-template');
+      cdGuard('cdTemplateListStatus', 'Deleting…', async () => {
+        await cdFetch('/device-templates/' + id, { method: 'DELETE' });
+        await cdLoadTemplates();
+      }); // cdLoadTemplates sets its own final status
+    }
+  });
+
+  document.getElementById('cdSaveTemplateBtn').addEventListener('click', () => {
+    cdGuard('cdTemplateStatus', 'Saving…', async () => {
+      const usedIds = new Set();
+      const payload = {
+        name: document.getElementById('cdTemplateName').value.trim(),
+        terminal_groups: cdTemplateGroups.map((g, i) => {
+          let id = cdSlugify(g.label, 'group_' + i);
+          let unique = id, n = 2;
+          while (usedIds.has(unique)) { unique = id + '_' + n; n++; }
+          usedIds.add(unique);
+          return {
+            id: unique, label: g.label || unique, terminal_type: g.terminal_type,
+            count: g.count, count_mode: g.count_mode, optional: g.optional,
+            phase_labels: cdCsvToList(g.phase_labels), protocol_options: cdCsvToList(g.protocol_options),
+            connects_to_types: cdCsvToList(g.connects_to_types),
+          };
+        }),
+      };
+      if (!payload.name) throw new Error('name the template first');
+      if (!payload.terminal_groups.length) throw new Error('add at least one terminal group');
+
+      if (cdEditingTemplateId) await cdFetch('/device-templates/' + cdEditingTemplateId, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      else await cdFetch('/device-templates', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+
+      document.getElementById('cdTemplateEditor').style.display = 'none';
+      await cdLoadTemplates();
+    });
+  });
+
+  // -------- Device instances --------
+  // Merge-then-PUT: this HMI has no existing PUT /projects/{id} caller, so
+  // every save round-trips through a GET first and only patches
+  // custom_devices, rather than risk a partial PUT quietly resetting every
+  // other project field to its Pydantic default.
+  async function cdLoadProject() {
+    const res = await fetch(cdBase() + '/projects/default');
+    if (res.status === 404) return {};
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return res.json();
+  }
+  async function cdSaveProjectPatch(patch) {
+    const project = await cdLoadProject();
+    Object.assign(project, patch);
+    const res = await fetch(cdBase() + '/projects/default', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(project),
+    });
+    if (!res.ok) {
+      let detail = 'HTTP ' + res.status;
+      try { const body = await res.json(); if (body && body.detail) detail = typeof body.detail === 'string' ? body.detail : JSON.stringify(body.detail); } catch (err) {}
+      throw new Error(detail);
+    }
+    return project;
+  }
+
+  async function cdLoadInstances() {
+    const project = await cdLoadProject();
+    cdInstances = project.custom_devices || [];
+    cdRenderInstanceList();
+    cdSay('cdInstanceListStatus', cdInstances.length + ' device(s) on this project.', 'ok');
+  }
+
+  function cdTemplateName(templateId) {
+    const t = cdTemplates.find(t => t.id === templateId);
+    return t ? t.name : templateId + ' (unknown template)';
+  }
+
+  function cdRenderInstanceList() {
+    const el = document.getElementById('cdInstanceList');
+    if (!cdInstances.length) { el.innerHTML = '<p class="desc">No custom devices on this project yet.</p>'; return; }
+    el.innerHTML = '<table class="etap"><thead><tr><th>Tag</th><th>Template</th><th></th></tr></thead><tbody>' +
+      cdInstances.map((inst, i) => '<tr>' +
+        '<td>' + escapeText(inst.tag) + '</td>' +
+        '<td>' + escapeText(cdTemplateName(inst.template_id)) + '</td>' +
+        '<td><button type="button" class="contact-remove" data-cd-edit-instance="' + i + '">Edit</button> ' +
+        '<button type="button" class="contact-remove" data-cd-delete-instance="' + i + '">Delete</button></td>' +
+        '</tr>').join('') + '</tbody></table>';
+  }
+
+  function cdFindTemplate(id) { return cdTemplates.find(t => t.id === id); }
+  function cdConnectionFor(groupId, index) {
+    return cdInstanceDraft.connections.find(c => c.group_id === groupId && c.index === index);
+  }
+  function cdSetConnection(groupId, index, patch) {
+    let conn = cdConnectionFor(groupId, index);
+    if (!conn) { conn = { group_id: groupId, index: index }; cdInstanceDraft.connections.push(conn); }
+    Object.assign(conn, patch);
+  }
+
+  function cdOpenInstanceEditor(index) {
+    cdEditingInstanceIndex = index === undefined ? null : index;
+    const inst = index === undefined ? null : cdInstances[index];
+    cdInstanceDraft = inst
+      ? { tag: inst.tag, template_id: inst.template_id, group_counts: Object.assign({}, inst.group_counts), connections: (inst.connections || []).map(c => Object.assign({}, c)), attributes: Object.assign({}, inst.attributes) }
+      : { tag: '', template_id: '', group_counts: {}, connections: [], attributes: {} };
+    cdInstanceAttrs = Object.keys(cdInstanceDraft.attributes).map(k => ({ key: k, value: cdInstanceDraft.attributes[k] }));
+
+    document.getElementById('cdInstanceTag').value = cdInstanceDraft.tag;
+    document.getElementById('cdInstanceTemplateSelect').value = cdInstanceDraft.template_id;
+    cdRenderInstanceAttrRows();
+    cdSay('cdInstanceStatus', '', 'ok');
+    document.getElementById('cdInstanceEditor').style.display = '';
+
+    if (cdInstanceDraft.template_id) cdGuard('cdInstanceStatus', 'Loading connection targets…', cdLoadConnectableTargetsAndRender);
+    else document.getElementById('cdInstanceGroupControls').innerHTML = '';
+  }
+
+  async function cdLoadConnectableTargetsAndRender() {
+    cdConnectableTargets = await cdFetch('/connectable-targets');
+    cdRenderInstanceGroupControls();
+  }
+
+  function cdRenderInstanceGroupControls() {
+    const container = document.getElementById('cdInstanceGroupControls');
+    const template = cdFindTemplate(cdInstanceDraft.template_id);
+    if (!template) { container.innerHTML = ''; return; }
+
+    container.innerHTML = template.terminal_groups.map(group => {
+      const hasOverride = Object.prototype.hasOwnProperty.call(cdInstanceDraft.group_counts, group.id);
+      const requested = hasOverride ? cdInstanceDraft.group_counts[group.id] : group.count;
+      const included = !(group.optional && requested === 0);
+      const count = included ? Math.max(requested, group.count_mode === 'one_or_more' ? group.count : group.count) : 0;
+
+      let html = '<div class="card" style="margin-bottom:10px;">';
+      html += '<p class="card-title">' + escapeText(group.label || group.id) + ' <span class="unit">' + group.terminal_type + '</span></p>';
+
+      if (group.optional) {
+        html += '<label style="display:flex; align-items:center; gap:6px; margin-bottom:8px;">' +
+          '<input type="checkbox" data-cd-group-include="' + escapeAttr(group.id) + '" ' + (included ? 'checked' : '') + '> Include this group</label>';
+      }
+
+      if (included) {
+        if (group.count_mode === 'one_or_more') {
+          html += '<div class="field" style="max-width:160px; margin-bottom:8px;"><label>Count</label>' +
+            '<input type="number" min="' + group.count + '" max="12" value="' + count + '" data-cd-group-count="' + escapeAttr(group.id) + '"></div>';
+        }
+
+        for (let i = 0; i < count; i++) {
+          const conn = cdConnectionFor(group.id, i) || {};
+          let terminalLabel = group.label + (count > 1 ? ' ' + (i + 1) : '');
+          html += '<div class="field-grid" style="margin-bottom:8px;">';
+
+          if (group.terminal_type === 'ac_phase' && group.phase_labels && group.phase_labels.length > count) {
+            html += '<div class="field"><label>Phase (terminal ' + (i + 1) + ')</label>' +
+              '<select data-cd-phase="' + escapeAttr(group.id) + '" data-idx="' + i + '">' +
+              '<option value="">— choose —</option>' +
+              group.phase_labels.map(p => '<option value="' + escapeAttr(p) + '" ' + (conn.phase_label_override === p ? 'selected' : '') + '>' + escapeText(p) + '</option>').join('') +
+              '</select></div>';
+            terminalLabel = conn.phase_label_override || ('terminal ' + (i + 1));
+          } else if (group.terminal_type === 'ac_phase' && group.phase_labels && group.phase_labels[i]) {
+            terminalLabel = group.phase_labels[i];
+          }
+
+          if (group.terminal_type === 'comms' && group.protocol_options && group.protocol_options.length) {
+            html += '<div class="field"><label>Protocol (terminal ' + (i + 1) + ')</label>' +
+              '<select data-cd-protocol="' + escapeAttr(group.id) + '" data-idx="' + i + '">' +
+              '<option value="">— choose —</option>' +
+              group.protocol_options.map(p => '<option value="' + escapeAttr(p) + '" ' + (conn.protocol === p ? 'selected' : '') + '>' + escapeText(p) + '</option>').join('') +
+              '</select></div>';
+          }
+
+          const candidates = cdConnectableTargets.filter(t => (group.connects_to_types || []).includes(t.category));
+          html += '<div class="field"><label>' + escapeText(terminalLabel) + ' connects to</label>' +
+            '<select data-cd-connect="' + escapeAttr(group.id) + '" data-idx="' + i + '">' +
+            '<option value="">— none —</option>' +
+            candidates.map(c => '<option value="' + escapeAttr(c.tag) + '" ' + (conn.connects_to === c.tag ? 'selected' : '') + '>' +
+              escapeText(c.label) + (c.note ? ' (assumed)' : '') + '</option>').join('') +
+            '</select></div>';
+
+          html += '</div>';
+        }
+      }
+
+      html += '</div>';
+      return html;
+    }).join('');
+  }
+
+  document.getElementById('cdInstanceGroupControls').addEventListener('change', ev => {
+    const el = ev.target;
+    const template = cdFindTemplate(cdInstanceDraft.template_id);
+    if (el.matches('[data-cd-group-include]')) {
+      const groupId = el.getAttribute('data-cd-group-include');
+      const group = template.terminal_groups.find(g => g.id === groupId);
+      cdInstanceDraft.group_counts[groupId] = el.checked ? group.count : 0;
+      cdRenderInstanceGroupControls();
+    } else if (el.matches('[data-cd-group-count]')) {
+      const groupId = el.getAttribute('data-cd-group-count');
+      cdInstanceDraft.group_counts[groupId] = parseInt(el.value, 10) || 0;
+      cdRenderInstanceGroupControls();
+    } else if (el.matches('[data-cd-phase]')) {
+      cdSetConnection(el.getAttribute('data-cd-phase'), parseInt(el.dataset.idx, 10), { phase_label_override: el.value || null });
+    } else if (el.matches('[data-cd-protocol]')) {
+      cdSetConnection(el.getAttribute('data-cd-protocol'), parseInt(el.dataset.idx, 10), { protocol: el.value || null });
+    } else if (el.matches('[data-cd-connect]')) {
+      cdSetConnection(el.getAttribute('data-cd-connect'), parseInt(el.dataset.idx, 10), { connects_to: el.value || null });
+    }
+  });
+
+  document.getElementById('cdInstanceTemplateSelect').addEventListener('change', ev => {
+    cdInstanceDraft.template_id = ev.target.value;
+    cdInstanceDraft.group_counts = {};
+    cdInstanceDraft.connections = [];
+    if (cdInstanceDraft.template_id) cdGuard('cdInstanceStatus', 'Loading connection targets…', cdLoadConnectableTargetsAndRender);
+    else document.getElementById('cdInstanceGroupControls').innerHTML = '';
+  });
+
+  document.getElementById('cdInstanceTag').addEventListener('input', ev => { cdInstanceDraft.tag = ev.target.value; });
+
+  function cdRenderInstanceAttrRows() {
+    const el = document.getElementById('cdInstanceAttrRows');
+    el.innerHTML = '<table class="etap"><tbody>' + cdInstanceAttrs.map((a, i) =>
+      '<tr><td><input type="text" data-idx="' + i + '" data-field="key" value="' + escapeAttr(a.key) + '" placeholder="MFG"></td>' +
+      '<td><input type="text" data-idx="' + i + '" data-field="value" value="' + escapeAttr(a.value) + '" placeholder="GENERIC"></td>' +
+      '<td><button type="button" class="contact-remove" data-cd-remove-attr="' + i + '">Remove</button></td></tr>'
+    ).join('') + '</tbody></table>';
+  }
+  document.getElementById('cdInstanceAttrRows').addEventListener('input', ev => {
+    const idx = ev.target.dataset.idx, field = ev.target.dataset.field;
+    if (idx === undefined || !field) return;
+    cdInstanceAttrs[idx][field] = ev.target.value;
+  });
+  document.getElementById('cdInstanceAttrRows').addEventListener('click', ev => {
+    const btn = ev.target.closest('[data-cd-remove-attr]');
+    if (!btn) return;
+    cdInstanceAttrs.splice(parseInt(btn.dataset.cdRemoveAttr, 10), 1);
+    cdRenderInstanceAttrRows();
+  });
+  document.getElementById('cdAddAttrBtn').addEventListener('click', () => {
+    cdInstanceAttrs.push({ key: '', value: '' });
+    cdRenderInstanceAttrRows();
+  });
+
+  document.getElementById('cdNewInstanceBtn').addEventListener('click', () => cdOpenInstanceEditor());
+  document.getElementById('cdCancelInstanceBtn').addEventListener('click', () => {
+    document.getElementById('cdInstanceEditor').style.display = 'none';
+  });
+  document.getElementById('cdRefreshInstancesBtn').addEventListener('click', () => cdGuard('cdInstanceListStatus', 'Loading…', cdLoadInstances));
+
+  document.getElementById('cdInstanceList').addEventListener('click', ev => {
+    const editBtn = ev.target.closest('[data-cd-edit-instance]');
+    if (editBtn) { cdOpenInstanceEditor(parseInt(editBtn.getAttribute('data-cd-edit-instance'), 10)); return; }
+    const delBtn = ev.target.closest('[data-cd-delete-instance]');
+    if (delBtn) {
+      const idx = parseInt(delBtn.getAttribute('data-cd-delete-instance'), 10);
+      cdGuard('cdInstanceListStatus', 'Deleting…', async () => {
+        cdInstances.splice(idx, 1);
+        await cdSaveProjectPatch({ custom_devices: cdInstances });
+        await cdFetch('/changesets/custom-device/refresh', { method: 'POST' });
+        cdRenderInstanceList();
+        cdSay('cdInstanceListStatus', 'Deleted.', 'ok');
+      });
+    }
+  });
+
+  document.getElementById('cdSaveInstanceBtn').addEventListener('click', () => {
+    cdGuard('cdInstanceStatus', 'Saving…', async () => {
+      cdInstanceDraft.tag = document.getElementById('cdInstanceTag').value.trim();
+      if (!cdInstanceDraft.tag) throw new Error('tag the device first');
+      if (!cdInstanceDraft.template_id) throw new Error('choose a template first');
+
+      cdInstanceDraft.attributes = {};
+      cdInstanceAttrs.forEach(a => { if (a.key.trim()) cdInstanceDraft.attributes[a.key.trim()] = a.value; });
+      // Drop connection rows for terminals that no longer exist (a group
+      // whose count was reduced, or an omitted optional group) so a stale
+      // connects-to/phase/protocol choice doesn't linger unseen.
+      const template = cdFindTemplate(cdInstanceDraft.template_id);
+      cdInstanceDraft.connections = cdInstanceDraft.connections.filter(c => {
+        const group = template.terminal_groups.find(g => g.id === c.group_id);
+        if (!group) return false;
+        const requested = Object.prototype.hasOwnProperty.call(cdInstanceDraft.group_counts, group.id) ? cdInstanceDraft.group_counts[group.id] : group.count;
+        const included = !(group.optional && requested === 0);
+        const count = included ? Math.max(requested, group.count) : 0;
+        return c.index < count;
+      });
+
+      const payload = { tag: cdInstanceDraft.tag, template_id: cdInstanceDraft.template_id, group_counts: cdInstanceDraft.group_counts, connections: cdInstanceDraft.connections, attributes: cdInstanceDraft.attributes };
+      if (cdEditingInstanceIndex === null) cdInstances.push(payload);
+      else cdInstances[cdEditingInstanceIndex] = payload;
+
+      await cdSaveProjectPatch({ custom_devices: cdInstances });
+      const refreshResult = await cdFetch('/changesets/custom-device/refresh', { method: 'POST' });
+      const mine = (refreshResult.results || []).find(r => r.changeset.target_tag === payload.tag);
+      cdSay('cdInstanceStatus', mine
+        ? ('Saved. Changeset ' + (mine.created ? 'created' : 'already up to date') + ' for ' + payload.tag + '.')
+        : 'Saved.', 'ok');
+
+      document.getElementById('cdInstanceEditor').style.display = 'none';
+      cdRenderInstanceList();
     });
   });
 

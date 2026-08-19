@@ -30,6 +30,18 @@ class Project(SQLModel, table=True):
     updated_at: datetime = Field(default_factory=_now)
 
 
+class DeviceTemplateRow(SQLModel, table=True):
+    """One reusable custom-device template (app/device_templates.py),
+    independent of any project -- the same template gets instantiated
+    across many projects' custom_devices lists. JSON-blob-as-column, same
+    shape-not-yet-relational reasoning as Project.data: a template's
+    terminal-group shape is defined by the user, not fixed columns."""
+
+    id: str = Field(default_factory=lambda: f"tpl-{uuid.uuid4().hex[:12]}", primary_key=True)
+    data: str  # JSON-encoded DeviceTemplate
+    updated_at: datetime = Field(default_factory=_now)
+
+
 class Changeset(SQLModel, table=True):
     """A pending (or resolved) unit of CAD-generator work, matching the
     changeset shape described in the block generator specs:

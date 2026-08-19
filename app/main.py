@@ -18,9 +18,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from sqlmodel import Session
+
 from app import (
     ampacity_calc,
     bonding_calc,
+    device_templates,
     document_header,
     etap_export,
     fluke_export_import,
@@ -47,7 +50,8 @@ from app.bluebeam_routes import router as bluebeam_router
 from app.catalog_routes import router as catalog_router
 from app.changeset_routes import router as changeset_router
 from app.commissioning_routes import router as commissioning_router
-from app.db import create_db_and_tables
+from app.db import create_db_and_tables, engine
+from app.device_template_routes import router as device_template_router
 from app.skyvisor_routes import router as skyvisor_router
 from app.fluke_export_import import FlukeImportError
 from app.fluke_validate import FlukeValidateRequest
@@ -82,6 +86,7 @@ app.include_router(catalog_router)
 app.include_router(skyvisor_router)
 app.include_router(bluebeam_router)
 app.include_router(commissioning_router)
+app.include_router(device_template_router)
 
 # A database that is merely unreachable must not stop the service booting.
 # uvicorn imports this module to find `app`, so anything raised here kills the
@@ -97,6 +102,8 @@ app.include_router(commissioning_router)
 # a transient one to serve around.
 try:
     create_db_and_tables()
+    with Session(engine) as _seed_session:
+        device_templates.seed_default_templates(_seed_session)
 except Exception:
     logging.getLogger(__name__).exception(
         "Could not reach the database at startup -- serving anyway. "

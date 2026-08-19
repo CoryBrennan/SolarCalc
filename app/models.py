@@ -275,6 +275,91 @@ class MvMeterConfig(BaseModel):
     pt_ratio: str = "200:1"
 
 
+# Max instances a single terminal group can expand to. Keeps a "1-or-more"
+# group (ground, comms, ...) from growing one side of the generated CAD
+# block arbitrarily long relative to the others — see
+# custom_device_block.build_custom_device_config.
+MAX_TERMINALS_PER_GROUP = 12
+
+TerminalType = Literal[
+    "ac_phase", "neutral", "ground", "comms",
+    "dc_positive", "dc_negative", "dc_generic", "generic",
+]
+
+ConnectableCategory = Literal[
+    "breaker", "ground_bar", "neutral_bar", "comms", "other_device", "generic",
+]
+
+
+class TerminalGroupSpec(BaseModel):
+    """One row in a device template: a named group of like terminals
+    (e.g. "AC Input" = 3 ac_phase terminals, one per L1/L2/L3)."""
+
+    id: str
+    label: str
+    terminal_type: TerminalType
+    count: int = 1
+    count_mode: Literal["fixed", "one_or_more"] = "fixed"
+    optional: bool = False
+    # Only meaningful for terminal_type == "ac_phase". The full candidate
+    # set an instance can choose `count` of — e.g. a 3-phase group offers
+    # all three and takes all three; a split-phase group offers all three
+    # and an instance picks which 2.
+    phase_labels: list[str] | None = None
+    # Only meaningful for terminal_type == "comms" — selectable per terminal
+    # on the instance (e.g. "RS485" vs "Ethernet").
+    protocol_options: list[str] | None = None
+    # Which connectable-target categories this group's terminals may point
+    # at (see app/connectable_targets.py). Purely a picker filter/hint —
+    # not enforced server-side beyond what the picker offers.
+    connects_to_types: list[ConnectableCategory] = Field(default_factory=list)
+
+
+class DeviceTemplate(BaseModel):
+    """A reusable SLD device shape — a name plus its terminal groups.
+    Stored independently of any one project (app/device_templates.py),
+    since the same template (e.g. "Inverter w/ DC Combiner") gets
+    instantiated many times across many projects."""
+
+    id: str = ""
+    name: str
+    terminal_groups: list[TerminalGroupSpec] = Field(default_factory=list)
+
+
+class CustomDeviceTerminalConnection(BaseModel):
+    """One terminal's connection choice on a device instance. `index` is
+    0-based within its group — the 2nd ground terminal on a device with 3
+    grounds is (group_id="ground", index=1)."""
+
+    group_id: str
+    index: int = 0
+    connects_to: str | None = None
+    # Only set when the group's phase_labels offers more candidates than
+    # its count (e.g. split-phase picking 2 of 3) — otherwise the group's
+    # full phase_labels list is used in order.
+    phase_label_override: str | None = None
+    # Only set for comms terminals — must be one of the group's
+    # protocol_options when present.
+    protocol: str | None = None
+
+
+class CustomDeviceInstance(BaseModel):
+    """One physical device on the project's SLD, built from a
+    DeviceTemplate. tag is the drawing tag (e.g. "INV-3", "LOAD-7") and
+    must not collide with any other tag already in use on the project —
+    enforced in app/device_template_routes.py, not here."""
+
+    tag: str
+    template_id: str
+    # Actual count for each "one_or_more" group, keyed by group_id.
+    # Groups not present here use the template's minimum count.
+    group_counts: dict[str, int] = Field(default_factory=dict)
+    connections: list[CustomDeviceTerminalConnection] = Field(default_factory=list)
+    # Free nameplate key/value pairs, same convention as every other
+    # block's Attributes dict (e.g. InverterAcConfig.Attributes).
+    attributes: dict[str, str] = Field(default_factory=dict)
+
+
 class ProjectInput(BaseModel):
     """The full payload the /calculate endpoint accepts — one project's worth
     of state, matching what the HMI's "Save project" button already produces."""
@@ -305,3 +390,4 @@ class ProjectInput(BaseModel):
     mv_recloser: MvRecloserConfig = Field(default_factory=MvRecloserConfig)
     mv_goab: MvGoabConfig = Field(default_factory=MvGoabConfig)
     mv_meter: MvMeterConfig = Field(default_factory=MvMeterConfig)
+    custom_devices: list[CustomDeviceInstance] = Field(default_factory=list)
