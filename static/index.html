@@ -1281,24 +1281,30 @@
 
         <div class="card">
           <p class="card-title">Quantity on site</p>
+          <p class="desc" style="margin-bottom:14px;">Each field is a ratio against the level to its left, same order as the SLD below — total counts cascade (e.g. 2 interconnections &times; 3 transformers each = 6 transformers total). These size the pools every Interconnection/Transformer/Switchboard field in the Array schedule picks from below; which specific inverter sits on which switchboard (and so on) stays freely editable there afterward.</p>
           <div class="field-grid">
             <div class="field">
-              <label for="invDesignInterconnectionQuantity">Interconnection Quantity</label>
-              <input type="text" id="invDesignInterconnectionQuantity">
+              <label for="invDesignInterconnectionsPerSite">Interconnections per site</label>
+              <input type="text" id="invDesignInterconnectionsPerSite">
             </div>
             <div class="field">
-              <label for="invDesignTransformerQuantity">Transformer Quantity</label>
-              <input type="text" id="invDesignTransformerQuantity">
+              <label for="invDesignTransformersPerInterconnection">Transformers per interconnection</label>
+              <input type="text" id="invDesignTransformersPerInterconnection">
             </div>
             <div class="field">
-              <label for="invDesignSwitchboardCount">Switchboard Quantity</label>
-              <input type="text" id="invDesignSwitchboardCount">
+              <label for="invDesignSwitchboardsPerTransformer">Switchboards per transformer</label>
+              <input type="text" id="invDesignSwitchboardsPerTransformer">
             </div>
             <div class="field">
-              <label for="invDesignQuantity">Inverter Quantity</label>
-              <input type="text" id="invDesignQuantity">
+              <label for="invDesignInvertersPerSwitchboard">Inverters per switchboard</label>
+              <input type="text" id="invDesignInvertersPerSwitchboard">
+            </div>
+            <div class="field">
+              <label for="invDesignDcCombinersPerInverter">DC combiners per inverter</label>
+              <input type="text" id="invDesignDcCombinersPerInverter">
             </div>
           </div>
+          <p class="desc" style="margin-top:12px;" id="invDesignRatioSummary">—</p>
           <!-- Derived, not entered: the module and inverter counts the rest of
                the app reads. Both follow from the schedule below, which is the
                only place inverters and strings are actually defined. -->
@@ -1367,21 +1373,16 @@
           <div class="bulk-group">
             <div class="field-grid">
               <div class="field">
-                <label for="invBulkStringWire">String conductor <span class="unit">Auto = sized here</span></label>
-                <select id="invBulkStringWire"></select>
-              </div>
-              <div class="field">
                 <label for="invBulkStringRun">String run length <span class="unit">ft</span></label>
                 <input type="text" id="invBulkStringRun" placeholder="e.g. 150">
               </div>
             </div>
             <div class="bulk-btns">
-              <button class="btn btn-primary" data-bulk-apply="stringWire" type="button">Apply conductor to selected</button>
               <button class="btn btn-primary" data-bulk-apply="stringRun" type="button">Apply run length to selected</button>
               <button class="btn" data-bulk-selectall type="button">Select all</button>
               <button class="btn" data-bulk-selectnone type="button">Clear selection</button>
             </div>
-            <p class="desc" style="margin-top:10px;">Bulk-set here, but the per-string results now live on their own schedules: conductor on Ampacity &amp; Conductor Sizing (13), which uses the insulation rating there and ASHRAE (04) for ambient temperature; run length and V<sub>drop</sub> on Voltage Drop Limits (17), against the string→combiner limit set there.</p>
+            <p class="desc" style="margin-top:10px;">Bulk-set here, but V<sub>drop</sub> itself lives on its own schedule on Voltage Drop Limits (17), against the string→combiner limit set there. Conductor is bulk-set from Ampacity &amp; Conductor Sizing (13) now, alongside the wire-sizing schedule that lives there.</p>
           </div>
 
           <div class="bulk-group">
@@ -1406,9 +1407,11 @@
               </div>
             </div>
             <div class="bulk-btns">
-              <button class="btn btn-primary" data-bulk-apply="moduleModel" type="button">Set as site module</button>
+              <button class="btn btn-primary" data-bulk-apply="moduleModel" type="button">Apply to selected</button>
+              <button class="btn" data-bulk-selectall type="button">Select all</button>
+              <button class="btn" data-bulk-selectnone type="button">Clear selection</button>
             </div>
-            <p class="desc" style="margin-top:10px;">The whole design uses one module (Module Spec, 05) — no per-inverter selection like the model above, so this just switches it without leaving this page.</p>
+            <p class="desc" style="margin-top:10px;">Each inverter's module — new modules come from Module Spec (05). Defaults to whatever's selected there when a row is first created.</p>
           </div>
 
           <div class="bulk-group">
@@ -1481,16 +1484,16 @@
         </div>
 
         <div class="card">
-          <p class="card-title">Inverter schedule</p>
-          <p class="desc" style="margin-bottom:14px;">Use the ▸ toggle to open an inverter and edit the module count of individual strings on it. Inverter names are editable — two inverters can't share a name.</p>
+          <p class="card-title">Array schedule</p>
+          <p class="desc" style="margin-bottom:14px;">Every level from the SLD, nested: Interconnection ▸ Transformer ▸ Switchboard ▸ Inverter ▸ DC Combiner ▸ String. Use each row's ▸ toggle to open it. An empty branch (a tag with no inverters assigned to it yet) doesn't show a row here — assign an inverter to it (Interconnection/Transformer/Switchboard columns below) to bring it into the tree. Inverter names are editable — two inverters can't share a name.</p>
           <div class="bulk-btns" style="margin-top:0; margin-bottom:14px;">
-            <button class="btn" id="invExpandAllBtn" type="button">Open all inverters</button>
-            <button class="btn" id="invCollapseAllBtn" type="button">Close all inverters</button>
+            <button class="btn" id="invExpandAllBtn" type="button">Open everything</button>
+            <button class="btn" id="invCollapseAllBtn" type="button">Close everything</button>
           </div>
           <p class="desc" style="margin-bottom:14px; display:none; color:var(--fail);" id="invNameDupeWarning"></p>
           <div style="overflow-x:auto;">
             <table class="etap">
-              <thead><tr><th></th><th>Edit</th><th>Inverter</th><th>Model (from Inverter Spec)</th><th>Power</th><th style="text-align:right;">AC kW</th><th style="text-align:right;">Strings</th><th style="text-align:right;">DC kW</th><th>DC combiner</th><th>Switchboard</th></tr></thead>
+              <thead><tr><th></th><th>Edit</th><th>Inverter</th><th>Model (from Inverter Spec)</th><th>Module</th><th>Power</th><th style="text-align:right;">AC kW</th><th style="text-align:right;">Strings</th><th style="text-align:right;">DC kW</th><th>DC combiner?</th><th>Interconnection</th><th>Transformer</th><th>Switchboard</th></tr></thead>
               <tbody id="invDesignBody"></tbody>
             </table>
           </div>
@@ -1965,9 +1968,18 @@
         <div class="card">
           <p class="card-title">String wire-sizing schedule <span class="unit">from Array Electrical Design (08)</span></p>
           <p class="desc" style="margin-bottom:14px;">Every string across every inverter, one row each: design current (690.8(A)(1)), the resulting OCPD (690.9, capped at the module's max series fuse), and the conductor — auto-sized off that current, or pick one explicitly. Changing a conductor here also feeds the voltage-drop schedule on Voltage Drop Limits (17), since Vdrop depends on which wire carries the current.</p>
+          <div class="field-grid" style="margin-bottom:14px;">
+            <div class="field">
+              <label for="ampBulkStringWire">Conductor <span class="unit">Auto = sized here</span></label>
+              <select id="ampBulkStringWire"></select>
+            </div>
+          </div>
+          <div class="bulk-btns" style="margin-top:0; margin-bottom:14px;">
+            <button class="btn btn-primary" id="ampBulkApplyWireBtn" type="button">Apply to every string</button>
+          </div>
           <div style="overflow-x:auto;">
             <table class="etap">
-              <thead><tr><th>String</th><th style="text-align:right;">Modules</th><th style="text-align:right;">Design current (A)</th><th style="text-align:right;">OCPD (A)</th><th>Conductor</th></tr></thead>
+              <thead><tr><th>String</th><th style="text-align:right;">Modules</th><th>Module</th><th style="text-align:right;">Design current (A)</th><th style="text-align:right;">OCPD (A)</th><th>Conductor</th></tr></thead>
               <tbody id="ampStringScheduleBody"></tbody>
             </table>
           </div>
@@ -2151,7 +2163,7 @@
           <p class="desc" style="margin-bottom:14px;">Every string across every inverter, checked against the String → combiner limit above. Conductor is read-only here — set or auto-sized on the Ampacity &amp; Conductor Sizing (13) wire-sizing schedule; run length is this schedule's own input.</p>
           <div style="overflow-x:auto;">
             <table class="etap">
-              <thead><tr><th>String</th><th style="text-align:right;">Modules</th><th>Conductor</th><th style="text-align:right;">Run (ft)</th><th style="text-align:right;">V<sub>drop</sub> (V)</th><th style="text-align:right;">V<sub>drop</sub> (%)</th></tr></thead>
+              <thead><tr><th>String</th><th style="text-align:right;">Modules</th><th>Module</th><th>Conductor</th><th style="text-align:right;">Run (ft)</th><th style="text-align:right;">V<sub>drop</sub> (V)</th><th style="text-align:right;">V<sub>drop</sub> (%)</th></tr></thead>
               <tbody id="vdropStringScheduleBody"></tbody>
             </table>
           </div>
@@ -4537,6 +4549,13 @@
     if (typeof combinerRows !== 'undefined') {
       combinerRows.forEach(r => { if (!MODULE_SKUS[r.moduleSku]) r.moduleSku = modSku.value; });
     }
+    // Same re-pointing for the Array schedule's per-inverter module -- a row
+    // created before any module existed (or whose module got removed) needs
+    // to fall back too, or its module label/electrical calc silently reads
+    // an unresolved key.
+    if (typeof inverterDesignRows !== 'undefined') {
+      inverterDesignRows.forEach(r => { if (!MODULE_SKUS[r.moduleSku]) r.moduleSku = modSku.value; });
+    }
     applyModuleMechanicalUnits();
     renderModuleDiagram();
     // These inputs are directly editable now but selecting a *different*
@@ -4961,8 +4980,12 @@
     if (typeof combinerRows !== 'undefined') {
       combinerRows.forEach(r => { if (!MODULE_SKUS[r.moduleSku]) r.moduleSku = modSku.value; });
     }
+    if (typeof inverterDesignRows !== 'undefined') {
+      inverterDesignRows.forEach(r => { if (!MODULE_SKUS[r.moduleSku]) r.moduleSku = modSku.value; });
+    }
     if (wasSelected) applyModuleSku();
     if (typeof renderCombinerRows === 'function') renderCombinerRows();
+    if (typeof recomputeInverterDesign === 'function') recomputeInverterDesign();
   }
 
   document.getElementById('modDocManifestBody').addEventListener('input', e => {
@@ -7057,28 +7080,58 @@
   // keyed by position, so changing the quantity keeps whatever was already set
   // on the rows that survive.
   var inverterDesignReady = false;
-  const invDesignQuantityEl = document.getElementById('invDesignQuantity');
-  const invDesignSwitchboardCountEl = document.getElementById('invDesignSwitchboardCount');
   const invNamingConventionEl = document.getElementById('invNamingConvention');
   const invDesignBody = document.getElementById('invDesignBody');
 
-  // stringModules / stringWires / stringLengths are parallel arrays, one entry
-  // per string on the inverter. A blank wire means "whatever the ampacity calc
-  // picks"; the length is what the per-string voltage drop is measured over.
+  // ---- ratio fields: each cascades off the pool to its left, same order as
+  // the SLD and the Array schedule below. Sizes the pools every
+  // Interconnection/Transformer/Switchboard/DC-combiner field picks from --
+  // which inverter sits on which switchboard (etc.) stays a free per-row
+  // choice, same as switchboard assignment always has been.
+  function ratioField(id) { return Math.max(1, Math.min(200, parseInt(parseNum(document.getElementById(id).value), 10) || 1)); }
+  function interconnectionTags() {
+    return Array.from({ length: ratioField('invDesignInterconnectionsPerSite') }, (_, i) => 'IC-' + (i + 1));
+  }
+  function transformerTags() {
+    const total = Math.min(2000, interconnectionTags().length * ratioField('invDesignTransformersPerInterconnection'));
+    return Array.from({ length: total }, (_, i) => 'XFMR-' + (i + 1));
+  }
+  function switchboardTags() {
+    const total = Math.min(5000, transformerTags().length * ratioField('invDesignSwitchboardsPerTransformer'));
+    return Array.from({ length: total }, (_, i) => 'SWBD-' + (i + 1));
+  }
+  function totalInverterTarget() {
+    return Math.min(2000, switchboardTags().length * ratioField('invDesignInvertersPerSwitchboard'));
+  }
+  function dcCombinerTags() {
+    const n = ratioField('invDesignDcCombinersPerInverter');
+    return Array.from({ length: n }, (_, i) => 'DCC-' + (i + 1));
+  }
+
+  // stringModules / stringWires / stringLengths / stringCombiner are parallel
+  // arrays, one entry per string on the inverter. A blank wire means
+  // "whatever the ampacity calc picks"; the length is what the per-string
+  // voltage drop is measured over; stringCombiner is which of the row's DC
+  // combiners that string lands on (Array schedule's DCC level).
   const DEFAULT_STRING_RUN_FT = 150;
-  function defaultInverterDesignRow() {
+  // New rows distribute round-robin across whatever tag pools exist right
+  // now (index modulo pool size) -- when a batch of rows is created to match
+  // a freshly-changed ratio, this lands exactly on "N per parent"; a single
+  // row added later just continues the same round-robin from wherever it left off.
+  function defaultInverterDesignRow(index) {
+    const i = index || 0;
+    const icTags = interconnectionTags(), xfTags = transformerTags(), sbTags = switchboardTags();
     return {
-      model: invModel.value, powerMode: 'full', deratedKw: '', switchboard: 'SWBD-1',
-      stringModules: [], stringWires: [], stringLengths: [],
+      model: invModel.value, powerMode: 'full', deratedKw: '',
+      interconnection: icTags[i % icTags.length] || 'IC-1',
+      transformer: xfTags[i % xfTags.length] || 'XFMR-1',
+      switchboard: sbTags[i % sbTags.length] || 'SWBD-1',
+      moduleSku: modSku.value,
+      stringModules: [], stringWires: [], stringLengths: [], stringCombiner: [],
       name: '', expanded: false, selected: false,
     };
   }
   let inverterDesignRows = [];
-
-  function switchboardTags() {
-    const n = Math.max(1, Math.min(50, parseInt(invDesignSwitchboardCountEl.value, 10) || 1));
-    return Array.from({ length: n }, (_, i) => 'SWBD-' + (i + 1));
-  }
 
   // Auto names built from the PVCase-style prefix / separator / start / padding
   // controls: either <prefix><sep>N across the site, or
@@ -7154,10 +7207,13 @@
     return primaryStringLength() || 0;
   }
   // New strings inherit the last string's conductor and run length so a row
-  // stays internally consistent when it grows.
+  // stays internally consistent when it grows; a new string's DC combiner
+  // distributes round-robin across the row's own combiner pool, the same way
+  // a new inverter distributes round-robin across switchboards below.
   function normalizeStringArrays(row) {
     if (!Array.isArray(row.stringWires)) row.stringWires = [];
     if (!Array.isArray(row.stringLengths)) row.stringLengths = [];
+    if (!Array.isArray(row.stringCombiner)) row.stringCombiner = [];
     const n = row.stringModules.length;
     const lastWire = row.stringWires.length ? row.stringWires[row.stringWires.length - 1] : '';
     const lastRun = row.stringLengths.length ? row.stringLengths[row.stringLengths.length - 1] : DEFAULT_STRING_RUN_FT;
@@ -7165,6 +7221,13 @@
     while (row.stringLengths.length < n) row.stringLengths.push(lastRun);
     row.stringWires.length = n;
     row.stringLengths.length = n;
+    const combos = dcCombinerTags();
+    while (row.stringCombiner.length < n) row.stringCombiner.push(combos[row.stringCombiner.length % combos.length] || 'DCC-1');
+    row.stringCombiner.length = n;
+    // A shrunk DC-combiner ratio can leave a string pointing at a tag that no
+    // longer exists -- same "fall back to the first current one" treatment
+    // switchboard/transformer/interconnection get in syncInverterDesignRowCount.
+    for (let s = 0; s < n; s++) { if (!combos.includes(row.stringCombiner[s])) row.stringCombiner[s] = combos[0] || 'DCC-1'; }
   }
   function resizeStringModules(row, count) {
     const want = Math.max(0, Math.min(2000, count));
@@ -7174,61 +7237,152 @@
     normalizeStringArrays(row);
   }
 
-  // Rows are only ever appended to or truncated from the bottom, so editing the
-  // quantity never disturbs the rows above. A blank or unparseable box is
-  // treated as "mid-typing" and leaves the schedule alone rather than wiping it.
-  // While the quantity box is mid-edit, "15" briefly passes through "" and "1"
-  // on the way to "150" — shrinking on those would delete rows the designer
-  // never meant to touch, so truncation waits until the field is committed.
+  // Rows are only ever appended to or truncated from the bottom, so a ratio
+  // change never disturbs the rows above. Shrinking is deferred to 'change'
+  // (blur/Enter) on the ratio fields, same "don't delete rows mid-keystroke"
+  // protection the old typed quantity field used, now applied to whichever
+  // ratio field is being edited (see the listeners below).
   let allowInverterRowShrink = true;
   function syncInverterDesignRowCount() {
-    const raw = invDesignQuantityEl.value.trim();
-    const parsed = parseInt(parseNum(raw), 10);
-    if (raw !== '' && Number.isFinite(parsed)) {
-      const want = Math.max(0, Math.min(500, parsed));
-      while (inverterDesignRows.length < want) inverterDesignRows.push(defaultInverterDesignRow());
-      if (allowInverterRowShrink && inverterDesignRows.length > want) inverterDesignRows.length = want;
-    }
-    const tags = switchboardTags();
-    inverterDesignRows.forEach(r => { if (!tags.includes(r.switchboard)) r.switchboard = tags[0]; });
+    const want = totalInverterTarget();
+    while (inverterDesignRows.length < want) inverterDesignRows.push(defaultInverterDesignRow(inverterDesignRows.length));
+    if (allowInverterRowShrink && inverterDesignRows.length > want) inverterDesignRows.length = want;
+    const icTags = interconnectionTags(), xfTags = transformerTags(), sbTags = switchboardTags();
+    inverterDesignRows.forEach(r => {
+      if (!icTags.includes(r.interconnection)) r.interconnection = icTags[0];
+      if (!xfTags.includes(r.transformer)) r.transformer = xfTags[0];
+      if (!sbTags.includes(r.switchboard)) r.switchboard = sbTags[0];
+      // A row created before any module existed (or whose module was since
+      // removed) falls back to whatever's selected on Module Spec now.
+      if (!MODULE_SKUS[r.moduleSku]) r.moduleSku = modSku.value;
+    });
   }
 
-  function renderInverterDesign() {
-    const tags = switchboardTags();
-    const names = effectiveInverterNames();
-    const dupes = duplicateInverterNames();
-    const modelOptions = Object.keys(INVERTER_MODELS);
-    invDesignBody.innerHTML = inverterDesignRows.map((row, i) => {
-      const kw = inverterRowAcKw(row);
-      const modelSel = '<select data-inv-row="' + i + '" data-inv-field="model">' + modelOptions.map(k =>
-        '<option value="' + k + '"' + (row.model === k ? ' selected' : '') + '>' + INVERTER_MODELS[k].model + '</option>').join('') + '</select>';
-      const powerSel = '<select data-inv-row="' + i + '" data-inv-field="powerMode">' +
-        '<option value="full"' + (row.powerMode === 'full' ? ' selected' : '') + '>Full rating</option>' +
-        '<option value="derated"' + (row.powerMode === 'derated' ? ' selected' : '') + '>Derated</option></select>';
-      const kwCell = row.powerMode === 'derated'
-        ? '<input type="text" data-inv-row="' + i + '" data-inv-field="deratedKw" value="' + escapeAttr(row.deratedKw) + '" placeholder="kW">'
-        : '<span class="mono">' + kw.toFixed(0) + '</span>';
-      const sbSel = '<select data-inv-row="' + i + '" data-inv-field="switchboard">' + tags.map(t =>
-        '<option value="' + t + '"' + (row.switchboard === t ? ' selected' : '') + '>' + t + '</option>').join('') + '</select>';
+  const ARRAY_SCHEDULE_COLS = 13;
+  // Group rows (Interconnection/Transformer/Switchboard/DC-combiner) are
+  // identified by a joined-tag key, not an object reference, since tags are
+  // plain strings a row can be freely reassigned to. Keyed off the whole
+  // ancestry (not just the tag itself) so, e.g., two different transformers
+  // both happening to have a "SWBD-1" under them don't share expand state.
+  let expandedGroups = new Set();
+  function groupKey(parts) { return parts.join(' '); }
 
-      let html = '<tr>' +
-        '<td><button type="button" class="inv-expand" data-inv-expand="' + i + '">' + (row.expanded ? '&#9662;' : '&#9656;') + '</button></td>' +
-        '<td><input type="checkbox" data-inv-select="' + i + '"' + (row.selected ? ' checked' : '') + ' style="width:auto;"></td>' +
-        '<td><input type="text" class="mono' + (dupes[names[i]] ? ' inv-name-dupe' : '') + '" data-inv-row="' + i + '" data-inv-field="name" value="' + escapeAttr(names[i]) + '" style="min-width:110px;"></td>' +
-        '<td>' + modelSel + '</td>' +
-        '<td>' + powerSel + '</td>' +
-        '<td style="text-align:right;">' + kwCell + '</td>' +
-        '<td style="text-align:right;"><input type="text" data-inv-row="' + i + '" data-inv-field="stringCount" value="' + row.stringModules.length + '"></td>' +
-        '<td style="text-align:right;" class="mono">' + inverterRowDcKw(row).toFixed(0) + '</td>' +
-        '<td>' + combinerCellHtml(row) + '</td>' +
-        '<td>' + sbSel + '</td>' +
-      '</tr>';
+  function inverterRowHtml(i, names, dupes, modelOptions, moduleOptions, icTags, xfTags, sbTags) {
+    const row = inverterDesignRows[i];
+    const kw = inverterRowAcKw(row);
+    const modelSel = '<select data-inv-row="' + i + '" data-inv-field="model">' + modelOptions.map(k =>
+      '<option value="' + k + '"' + (row.model === k ? ' selected' : '') + '>' + INVERTER_MODELS[k].model + '</option>').join('') + '</select>';
+    const moduleSel = '<select data-inv-row="' + i + '" data-inv-field="moduleSku">' + moduleOptions.map(k =>
+      '<option value="' + escapeAttr(k) + '"' + (row.moduleSku === k ? ' selected' : '') + '>' + escapeText(moduleLabel(k)) + '</option>').join('') + '</select>';
+    const powerSel = '<select data-inv-row="' + i + '" data-inv-field="powerMode">' +
+      '<option value="full"' + (row.powerMode === 'full' ? ' selected' : '') + '>Full rating</option>' +
+      '<option value="derated"' + (row.powerMode === 'derated' ? ' selected' : '') + '>Derated</option></select>';
+    const kwCell = row.powerMode === 'derated'
+      ? '<input type="text" data-inv-row="' + i + '" data-inv-field="deratedKw" value="' + escapeAttr(row.deratedKw) + '" placeholder="kW">'
+      : '<span class="mono">' + kw.toFixed(0) + '</span>';
+    const tagSel = (field, tags, current) => '<select data-inv-row="' + i + '" data-inv-field="' + field + '">' + tags.map(t =>
+      '<option value="' + escapeAttr(t) + '"' + (current === t ? ' selected' : '') + '>' + escapeText(t) + '</option>').join('') + '</select>';
 
-      if (row.expanded) {
-        html += '<tr class="inv-strings-row"><td colspan="10">' + stringTableHtml(row, i, names[i]) + '</td></tr>';
+    let html = '<tr>' +
+      '<td><button type="button" class="inv-expand" data-inv-expand="' + i + '">' + (row.expanded ? '&#9662;' : '&#9656;') + '</button></td>' +
+      '<td><input type="checkbox" data-inv-select="' + i + '"' + (row.selected ? ' checked' : '') + ' style="width:auto;"></td>' +
+      '<td><input type="text" class="mono' + (dupes[names[i]] ? ' inv-name-dupe' : '') + '" data-inv-row="' + i + '" data-inv-field="name" value="' + escapeAttr(names[i]) + '" style="min-width:110px;"></td>' +
+      '<td>' + modelSel + '</td>' +
+      '<td>' + moduleSel + '</td>' +
+      '<td>' + powerSel + '</td>' +
+      '<td style="text-align:right;">' + kwCell + '</td>' +
+      '<td style="text-align:right;"><input type="text" data-inv-row="' + i + '" data-inv-field="stringCount" value="' + row.stringModules.length + '"></td>' +
+      '<td style="text-align:right;" class="mono">' + inverterRowDcKw(row).toFixed(0) + '</td>' +
+      '<td>' + combinerCellHtml(row) + '</td>' +
+      '<td>' + tagSel('interconnection', icTags, row.interconnection) + '</td>' +
+      '<td>' + tagSel('transformer', xfTags, row.transformer) + '</td>' +
+      '<td>' + tagSel('switchboard', sbTags, row.switchboard) + '</td>' +
+    '</tr>';
+
+    if (row.expanded) html += dcCombinerSectionHtml(i, names[i]);
+    return html;
+  }
+
+  // Array schedule's DCC level: one collapsible row per DC combiner actually
+  // in use on this inverter's strings, each expanding to that combiner's own
+  // string table. A row's combiner tags come from stringCombiner itself
+  // (distinct values in use), not from the site-wide dcCombinerTags() pool,
+  // so a row that hasn't had normalizeStringArrays() catch up yet still
+  // shows whatever it actually has rather than a mismatched fresh pool.
+  function dcCombinerSectionHtml(i, invName) {
+    const row = inverterDesignRows[i];
+    normalizeStringArrays(row);
+    const combos = [];
+    const seen = new Set();
+    row.stringCombiner.forEach(c => { if (!seen.has(c)) { seen.add(c); combos.push(c); } });
+    if (!combos.length) {
+      return '<tr class="inv-strings-row"><td colspan="' + ARRAY_SCHEDULE_COLS + '"><span class="desc">No strings assigned to this inverter yet.</span></td></tr>';
+    }
+    return combos.map(combo => {
+      const key = groupKey(['dcc', i, combo]);
+      const expanded = expandedGroups.has(key);
+      const n = row.stringCombiner.filter(c => c === combo).length;
+      let html = '<tr class="inv-strings-row"><td colspan="' + ARRAY_SCHEDULE_COLS + '" style="padding-left:28px;">' +
+        '<button type="button" class="inv-expand" data-group-toggle="' + key + '">' + (expanded ? '&#9662;' : '&#9656;') + '</button> ' +
+        '<b>' + escapeText(invName + '-' + combo) + '</b> — ' + n + ' string' + (n === 1 ? '' : 's') +
+        '</td></tr>';
+      if (expanded) {
+        html += '<tr class="inv-strings-row"><td colspan="' + ARRAY_SCHEDULE_COLS + '" style="padding-left:44px;">' +
+          stringTableHtml(row, i, invName, combo) + '</td></tr>';
       }
       return html;
     }).join('');
+  }
+
+  // Interconnection/Transformer/Switchboard levels: grouped straight off the
+  // schedule's own rows (co-occurrence, same join sldPairSet uses), not off
+  // the ratio-derived tag pools -- a pool tag with zero inverters assigned to
+  // it yet has nothing to nest, so it doesn't render a row (see the card's
+  // own description for how to bring an empty branch into the tree).
+  function renderInverterDesign() {
+    const icTags = interconnectionTags(), xfTags = transformerTags(), sbTags = switchboardTags();
+    const names = effectiveInverterNames();
+    const dupes = duplicateInverterNames();
+    const modelOptions = Object.keys(INVERTER_MODELS);
+    const moduleOptions = Object.keys(MODULE_SKUS);
+    const allIdx = inverterDesignRows.map((_, i) => i);
+
+    function groupHeaderHtml(key, label, idxHere, indent) {
+      const expanded = expandedGroups.has(key);
+      const kw = idxHere.reduce((s, i) => s + inverterRowDcKw(inverterDesignRows[i]), 0);
+      return '<tr class="array-group-row"><td><button type="button" class="inv-expand" data-group-toggle="' + key + '">' +
+        (expanded ? '&#9662;' : '&#9656;') + '</button></td>' +
+        '<td colspan="' + (ARRAY_SCHEDULE_COLS - 1) + '" style="padding-left:' + indent + 'px;"><b>' + escapeText(label) + '</b> — ' +
+        idxHere.length + ' inverter' + (idxHere.length === 1 ? '' : 's') + ', ' + fmt(kw) + ' kW DC</td></tr>';
+    }
+
+    let html = '';
+    icTags.forEach(ic => {
+      const icIdx = allIdx.filter(i => inverterDesignRows[i].interconnection === ic);
+      if (!icIdx.length) return;
+      const icKey = groupKey(['ic', ic]);
+      html += groupHeaderHtml(icKey, ic, icIdx, 0);
+      if (!expandedGroups.has(icKey)) return;
+
+      const xfHere = xfTags.filter(xf => icIdx.some(i => inverterDesignRows[i].transformer === xf));
+      xfHere.forEach(xf => {
+        const xfIdx = icIdx.filter(i => inverterDesignRows[i].transformer === xf);
+        const xfKey = groupKey(['xf', ic, xf]);
+        html += groupHeaderHtml(xfKey, xf, xfIdx, 16);
+        if (!expandedGroups.has(xfKey)) return;
+
+        const sbHere = sbTags.filter(sb => xfIdx.some(i => inverterDesignRows[i].switchboard === sb));
+        sbHere.forEach(sb => {
+          const sbIdx = xfIdx.filter(i => inverterDesignRows[i].switchboard === sb);
+          const sbKey = groupKey(['sb', ic, xf, sb]);
+          html += groupHeaderHtml(sbKey, sb, sbIdx, 32);
+          if (!expandedGroups.has(sbKey)) return;
+
+          sbIdx.forEach(i => { html += inverterRowHtml(i, names, dupes, modelOptions, moduleOptions, icTags, xfTags, sbTags); });
+        });
+      });
+    });
+    invDesignBody.innerHTML = html || '<tr class="empty"><td colspan="' + ARRAY_SCHEDULE_COLS + '">No inverters yet — set the ratio fields on Quantity on site above.</td></tr>';
   }
 
   // ---- per-string electrical calc ----
@@ -7238,9 +7392,12 @@
   // shared NEC tables it leans on are declared further down the file, so this
   // stays inert until they exist rather than throwing during init.
   var stringCalcReady = false;
-  function stringElectrical(moduleCount, wireOverride, runFt) {
+  // moduleSku defaults to the site's Module Spec selection so the one call
+  // site with no specific inverter row (ETAP's sample-string helper) keeps
+  // working unchanged; every per-row call below passes row.moduleSku.
+  function stringElectrical(moduleCount, wireOverride, runFt, moduleSku) {
     if (!stringCalcReady) return null;
-    const d = MODULE_SKUS[modSku.value];
+    const d = MODULE_SKUS[moduleSku || modSku.value];
     if (!d) return null;
     const modules = Number(moduleCount) || 0;
     // Cold Voc is what 690.7(A)(2) caps, and it decides whether a string is
@@ -7255,7 +7412,10 @@
     const designCurrent = d.isc * 1.25;
     // 690.8(B)(1): the OCPD carries at least 125% of that.
     const ocpdMin = designCurrent * 1.25;
-    const maxSeriesFuse = parseNum(modMaxFuse.value) || 0;
+    // The module's own max series fuse, not the display field on Module
+    // Spec — that only mirrors whichever module happens to be selected
+    // there, and this string's module may be a different row's choice.
+    const maxSeriesFuse = d.maxFuse || 0;
     let ocpd = nextStandardSize(ocpdMin);
     // The module datasheet's max series fuse is a hard ceiling — if the
     // standard size lands above it, the datasheet wins and the cell flags it.
@@ -7296,13 +7456,21 @@
   // reading the same inverterDesignRows/stringElectrical this table does. This
   // table stays focused on what it actually owns: how many modules are in
   // each string.
-  function stringTableHtml(row, i, invName) {
-    if (!row.stringModules.length) return '<span class="desc">No strings assigned to this inverter yet.</span>';
+  // comboFilter narrows this down to one DC combiner's strings (Array
+  // schedule's DCC level nests one of these per combiner); omitted, it's
+  // every string on the row -- used nowhere any more since even a
+  // single-combiner inverter now goes through the DCC level, but kept
+  // optional rather than required in case that changes.
+  function stringTableHtml(row, i, invName, comboFilter) {
+    const indices = row.stringModules.map((_, s) => s)
+      .filter(s => comboFilter === undefined || row.stringCombiner[s] === comboFilter);
+    if (!indices.length) return '<span class="desc">No strings assigned yet.</span>';
     normalizeStringArrays(row);
-    const rows = row.stringModules.map((n, s) => {
-      const e = stringElectrical(n, row.stringWires[s], row.stringLengths[s]);
+    const rows = indices.map(s => {
+      const n = row.stringModules[s];
+      const e = stringElectrical(n, row.stringWires[s], row.stringLengths[s], row.moduleSku);
       const vocCold = e ? e.vocStringCold : null;
-      return '<tr>' +
+      return '<tr data-string-tr="' + i + '-' + s + '">' +
         '<td>' + invName + '-STR-' + (s + 1) + '</td>' +
         '<td style="text-align:right;"><input type="text" data-inv-row="' + i + '" data-inv-string="' + s + '" value="' + n + '"></td>' +
         '<td style="text-align:right;" class="' + (e && e.vocOverCeiling ? 'vd-fail' : '') + '">' +
@@ -7310,7 +7478,7 @@
         '<td style="text-align:right;">' + (e ? e.vmpString.toFixed(1) : '—') + '</td>' +
       '</tr>';
     }).join('');
-    return '<table class="strings" data-strings-for="' + i + '"><thead><tr>' +
+    return '<table class="strings"><thead><tr>' +
       '<th>String</th>' +
       '<th style="text-align:right;">Modules</th>' +
       '<th style="text-align:right;">V<sub>oc</sub> @ extreme low (V)</th>' +
@@ -7336,13 +7504,13 @@
     if (!body) return;
     const refs = allStringRefs();
     if (!refs.length) {
-      body.innerHTML = '<tr class="empty"><td colspan="5">No strings assigned yet — build the schedule on Array Electrical Design (08) first.</td></tr>';
+      body.innerHTML = '<tr class="empty"><td colspan="6">No strings assigned yet — build the schedule on Array Electrical Design (08) first.</td></tr>';
       return;
     }
     body.innerHTML = refs.map(function (ref) {
       const row = inverterDesignRows[ref.i];
       const n = row.stringModules[ref.s];
-      const e = stringElectrical(n, row.stringWires[ref.s], row.stringLengths[ref.s]);
+      const e = stringElectrical(n, row.stringWires[ref.s], row.stringLengths[ref.s], row.moduleSku);
       const ocpdCell = !e ? '—'
         : e.ocpd + (e.fuseCapped ? ' <span class="vd-fail">(capped at module max ' + e.maxSeriesFuse + ' A)</span>' : '');
       const wireCell = '<select data-inv-row="' + ref.i + '" data-inv-wire="' + ref.s + '">' +
@@ -7351,6 +7519,7 @@
       return '<tr>' +
         '<td>' + escapeText(ref.label) + '</td>' +
         '<td style="text-align:right;">' + n + '</td>' +
+        '<td>' + escapeText(moduleLabel(row.moduleSku)) + '</td>' +
         '<td style="text-align:right;">' + (e ? e.designCurrent.toFixed(2) : '—') + '</td>' +
         '<td style="text-align:right;">' + ocpdCell + '</td>' +
         '<td>' + wireCell + '</td>' +
@@ -7367,17 +7536,18 @@
     if (!body) return;
     const refs = allStringRefs();
     if (!refs.length) {
-      body.innerHTML = '<tr class="empty"><td colspan="6">No strings assigned yet — build the schedule on Array Electrical Design (08) first.</td></tr>';
+      body.innerHTML = '<tr class="empty"><td colspan="7">No strings assigned yet — build the schedule on Array Electrical Design (08) first.</td></tr>';
       return;
     }
     body.innerHTML = refs.map(function (ref) {
       const row = inverterDesignRows[ref.i];
       const n = row.stringModules[ref.s];
-      const e = stringElectrical(n, row.stringWires[ref.s], row.stringLengths[ref.s]);
+      const e = stringElectrical(n, row.stringWires[ref.s], row.stringLengths[ref.s], row.moduleSku);
       const conductorCell = !e ? '—' : (row.stringWires[ref.s] || ((e.autoWire || 'over 750 kcmil') + ' (auto)'));
       return '<tr data-row-key="' + ref.i + '-' + ref.s + '">' +
         '<td>' + escapeText(ref.label) + '</td>' +
         '<td style="text-align:right;">' + n + '</td>' +
+        '<td>' + escapeText(moduleLabel(row.moduleSku)) + '</td>' +
         '<td>' + escapeText(conductorCell) + '</td>' +
         '<td style="text-align:right;"><input type="text" data-inv-row="' + ref.i + '" data-inv-run="' + ref.s + '" value="' + escapeAttr(row.stringLengths[ref.s]) + '"></td>' +
         '<td style="text-align:right;">' + (e ? e.vdVolts.toFixed(2) : '—') + '</td>' +
@@ -7395,11 +7565,11 @@
     const tr = body.querySelector('[data-row-key="' + i + '-' + s + '"]');
     if (!tr) return;
     const row = inverterDesignRows[i];
-    const e = stringElectrical(row.stringModules[s], row.stringWires[s], row.stringLengths[s]);
+    const e = stringElectrical(row.stringModules[s], row.stringWires[s], row.stringLengths[s], row.moduleSku);
     if (!e) return;
-    tr.cells[4].textContent = e.vdVolts.toFixed(2);
-    tr.cells[5].textContent = e.vdPct.toFixed(2) + ' %';
-    tr.cells[5].className = e.limit ? (e.vdPass ? 'vd-pass' : 'vd-fail') : '';
+    tr.cells[5].textContent = e.vdVolts.toFixed(2);
+    tr.cells[6].textContent = e.vdPct.toFixed(2) + ' %';
+    tr.cells[6].className = e.limit ? (e.vdPass ? 'vd-pass' : 'vd-fail') : '';
   }
 
   // "100 strings - 90 of 26 modules, 10 of 24 modules" style rollups.
@@ -7410,15 +7580,30 @@
       const name = (d ? d.model : r.model) + (r.powerMode === 'derated' ? ' (derated ' + (parseNum(r.deratedKw) || 0) + ' kW)' : '');
       byModel[name] = (byModel[name] || 0) + 1;
     });
-    const byLength = {};
-    let strings = 0;
-    let modules = 0;
-    rows.forEach(r => r.stringModules.forEach(n => { byLength[n] = (byLength[n] || 0) + 1; strings++; modules += Number(n) || 0; }));
+    // Grouped by which module each string actually uses -- usually one module
+    // for the whole design (Module Spec's default), but with per-inverter
+    // module assignment two rows' "26 modules" strings aren't necessarily the
+    // same part, so the string-length breakdown has to nest under its own
+    // module rather than being pooled across all of them.
+    const byModule = {};
+    let strings = 0, modules = 0;
+    rows.forEach(r => {
+      const key = r.moduleSku;
+      if (!byModule[key]) {
+        const md = MODULE_SKUS[key];
+        byModule[key] = { label: md ? (md.manufacturer + ' ' + md.pmax + 'W') : (key || 'Unknown module'), modules: 0, byLength: {} };
+      }
+      r.stringModules.forEach(n => {
+        byModule[key].modules += Number(n) || 0;
+        byModule[key].byLength[n] = (byModule[key].byLength[n] || 0) + 1;
+        strings++; modules += Number(n) || 0;
+      });
+    });
     return {
       inverters: rows.length,
       byModel,
+      byModule,
       strings,
-      byLength,
       modules,
       acKw: rows.reduce((s, r) => s + inverterRowAcKw(r), 0),
       dcKw: rows.reduce((s, r) => s + inverterRowDcKw(r), 0),
@@ -7428,21 +7613,21 @@
   function summaryBlockHtml(title, rows) {
     const s = summarizeRows(rows);
     const modelKeys = Object.keys(s.byModel);
-    const lengthKeys = Object.keys(s.byLength).map(Number).sort((a, b) => b - a);
+    const moduleKeys = Object.keys(s.byModule);
     const head = title + ' — ' + s.inverters + ' inverter' + (s.inverters === 1 ? '' : 's') +
       ', ' + fmt(s.acKw) + ' kW AC / ' + fmt(s.dcKw) + ' kW DC';
-    // The design is built around a single module (Module Spec), so the count
-    // just needs its own name/wattage, not a per-model breakdown like the
-    // inverters below. String-length breakdown nests under it rather than
-    // standing as its own bullet, since it's just how those modules break
-    // down into strings.
-    const md = MODULE_SKUS[modSku.value];
-    let items = '<li>' + (md
-      ? '(' + fmt(s.modules) + ') ' + escapeText(md.manufacturer) + ' ' + md.pmax + 'W Modules'
-      : fmt(s.modules) + ' modules') +
-      (lengthKeys.length ? '<ul>' + lengthKeys.map(n =>
-        '<li>' + s.byLength[n] + ' string' + (s.byLength[n] === 1 ? '' : 's') + ' of ' + n + ' modules</li>').join('') + '</ul>' : '') +
-      '</li>';
+    // One bullet per module in use (almost always just one), each with its
+    // own string-length breakdown nested under it rather than standing as a
+    // separate bullet, since that's just how those modules break down into
+    // strings. Inverter-model breakdown follows.
+    let items = moduleKeys.map(key => {
+      const m = s.byModule[key];
+      const lengthKeys = Object.keys(m.byLength).map(Number).sort((a, b) => b - a);
+      return '<li>(' + fmt(m.modules) + ') ' + escapeText(m.label) + ' Modules' +
+        (lengthKeys.length ? '<ul>' + lengthKeys.map(n =>
+          '<li>' + m.byLength[n] + ' string' + (m.byLength[n] === 1 ? '' : 's') + ' of ' + n + ' modules</li>').join('') + '</ul>' : '') +
+        '</li>';
+    }).join('');
     items += modelKeys.map(k => '<li>' + s.byModel[k] + ' &times; ' + k + '</li>').join('');
     return '<div class="summary-block"><div class="h">' + head + '</div><ul>' + items + '</ul></div>';
   }
@@ -7461,15 +7646,13 @@
     document.getElementById('invSummaryBreakdown').innerHTML = html;
   }
 
-  // ---- simplified one-line diagram: an individual box per device, not one
-  // box-per-stage-with-a-count -- Interconnection -> Transformer ->
-  // Switchboard -> Inverters -> Module Strings, arrows drawn between actual
-  // devices. Switchboard->Inverter and Inverter->String connections use the
-  // real assignment this schedule already tracks (row.switchboard, and
-  // allStringRefs()'s per-inverter string list); Interconnection->Transformer
-  // and Transformer->Switchboard have no such linkage anywhere in the app
-  // (both are just typed quantities), so those two hops fan every box on one
-  // side to every box on the other as the best simplification available.
+  // ---- simplified one-line diagram: an individual box per device --
+  // Interconnection -> Transformer -> Switchboard -> Inverters -> DC
+  // Combiners -> Module Strings. Every hop now uses real linkage: each
+  // inverter row carries its own interconnection/transformer/switchboard
+  // tags directly, so co-occurrence on the same row tells us which
+  // transformer sits under which interconnection (etc.) without needing to
+  // fan out blindly the way this diagram did before those tags existed.
   const SLD_MAX_PER_STAGE = 8;
   function sldBoxSvg(x, y, w, h, label, muted) {
     return (
@@ -7477,13 +7660,13 @@
       '<text x="' + (x + w / 2) + '" y="' + (y + h / 2 + 4) + '" text-anchor="middle" font-size="10.5" fill="' + (muted ? 'var(--ink-muted)' : 'var(--ink)') + '">' + escapeText(label) + '</text>'
     );
   }
-  // Numbered placeholders for stages with no per-unit identity of their own
-  // (Interconnection/Transformer are just a typed count) -- a single "—" box
-  // stands in when the count is blank/zero so the chain never breaks.
-  function sldCountedItems(n, prefix) {
-    return n > 0
-      ? Array.from({ length: n }, (_, i) => ({ key: prefix + i, label: prefix + ' ' + (i + 1) }))
-      : [{ key: prefix + '-none', label: '—' }];
+  // Every distinct (a, b) pair seen together on any row -- the join table
+  // that lets adjacent tag levels (interconnection/transformer/switchboard)
+  // connect on real assignment instead of a blind fan-out.
+  function sldPairSet(keyA, keyB) {
+    const set = new Set();
+    inverterDesignRows.forEach(r => set.add(r[keyA] + ' ' + r[keyB]));
+    return set;
   }
   // Caps a stage's box count so the diagram stays readable on a large site --
   // collapses the remainder into one "+N more" box that still connects
@@ -7497,26 +7680,39 @@
   function renderSldDiagram() {
     const wrap = document.getElementById('sldDiagramWrap');
     if (!wrap) return;
-    const interconnectN = parseInt(parseNum(document.getElementById('invDesignInterconnectionQuantity').value), 10) || 0;
-    const xfmrN = parseInt(parseNum(document.getElementById('invDesignTransformerQuantity').value), 10) || 0;
-    const swbdTags = switchboardTags();
+    const icTags = interconnectionTags(), xfTags = transformerTags(), sbTags = switchboardTags();
     const invNames = effectiveInverterNames();
     const stringRefs = allStringRefs();
+    const noneItem = key => [{ key: key, label: '—' }];
+
+    const dccItems = [];
+    inverterDesignRows.forEach((row, i) => {
+      const seen = new Set();
+      (row.stringCombiner || []).forEach(c => {
+        if (seen.has(c)) return;
+        seen.add(c);
+        dccItems.push({ key: i + ' ' + c, label: invNames[i] + '-' + c, invKey: i });
+      });
+    });
 
     const stagesRaw = [
-      { title: 'Interconnection', items: sldCountedItems(interconnectN, 'Interconnection') },
-      { title: 'Transformer', items: sldCountedItems(xfmrN, 'Transformer') },
-      { title: 'Switchboard', items: swbdTags.length ? swbdTags.map(t => ({ key: t, label: t })) : [{ key: 'sb-none', label: '—' }] },
+      { title: 'Interconnection', items: icTags.length ? icTags.map(t => ({ key: t, label: t })) : noneItem('ic-none') },
+      { title: 'Transformer', items: xfTags.length ? xfTags.map(t => ({ key: t, label: t })) : noneItem('xf-none') },
+      { title: 'Switchboard', items: sbTags.length ? sbTags.map(t => ({ key: t, label: t })) : noneItem('sb-none') },
       { title: 'Inverters', items: inverterDesignRows.length
           ? inverterDesignRows.map((row, i) => ({ key: i, label: invNames[i], switchboard: row.switchboard }))
-          : [{ key: 'inv-none', label: '—' }] },
+          : noneItem('inv-none') },
+      { title: 'DC Combiners', items: dccItems.length ? dccItems : noneItem('dcc-none') },
       { title: 'Module Strings', items: stringRefs.length
-          ? stringRefs.map(ref => ({ key: ref.i + '-' + ref.s, label: ref.label, invKey: ref.i }))
-          : [{ key: 'str-none', label: '—' }] },
+          ? stringRefs.map(ref => ({
+              key: ref.i + '-' + ref.s, label: ref.label, invKey: ref.i,
+              comboKey: ref.i + ' ' + (inverterDesignRows[ref.i].stringCombiner[ref.s] || 'DCC-1'),
+            }))
+          : noneItem('str-none') },
     ];
     const stages = stagesRaw.map(stage => ({ title: stage.title, items: sldCapItems(stage.items) }));
 
-    const boxW = 116, boxH = 34, vGap = 8, hGap = 56, pad = 14;
+    const boxW = 116, boxH = 34, vGap = 8, hGap = 50, pad = 14;
     const colHeight = stage => stage.items.length * (boxH + vGap) - vGap;
     const maxColHeight = Math.max.apply(null, stages.map(colHeight));
     const svgW = stages.length * boxW + (stages.length - 1) * hGap + pad * 2;
@@ -7529,7 +7725,6 @@
       const y0 = 20 + (maxColHeight - colH) / 2;
       return stage.items.map((item, i) => ({
         item: item,
-        x: 0, // filled in once column x is known, below
         y: y0 + i * (boxH + vGap) + boxH / 2,
         boxY: y0 + i * (boxH + vGap),
       }));
@@ -7546,9 +7741,6 @@
       });
     });
 
-    // Connections: real assignment where this schedule tracks one (switchboard
-    // -> inverter via row.switchboard, inverter -> string via allStringRefs'
-    // own i index), full fan-out where no such linkage exists anywhere.
     function connect(ci, matcher) {
       const from = anchors[ci], to = anchors[ci + 1];
       let out = '';
@@ -7562,20 +7754,26 @@
       });
       return out;
     }
-    const fanOut = () => true;
-    const bySwitchboard = (swbd, inv) => swbd.key === '__more__' || inv.key === '__more__' || inv.key === 'inv-none' || swbd.key === 'sb-none' || inv.switchboard === swbd.key;
-    const byInverter = (inv, str) => inv.key === '__more__' || str.key === '__more__' || str.key === 'str-none' || inv.key === 'inv-none' || str.invKey === inv.key;
+    const icXfPairs = sldPairSet('interconnection', 'transformer');
+    const xfSbPairs = sldPairSet('transformer', 'switchboard');
+    const isPlaceholder = item => item.key === '__more__' || String(item.key).endsWith('-none');
+    const byIcXf = (ic, xf) => isPlaceholder(ic) || isPlaceholder(xf) || icXfPairs.has(ic.key + ' ' + xf.key);
+    const byXfSb = (xf, sb) => isPlaceholder(xf) || isPlaceholder(sb) || xfSbPairs.has(xf.key + ' ' + sb.key);
+    const bySwitchboard = (swbd, inv) => isPlaceholder(swbd) || isPlaceholder(inv) || inv.switchboard === swbd.key;
+    const byInverterToCombo = (inv, dcc) => isPlaceholder(inv) || isPlaceholder(dcc) || dcc.invKey === inv.key;
+    const byCombo = (dcc, str) => isPlaceholder(dcc) || isPlaceholder(str) || str.comboKey === dcc.key;
     let linksSvg = '';
-    linksSvg += connect(0, fanOut);       // Interconnection -> Transformer
-    linksSvg += connect(1, fanOut);       // Transformer -> Switchboard
-    linksSvg += connect(2, bySwitchboard); // Switchboard -> Inverters
-    linksSvg += connect(3, byInverter);    // Inverters -> Module Strings
+    linksSvg += connect(0, byIcXf);          // Interconnection -> Transformer
+    linksSvg += connect(1, byXfSb);          // Transformer -> Switchboard
+    linksSvg += connect(2, bySwitchboard);   // Switchboard -> Inverters
+    linksSvg += connect(3, byInverterToCombo); // Inverters -> DC Combiners
+    linksSvg += connect(4, byCombo);         // DC Combiners -> Module Strings
     svg = linksSvg + svg;
 
     stages.forEach((stage, ci) => {
       svg += '<text x="' + (colX[ci] + boxW / 2) + '" y="12" text-anchor="middle" font-size="11" font-weight="600" fill="var(--ink-muted)">' + escapeText(stage.title) + '</text>';
     });
-    wrap.innerHTML = '<svg viewBox="0 0 ' + svgW + ' ' + svgH + '" width="100%" style="max-width:900px;" xmlns="http://www.w3.org/2000/svg">' + svg + '</svg>';
+    wrap.innerHTML = '<svg viewBox="0 0 ' + svgW + ' ' + svgH + '" width="100%" style="max-width:960px;" xmlns="http://www.w3.org/2000/svg">' + svg + '</svg>';
   }
 
   // Editing one string's module count must not re-render the grid the user is
@@ -7584,9 +7782,13 @@
     const acKw = inverterDesignRows.reduce((sum, r) => sum + inverterRowAcKw(r), 0);
     const dcKw = inverterDesignRows.reduce((sum, r) => sum + inverterRowDcKw(r), 0);
     document.getElementById('invDesignActualRatio').textContent = acKw > 0 ? (dcKw / acKw).toFixed(2) : '—';
-    const mainRows = invDesignBody.querySelectorAll('tr:not(.inv-strings-row)');
+    // Found by data-inv-row, not position -- a collapsed Interconnection/
+    // Transformer/Switchboard branch hides its inverter rows entirely now,
+    // so "the i-th rendered row is inverter i" no longer holds.
     inverterDesignRows.forEach((r, i) => {
-      if (mainRows[i]) mainRows[i].children[7].textContent = inverterRowDcKw(r).toFixed(0);
+      const stringCountInput = invDesignBody.querySelector('[data-inv-row="' + i + '"][data-inv-field="stringCount"]');
+      const tr = stringCountInput ? stringCountInput.closest('tr') : null;
+      if (tr) tr.children[8].textContent = inverterRowDcKw(r).toFixed(0);
     });
   }
 
@@ -7604,6 +7806,14 @@
 
     document.getElementById('invDesignTargetRatio').textContent = targetDcAcRatio().toFixed(2);
     document.getElementById('invDesignActualRatio').textContent = acKw > 0 ? (dcKw / acKw).toFixed(2) : '—';
+
+    document.getElementById('invDesignRatioSummary').textContent =
+      interconnectionTags().length + ' interconnection' + (interconnectionTags().length === 1 ? '' : 's') +
+      ' → ' + transformerTags().length + ' transformer' + (transformerTags().length === 1 ? '' : 's') +
+      ' → ' + switchboardTags().length + ' switchboard' + (switchboardTags().length === 1 ? '' : 's') +
+      ' → ' + totalInverterTarget() + ' inverter' + (totalInverterTarget() === 1 ? '' : 's') +
+      ' (' + inverterDesignRows.length + ' in the schedule below) → ' +
+      dcCombinerTags().length + ' DC combiner' + (dcCombinerTags().length === 1 ? '' : 's') + ' each.';
 
     renderAmpacityStringSchedule();
     renderVdropStringSchedule();
@@ -7651,17 +7861,19 @@
     sbSel.innerHTML = switchboardTags().map(t => '<option value="' + t + '">' + t + '</option>').join('');
     if (switchboardTags().includes(keepSb)) sbSel.value = keepSb;
 
-    // Reflects the site's one module (Module Spec) -- selecting a different
-    // one here switches it directly, same as picking it there.
+    // Options come from the module catalog (Module Spec); "Apply to selected"
+    // sets r.moduleSku per row, same pattern as Inverter model above it.
     const moduleSel = document.getElementById('invBulkModuleModel');
     moduleSel.innerHTML = Object.keys(MODULE_SKUS).map(k =>
       '<option value="' + escapeAttr(k) + '">' + escapeText(moduleLabel(k)) + '</option>').join('');
     if (MODULE_SKUS[modSku.value]) moduleSel.value = modSku.value;
 
     // The conductor list comes from the shared NEC ampacity table, which is
-    // declared further down the file — populate it once that exists.
+    // declared further down the file — populate it once that exists. Lives
+    // on Ampacity & Conductor Sizing (13) now, next to the wire-sizing
+    // schedule it bulk-applies to.
     if (stringCalcReady) {
-      const wireSel = document.getElementById('invBulkStringWire');
+      const wireSel = document.getElementById('ampBulkStringWire');
       const keepWire = wireSel.value;
       wireSel.innerHTML = conductorOptionsHtml('');
       wireSel.value = keepWire;
@@ -7716,12 +7928,10 @@
   // only the derived cells beside it (Voc/Vmp, the only two this table still
   // owns) are rewritten.
   function refreshStringRowCells(i, s) {
-    const table = invDesignBody.querySelector('[data-strings-for="' + i + '"]');
-    if (!table) return;
-    const tr = table.tBodies[0].rows[s];
+    const tr = invDesignBody.querySelector('[data-string-tr="' + i + '-' + s + '"]');
     const row = inverterDesignRows[i];
     if (!tr || !row) return;
-    const e = stringElectrical(row.stringModules[s], row.stringWires[s], row.stringLengths[s]);
+    const e = stringElectrical(row.stringModules[s], row.stringWires[s], row.stringLengths[s], row.moduleSku);
     if (!e) return;
     tr.cells[2].textContent = e.vocStringCold.toFixed(1);
     tr.cells[2].className = e.vocOverCeiling ? 'vd-fail' : '';
@@ -7737,6 +7947,15 @@
     const wireIdx = e.target.dataset.invWire;
     if (idx === undefined || wireIdx === undefined) return;
     inverterDesignRows[Number(idx)].stringWires[Number(wireIdx)] = e.target.value;
+    renderAmpacityStringSchedule();
+    renderVdropStringSchedule();
+  });
+
+  // Blank is a real choice here — it hands every string back to the calc's
+  // own auto-sizing instead of pinning one conductor site-wide.
+  document.getElementById('ampBulkApplyWireBtn').addEventListener('click', () => {
+    const v = document.getElementById('ampBulkStringWire').value;
+    inverterDesignRows.forEach(r => { normalizeStringArrays(r); r.stringWires = r.stringWires.map(() => v); });
     renderAmpacityStringSchedule();
     renderVdropStringSchedule();
   });
@@ -7782,6 +8001,12 @@
   });
 
   invDesignBody.addEventListener('click', e => {
+    const groupKeyClicked = e.target.dataset.groupToggle;
+    if (groupKeyClicked !== undefined) {
+      if (expandedGroups.has(groupKeyClicked)) expandedGroups.delete(groupKeyClicked); else expandedGroups.add(groupKeyClicked);
+      renderInverterDesign();
+      return;
+    }
     const idx = e.target.dataset.invExpand;
     if (idx === undefined) return;
     const row = inverterDesignRows[Number(idx)];
@@ -7807,10 +8032,6 @@
         const v = parseInt(document.getElementById('invBulkModulesPerString').value, 10);
         if (!Number.isFinite(v)) return;
         rows.forEach(r => { r.stringModules = r.stringModules.map(() => v); });
-      } else if (what === 'stringWire') {
-        // Blank is a real choice here — it hands the string back to the calc.
-        const v = document.getElementById('invBulkStringWire').value;
-        rows.forEach(r => { normalizeStringArrays(r); r.stringWires = r.stringWires.map(() => v); });
       } else if (what === 'stringRun') {
         const v = document.getElementById('invBulkStringRun').value.trim();
         if (v === '') return;
@@ -7819,11 +8040,8 @@
         const v = document.getElementById('invBulkModel').value;
         if (v) rows.forEach(r => { r.model = v; });
       } else if (what === 'moduleModel') {
-        // Not per-row like inverter model -- there's only one module for the
-        // whole site, so this switches Module Spec's own selection directly
-        // rather than touching targetedInverterRows() at all.
         const v = document.getElementById('invBulkModuleModel').value;
-        if (v && MODULE_SKUS[v]) { modSku.value = v; applyModuleSku(); }
+        if (v) rows.forEach(r => { r.moduleSku = v; });
       } else if (what === 'switchboard') {
         const v = document.getElementById('invBulkSwitchboard').value;
         if (v) rows.forEach(r => { r.switchboard = v; });
@@ -7881,12 +8099,28 @@
     recomputeInverterDesign();
   });
 
+  // Every possible group key across all 6 levels -- Interconnection/
+  // Transformer/Switchboard from the actual tag combinations in use, DC
+  // Combiner from each row's own stringCombiner values.
+  function allGroupKeys() {
+    const keys = [];
+    inverterDesignRows.forEach((row, i) => {
+      keys.push(groupKey(['ic', row.interconnection]));
+      keys.push(groupKey(['xf', row.interconnection, row.transformer]));
+      keys.push(groupKey(['sb', row.interconnection, row.transformer, row.switchboard]));
+      const seen = new Set();
+      (row.stringCombiner || []).forEach(c => { if (!seen.has(c)) { seen.add(c); keys.push(groupKey(['dcc', i, c])); } });
+    });
+    return keys;
+  }
   document.getElementById('invExpandAllBtn').addEventListener('click', () => {
     inverterDesignRows.forEach(r => { r.expanded = true; });
+    expandedGroups = new Set(allGroupKeys());
     renderInverterDesign();
   });
   document.getElementById('invCollapseAllBtn').addEventListener('click', () => {
     inverterDesignRows.forEach(r => { r.expanded = false; });
+    expandedGroups = new Set();
     renderInverterDesign();
   });
 
@@ -7904,25 +8138,30 @@
   ['invNamePrefix', 'invNameSeparator', 'invNameStart', 'invNamePad'].forEach(id =>
     document.getElementById(id).addEventListener('input', () => { updateNamePreview(); renderInverterDesign(); }));
 
-  invDesignQuantityEl.addEventListener('input', () => {
-    allowInverterRowShrink = false;
-    refreshInverterBulkOptions();
-    recomputeInverterDesign();
-    allowInverterRowShrink = true;
+  // Same "don't delete rows mid-keystroke" protection the old typed quantity
+  // field used — shrinking only commits on blur/Enter ('change'), not on
+  // every digit typed ('input').
+  ['invDesignInterconnectionsPerSite', 'invDesignTransformersPerInterconnection',
+   'invDesignSwitchboardsPerTransformer', 'invDesignInvertersPerSwitchboard'].forEach(id => {
+    const el = document.getElementById(id);
+    el.addEventListener('input', () => {
+      allowInverterRowShrink = false;
+      refreshInverterBulkOptions();
+      recomputeInverterDesign();
+      allowInverterRowShrink = true;
+    });
+    el.addEventListener('change', () => {
+      refreshInverterBulkOptions();
+      recomputeInverterDesign();
+    });
   });
-  // Blur/Enter is the commit — that's when a reduced count actually trims rows.
-  invDesignQuantityEl.addEventListener('change', () => {
-    refreshInverterBulkOptions();
+  // Doesn't change the inverter count, just how each row's existing strings
+  // regroup under DC combiners — normalizeStringArrays reassigns any string
+  // whose combiner tag no longer exists.
+  document.getElementById('invDesignDcCombinersPerInverter').addEventListener('input', () => {
+    inverterDesignRows.forEach(r => normalizeStringArrays(r));
     recomputeInverterDesign();
   });
-  invDesignSwitchboardCountEl.addEventListener('input', () => {
-    refreshInverterBulkOptions();
-    recomputeInverterDesign();
-  });
-  // Transformer/Interconnection quantity feed only the SLD box counts today --
-  // nothing else on this panel derives from them.
-  document.getElementById('invDesignTransformerQuantity').addEventListener('input', renderSldDiagram);
-  document.getElementById('invDesignInterconnectionQuantity').addEventListener('input', renderSldDiagram);
   invNamingConventionEl.addEventListener('change', () => { updateNamePreview(); renderInverterDesign(); });
   document.getElementById('modQuantity').addEventListener('input', recomputeInverterDesign);
 
@@ -9961,7 +10200,7 @@
     inverterDesignRows.forEach(row => {
       normalizeStringArrays(row);
       row.stringModules.forEach((n, s) => {
-        const e = stringElectrical(n, row.stringWires[s], row.stringLengths[s]);
+        const e = stringElectrical(n, row.stringWires[s], row.stringLengths[s], row.moduleSku);
         const size = e ? (e.wire || 'unsized') : (row.stringWires[s] || 'unsized');
         counts[size] = (counts[size] || 0) + 1;
       });
@@ -10200,8 +10439,9 @@
     'ashraeDsHeatDb996', 'ashraeDsHeatDb99', 'ashraeDsExtremeMin', 'ashraeDsCoolDb04',
     'ashraeDsCoolDb1', 'ashraeDsCoolDb2', 'ashraeDsExtremeMax', 'ashraeDsAvgHigh',
     'modFirstYearDegradation', 'modAnnualDegradation', 'stringPredesignVdrop',
-    'invDesignQuantity', 'invDesignSwitchboardCount', 'invDesignTransformerQuantity',
-    'invDesignInterconnectionQuantity', 'invNamingConvention',
+    'invDesignInterconnectionsPerSite', 'invDesignTransformersPerInterconnection',
+    'invDesignSwitchboardsPerTransformer', 'invDesignInvertersPerSwitchboard',
+    'invDesignDcCombinersPerInverter', 'invNamingConvention',
     'invNamePrefix', 'invNameSeparator', 'invNameStart', 'invNamePad',
     'ampCircuitType', 'ampParallelStrings', 'ampInsulationRating', 'ampConductorCount',
     'ocpdCircuit', 'ocpdContinuousCurrent',
