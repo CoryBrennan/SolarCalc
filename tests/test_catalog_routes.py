@@ -208,3 +208,50 @@ def test_unknown_ingestion_job_and_version_404(db_client):
     assert db_client.post("/ingest/does-not-exist/retry").status_code == 404
     assert db_client.post("/catalog/versions/does-not-exist/approve").status_code == 404
     assert db_client.post("/catalog/versions/does-not-exist/reject").status_code == 404
+
+
+def test_list_catalog_entries_rejects_unknown_equipment_type(db_client):
+    resp = db_client.get("/catalog/widget")
+    assert resp.status_code == 422
+
+
+def test_list_catalog_entries_empty_when_nothing_approved(db_client):
+    assert db_client.get("/catalog/module").json() == []
+
+
+def test_list_catalog_entries_only_includes_approved_defaults(db_client, monkeypatch):
+    # Pending draft, never approved -- must not appear in the browse list
+    # the HMI's Module/Inverter Spec "Import from catalog" picker calls.
+    _upload(db_client, monkeypatch, _module_response(), filename="pending.pdf")
+    entries = db_client.get("/catalog/module").json()
+    assert entries == []
+
+    upload_resp = _upload(db_client, monkeypatch, _inverter_response(), equipment_type="inverter")
+    version_id = upload_resp.json()["catalog_versions"][0]["version_id"]
+    db_client.post(f"/catalog/versions/{version_id}/approve")
+
+    inverter_entries = db_client.get("/catalog/inverter").json()
+    assert len(inverter_entries) == 1
+    assert inverter_entries[0]["manufacturer"] == "Chint Power Systems"
+    assert inverter_entries[0]["model"] == "CPS SCH350KTL"
+    assert inverter_entries[0]["default_version_id"] == version_id
+    assert inverter_entries[0]["fields"]["nameplate_ac_power_kw"]["value"] == 350
+
+    # The module catalog is unaffected by the inverter approval.
+    assert db_client.get("/catalog/module").json() == []
+
+
+def test_list_catalog_entries_reflects_a_later_set_default(db_client, monkeypatch):
+    first = _upload(db_client, monkeypatch, _module_response(), filename="v1.pdf")
+    first_id = first.json()["catalog_versions"][0]["version_id"]
+    db_client.post(f"/catalog/versions/{first_id}/approve")
+
+    second = _upload(db_client, monkeypatch, _module_response(pmax=705, voc=48.8), filename="v2.pdf")
+    second_id = second.json()["catalog_versions"][0]["version_id"]
+    db_client.post(f"/catalog/versions/{second_id}/approve")
+    db_client.post("/catalog/module/ReneSola/RS9-700/set-default", json={"version_id": second_id})
+
+    entries = db_client.get("/catalog/module").json()
+    assert len(entries) == 1
+    assert entries[0]["default_version_id"] == second_id
+    assert entries[0]["fields"]["voc_v"]["value"] == 48.8

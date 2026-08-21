@@ -1037,6 +1037,11 @@
               <button class="btn" id="modAddManualBtn" type="button" style="flex:0 0 auto;">+ Add module</button>
             </div>
             <p class="desc" id="modAddManualStatus" style="grid-column:1/-1; margin:-4px 0 0;"></p>
+            <div class="field wide" style="flex-direction: row; align-items: flex-end; gap: 10px;">
+              <div class="field" style="flex:1;"><label for="modCatalogPicker">Or import from the shared catalog <span class="unit">datasheets approved on any project</span></label><select id="modCatalogPicker"><option value="">— none available yet —</option></select></div>
+              <button class="btn" id="modImportCatalogBtn" type="button" style="flex:0 0 auto;">Import</button>
+            </div>
+            <p class="desc" id="modImportCatalogStatus" style="grid-column:1/-1; margin:-4px 0 0;"></p>
             <div class="field"><label>P<sub>max</sub> <span class="unit">W</span></label><input type="text" id="modPmax"></div>
             <div class="field"><label>V<sub>oc</sub> <span class="unit">V</span></label><input type="text" id="modVoc"></div>
             <div class="field"><label>V<sub>mp</sub> <span class="unit">V</span></label><input type="text" id="modVmp"></div>
@@ -1101,6 +1106,11 @@
               <button class="btn" id="invAddManualBtn" type="button" style="flex:0 0 auto;">+ Add inverter</button>
             </div>
             <p class="desc" id="invAddManualStatus" style="grid-column:1/-1; margin:-4px 0 0;"></p>
+            <div class="field wide" style="flex-direction: row; align-items: flex-end; gap: 10px;">
+              <div class="field" style="flex:1;"><label for="invCatalogPicker">Or import from the shared catalog <span class="unit">datasheets approved on any project</span></label><select id="invCatalogPicker"><option value="">— none available yet —</option></select></div>
+              <button class="btn" id="invImportCatalogBtn" type="button" style="flex:0 0 auto;">Import</button>
+            </div>
+            <p class="desc" id="invImportCatalogStatus" style="grid-column:1/-1; margin:-4px 0 0;"></p>
             <div class="field"><label for="invAcRating">AC power rating (or derated) <span class="unit">VA</span></label><input type="text" id="invAcRating"></div>
             <div class="field"><label>Nominal AC voltage <span class="unit">V</span></label><input type="text" id="invNominalVoltage"></div>
             <div class="field"><label>Phases</label><input type="text" id="invPhases"></div>
@@ -1160,7 +1170,28 @@
           <p class="card-title">Inverter diagram <span class="unit">illustrative — proportions are approximate</span></p>
           <p class="desc" id="invDiagramNote" style="margin-bottom:14px;">Select or add an inverter to see its dimensions.</p>
           <div id="invDiagramWrap" style="display:flex; justify-content:center;"></div>
-          <p class="desc" style="margin-top:10px;">Front, top, bottom, and side views from this inverter's own H × W × D. Drag-and-drop placement of conduit entries and mounting points on the side view is planned as a follow-up, not built yet.</p>
+          <p class="desc" style="margin-top:10px;">Front, top, bottom, and side views from this inverter's own H × W × D. Drag conduit and mounting markers directly on the side view to place them; positions are saved with the inverter.</p>
+
+          <div style="display:flex; gap:24px; flex-wrap:wrap; margin-top:14px;">
+            <div style="flex:1; min-width:260px;">
+              <p class="desc" style="font-weight:600; margin-bottom:6px;">Conduit entries <span class="unit">drag markers on the side view above</span></p>
+              <div style="overflow-x:auto;">
+                <table class="etap"><thead><tr><th>Label</th><th>Size</th><th></th></tr></thead>
+                  <tbody id="invConduitBody"></tbody>
+                </table>
+              </div>
+              <button class="btn" id="invAddConduitBtn" type="button" style="margin-top:8px;">+ Add conduit entry</button>
+            </div>
+            <div style="flex:1; min-width:260px;">
+              <p class="desc" style="font-weight:600; margin-bottom:6px;">Mounting points <span class="unit">drag markers on the side view above</span></p>
+              <div style="overflow-x:auto;">
+                <table class="etap"><thead><tr><th>Label</th><th></th></tr></thead>
+                  <tbody id="invMountBody"></tbody>
+                </table>
+              </div>
+              <button class="btn" id="invAddMountBtn" type="button" style="margin-top:8px;">+ Add mounting point</button>
+            </div>
+          </div>
         </div>
 
       </section>
@@ -4523,6 +4554,75 @@
     if (typeof renderCombinerRows === 'function') renderCombinerRows();
   });
 
+  // ---- Import from the shared catalog: a datasheet approved on ANY project
+  // (app/catalog_models.py's CatalogVersion/CatalogDefault, exposed here via
+  // GET /catalog/module) becomes a starting point instead of re-typing the
+  // same module. Catalog fields only cover what the extraction pipeline
+  // captures (app/catalog_merge.py's MODULE_FIELD_NAMES) -- whip length,
+  // connector type, and J-box location are this app's own cabling fields and
+  // are never in that set, so an import always leaves those for manual entry.
+  const MODULE_CATALOG_FIELD_MAP = {
+    rated_power_w: 'pmax', voc_v: 'voc', vmp_v: 'vmp', isc_a: 'isc', imp_a: 'imp',
+    temp_coeff_voc_pct_per_c: 'tempCoeffVoc', temp_coeff_isc_pct_per_c: 'tempCoeffIsc',
+    max_system_voltage_v: 'maxSystemV', max_series_fuse_rating_a: 'maxFuse',
+    cell_type: 'cellType', connector_type: 'connectorType',
+  };
+  function catalogFieldVal(fields, name) {
+    const fv = fields[name];
+    if (!fv || fv.value === null || fv.value === undefined || fv.confidence === 'not_found') return undefined;
+    return fv.value;
+  }
+  let moduleCatalogEntries = [];
+  async function loadModuleCatalogPicker() {
+    const sel = document.getElementById('modCatalogPicker');
+    try {
+      const res = await fetch('/catalog/module');
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      moduleCatalogEntries = await res.json();
+    } catch (err) {
+      moduleCatalogEntries = [];
+    }
+    sel.innerHTML = moduleCatalogEntries.length
+      ? moduleCatalogEntries.map((e, i) => '<option value="' + i + '">' + escapeText(e.manufacturer + ' ' + e.model) + '</option>').join('')
+      : '<option value="">— none available yet —</option>';
+  }
+  loadModuleCatalogPicker();
+  document.getElementById('modImportCatalogBtn').addEventListener('click', () => {
+    const sel = document.getElementById('modCatalogPicker');
+    const statusEl = document.getElementById('modImportCatalogStatus');
+    const entry = moduleCatalogEntries[Number(sel.value)];
+    if (!entry) { statusEl.textContent = 'No catalog entry to import — approve a datasheet on the Datasheet Catalog Review panel (23) first.'; return; }
+    manualModuleSeq++;
+    let key = (entry.manufacturer + '-' + entry.model).replace(/\s+/g, '_').replace(/[^A-Za-z0-9_-]/g, '');
+    if (!key || MODULE_SKUS[key]) key = (key || 'module') + '-' + manualModuleSeq;
+    const d = {
+      manufacturer: entry.manufacturer, model: entry.model, pmax: 0, voc: 0, vmp: 0, isc: 0, imp: 0, bifacial: 0,
+      tempCoeffVoc: -0.24, tempCoeffIsc: 0.04, maxSystemV: 1500, maxFuse: 15,
+      firstYearDeg: 1.0, annualDeg: 0.4, cellType: '', dimensionsMm: [], weightKg: null,
+      whipLengthMm: null, connectorType: '', jboxLocation: '',
+      source: 'Catalog: ' + entry.manufacturer + ' ' + entry.model, custom: true,
+    };
+    let populated = 0;
+    const mappedFields = Object.keys(MODULE_CATALOG_FIELD_MAP).length + 2; // + dimensions + weight
+    Object.entries(MODULE_CATALOG_FIELD_MAP).forEach(([catField, modField]) => {
+      const v = catalogFieldVal(entry.fields, catField);
+      if (v !== undefined) { d[modField] = v; populated++; }
+    });
+    const L = catalogFieldVal(entry.fields, 'dimensions_length_mm');
+    const W = catalogFieldVal(entry.fields, 'dimensions_width_mm');
+    const Dp = catalogFieldVal(entry.fields, 'dimensions_depth_mm');
+    if (L !== undefined && W !== undefined && Dp !== undefined) { d.dimensionsMm = [L, W, Dp]; populated++; }
+    const wt = catalogFieldVal(entry.fields, 'weight_kg');
+    if (wt !== undefined) { d.weightKg = wt; populated++; }
+
+    MODULE_SKUS[key] = d;
+    refreshModuleSkuOptions();
+    modSku.value = key;
+    applyModuleSku();
+    statusEl.textContent = 'Imported ' + populated + ' of ' + mappedFields + ' fields from the catalog — review, and add whip length/connector/J-box (not captured by datasheet extraction).';
+    if (typeof renderCombinerRows === 'function') renderCombinerRows();
+  });
+
   // ---- module diagram: illustrative H/W/D + whip/connector/J-box ----
   function fmtModuleDiagramLen(mm) {
     return (mm === null || mm === undefined || !mm) ? '—' : Math.round(mm) + ' mm';
@@ -4996,6 +5096,7 @@
       maxOutputCurrentA: 0, maxOcpdA: 0, mpptVMin: 0, mpptVMax: 0, maxDcInput: '', mpptCount: '',
       mpptWindow: '', maxPvIsc: '', terminalRange: '', dimensionsMm: [], weightKg: null,
       clearanceRequirement: '', maxConduitSize: '', mountingHeight: '', connections: [],
+      conduitEntries: [], mountingPoints: [],
       dcTopology: 'combiner', source: '', custom: true,
     };
     refreshInverterModelOptions();
@@ -5004,6 +5105,61 @@
     document.getElementById('invNewManufacturer').value = '';
     document.getElementById('invNewModel').value = '';
     statusEl.textContent = 'Added — every value below starts at zero/blank; fill them in.';
+    if (inverterCascadeReady) { refreshInverterBulkOptions(); recomputeInverterDesign(); }
+  });
+
+  // ---- Import from the shared catalog. Unlike modules, the datasheet
+  // extraction schema for inverters (app/catalog_merge.py's
+  // INVERTER_FIELD_NAMES) doesn't cover most of Nameplate -- no AC voltage,
+  // phases, MPPT window, output current, etc. today, only AC power rating
+  // and the AC/DC connector types -- so an inverter import populates far
+  // fewer fields than a module import and always needs real manual review.
+  let inverterCatalogEntries = [];
+  async function loadInverterCatalogPicker() {
+    const sel = document.getElementById('invCatalogPicker');
+    try {
+      const res = await fetch('/catalog/inverter');
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      inverterCatalogEntries = await res.json();
+    } catch (err) {
+      inverterCatalogEntries = [];
+    }
+    sel.innerHTML = inverterCatalogEntries.length
+      ? inverterCatalogEntries.map((e, i) => '<option value="' + i + '">' + escapeText(e.manufacturer + ' ' + e.model) + '</option>').join('')
+      : '<option value="">— none available yet —</option>';
+  }
+  loadInverterCatalogPicker();
+  document.getElementById('invImportCatalogBtn').addEventListener('click', () => {
+    const sel = document.getElementById('invCatalogPicker');
+    const statusEl = document.getElementById('invImportCatalogStatus');
+    const entry = inverterCatalogEntries[Number(sel.value)];
+    if (!entry) { statusEl.textContent = 'No catalog entry to import — approve a datasheet on the Datasheet Catalog Review panel (23) first.'; return; }
+    manualInverterSeq++;
+    let key = (entry.manufacturer + '-' + entry.model).replace(/\s+/g, '_').replace(/[^A-Za-z0-9_-]/g, '');
+    if (!key || INVERTER_MODELS[key]) key = (key || 'inverter') + '-' + manualInverterSeq;
+    const d = {
+      manufacturer: entry.manufacturer, model: entry.model, acRatingW: 0, nominalAcV: 0, phases: 3,
+      maxOutputCurrentA: 0, maxOcpdA: 0, mpptVMin: 0, mpptVMax: 0, maxDcInput: '', mpptCount: '',
+      mpptWindow: '', maxPvIsc: '', terminalRange: '', dimensionsMm: [], weightKg: null,
+      clearanceRequirement: '', maxConduitSize: '', mountingHeight: '', connections: [],
+      conduitEntries: [], mountingPoints: [],
+      dcTopology: 'combiner', source: 'Catalog: ' + entry.manufacturer + ' ' + entry.model, custom: true,
+    };
+    let populated = 0;
+    let mappedFields = 1; // acRatingW
+    const acKw = catalogFieldVal(entry.fields, 'nameplate_ac_power_kw');
+    if (acKw !== undefined) { d.acRatingW = acKw * 1000; populated++; }
+    const acConn = catalogFieldVal(entry.fields, 'ac_termination_type');
+    const dcConn = catalogFieldVal(entry.fields, 'dc_connector_type');
+    mappedFields += 2;
+    if (acConn !== undefined) { d.connections.push({ type: 'AC Input', count: 1, connectorType: String(acConn) }); populated++; }
+    if (dcConn !== undefined) { d.connections.push({ type: 'DC', count: 1, connectorType: String(dcConn) }); populated++; }
+
+    INVERTER_MODELS[key] = d;
+    refreshInverterModelOptions();
+    invModel.value = key;
+    applyInverterModel();
+    statusEl.textContent = 'Imported ' + populated + ' of ' + mappedFields + ' fields from the catalog — datasheet extraction only captures AC power rating and connector types for inverters today, so most Nameplate/Mechanical fields still need manual entry.';
     if (inverterCascadeReady) { refreshInverterBulkOptions(); recomputeInverterDesign(); }
   });
 
@@ -5068,6 +5224,19 @@
       '<text x="' + (x0 - 12) + '" y="' + (y0 + h / 2) + '" text-anchor="middle" font-size="11" fill="var(--ink)" transform="rotate(-90 ' + (x0 - 12) + ' ' + (y0 + h / 2) + ')">' + hLabel + ': ' + fmtInverterDiagramLen(hKnown) + '</text>'
     );
   }
+  // Conduit/mounting markers live only on the Side view. Position is stored
+  // as xFrac/yFrac (0-1 within that view's own rect), not absolute SVG units,
+  // so a marker stays put proportionally if dimensions change later.
+  function inverterMarkerSvg(kind, idx, cx, cy, label) {
+    const fill = kind === 'conduit' ? 'var(--accent)' : '#b45309';
+    return (
+      '<g class="inv-marker" data-marker-type="' + kind + '" data-marker-idx="' + idx +
+      '" data-cx="' + cx + '" data-cy="' + cy + '" transform="translate(' + cx + ',' + cy + ')" style="cursor:grab; touch-action:none;">' +
+        '<circle r="10" fill="' + fill + '" stroke="var(--surface)" stroke-width="2"/>' +
+        '<text text-anchor="middle" dy="3" font-size="9" font-weight="700" fill="#fff" style="pointer-events:none;">' + escapeText(label) + '</text>' +
+      '</g>'
+    );
+  }
   function renderInverterDiagram() {
     const d = INVERTER_MODELS[invModel.value];
     const wrap = document.getElementById('invDiagramWrap');
@@ -5075,6 +5244,7 @@
     if (!d) {
       wrap.innerHTML = '';
       note.textContent = 'Select or add an inverter to see its dimensions.';
+      renderInverterConduitMounts();
       return;
     }
     const dims = (d.dimensionsMm && d.dimensionsMm.length === 3 && d.dimensionsMm.every(v => v > 0)) ? d.dimensionsMm : null;
@@ -5087,18 +5257,149 @@
     const svgW = Math.round(sideX + dd + pad);
     const svgH = Math.round(y0 + Math.max(h, dd) + 40);
 
+    const conduitMarkers = (d.conduitEntries || []).map((c, i) =>
+      inverterMarkerSvg('conduit', i, sideX + (c.xFrac ?? 0.3) * dd, y0 + (c.yFrac ?? 0.3) * h, 'C' + (i + 1))).join('');
+    const mountMarkers = (d.mountingPoints || []).map((m, i) =>
+      inverterMarkerSvg('mount', i, sideX + (m.xFrac ?? 0.3) * dd, y0 + (m.yFrac ?? 0.8) * h, 'M' + (i + 1))).join('');
+
     wrap.innerHTML =
-      '<svg viewBox="0 0 ' + svgW + ' ' + svgH + '" width="100%" style="max-width:640px;" xmlns="http://www.w3.org/2000/svg">' +
+      '<svg id="invDiagramSvg" viewBox="0 0 ' + svgW + ' ' + svgH + '" width="100%" style="max-width:640px;" ' +
+      'data-side-x="' + sideX + '" data-side-y="' + y0 + '" data-side-w="' + dd + '" data-side-h="' + h + '" ' +
+      'xmlns="http://www.w3.org/2000/svg">' +
         inverterRectViewSvg(frontX, y0, w, h, 'W', 'H', dims ? W : null, dims ? H : null, 'Front') +
         inverterRectViewSvg(topX, y0, w, dd, 'W', 'D', dims ? W : null, dims ? D : null, 'Top') +
         inverterRectViewSvg(bottomX, y0, w, dd, 'W', 'D', dims ? W : null, dims ? D : null, 'Bottom') +
         inverterRectViewSvg(sideX, y0, dd, h, 'D', 'H', dims ? D : null, dims ? H : null, 'Side') +
+        conduitMarkers + mountMarkers +
       '</svg>';
 
     note.textContent = dims
-      ? 'Dimensions from this inverter\'s own record.'
+      ? 'Dimensions from this inverter\'s own record. Drag the markers on the Side view to place conduit entries and mounting points.'
       : 'No dimensions on file yet — the outlines above use a placeholder aspect ratio until Mechanical & Installation has real W × H × D.';
+    renderInverterConduitMounts();
   }
+
+  // ---- Conduit entries + mounting points: draggable markers on the Side
+  // view above, backed by a small table for size/label + remove. Position
+  // is the only thing dragging sets -- everything else is typed in the
+  // table, same division of labor as the map's click-to-set-point vs
+  // drag-to-pan (index.html ~4060, the only prior drag pattern in this app).
+  function renderInverterConduitMounts() {
+    const d = INVERTER_MODELS[invModel.value];
+    const conduitBody = document.getElementById('invConduitBody');
+    const mountBody = document.getElementById('invMountBody');
+    const conduits = d ? (d.conduitEntries || []) : [];
+    const mounts = d ? (d.mountingPoints || []) : [];
+    conduitBody.innerHTML = conduits.length
+      ? conduits.map((c, i) =>
+          '<tr>' +
+            '<td>C' + (i + 1) + '</td>' +
+            '<td><input type="text" class="wide" data-conduit-idx="' + i + '" value="' + escapeAttr(c.size || '') + '" placeholder="e.g. 2 in"></td>' +
+            '<td><button type="button" class="contact-remove" data-conduit-remove="' + i + '">Remove</button></td>' +
+          '</tr>').join('')
+      : '<tr class="empty"><td colspan="3">' + (d ? 'No conduit entries yet' : 'Select or add an inverter first') + '</td></tr>';
+    mountBody.innerHTML = mounts.length
+      ? mounts.map((m, i) =>
+          '<tr><td>M' + (i + 1) + '</td><td><button type="button" class="contact-remove" data-mount-remove="' + i + '">Remove</button></td></tr>').join('')
+      : '<tr class="empty"><td colspan="2">' + (d ? 'No mounting points yet' : 'Select or add an inverter first') + '</td></tr>';
+  }
+  document.getElementById('invAddConduitBtn').addEventListener('click', () => {
+    const d = INVERTER_MODELS[invModel.value];
+    if (!d) return;
+    if (!d.conduitEntries) d.conduitEntries = [];
+    const n = d.conduitEntries.length;
+    d.conduitEntries.push({ size: '', xFrac: 0.25 + 0.5 * ((n % 3) / 2), yFrac: 0.2 + 0.2 * (n % 4) });
+    renderInverterDiagram();
+  });
+  document.getElementById('invConduitBody').addEventListener('input', e => {
+    const idx = e.target.dataset.conduitIdx;
+    const d = INVERTER_MODELS[invModel.value];
+    if (idx === undefined || !d || !d.conduitEntries) return;
+    d.conduitEntries[Number(idx)].size = e.target.value;
+  });
+  document.getElementById('invConduitBody').addEventListener('click', e => {
+    const idx = e.target.dataset.conduitRemove;
+    const d = INVERTER_MODELS[invModel.value];
+    if (idx === undefined || !d || !d.conduitEntries) return;
+    d.conduitEntries.splice(Number(idx), 1);
+    renderInverterDiagram();
+  });
+  document.getElementById('invAddMountBtn').addEventListener('click', () => {
+    const d = INVERTER_MODELS[invModel.value];
+    if (!d) return;
+    if (!d.mountingPoints) d.mountingPoints = [];
+    const n = d.mountingPoints.length;
+    d.mountingPoints.push({ xFrac: 0.25 + 0.5 * ((n % 3) / 2), yFrac: 0.75 });
+    renderInverterDiagram();
+  });
+  document.getElementById('invMountBody').addEventListener('click', e => {
+    const idx = e.target.dataset.mountRemove;
+    const d = INVERTER_MODELS[invModel.value];
+    if (idx === undefined || !d || !d.mountingPoints) return;
+    d.mountingPoints.splice(Number(idx), 1);
+    renderInverterDiagram();
+  });
+
+  // ---- dragging the markers themselves ----
+  function svgPointFromClient(svg, clientX, clientY) {
+    const pt = svg.createSVGPoint();
+    pt.x = clientX; pt.y = clientY;
+    const ctm = svg.getScreenCTM();
+    if (!ctm) return { x: 0, y: 0 };
+    const p = pt.matrixTransform(ctm.inverse());
+    return { x: p.x, y: p.y };
+  }
+  const invDiagramWrapEl = document.getElementById('invDiagramWrap');
+  let invMarkerDrag = null;
+  invDiagramWrapEl.addEventListener('pointerdown', e => {
+    const marker = e.target.closest('.inv-marker');
+    if (!marker) return;
+    const svg = marker.ownerSVGElement;
+    if (!svg) return;
+    e.preventDefault();
+    const pt = svgPointFromClient(svg, e.clientX, e.clientY);
+    invMarkerDrag = {
+      svg: svg, marker: marker,
+      kind: marker.dataset.markerType, idx: Number(marker.dataset.markerIdx),
+      origX: Number(marker.dataset.cx), origY: Number(marker.dataset.cy),
+      startX: pt.x, startY: pt.y, dx: 0, dy: 0, moved: false,
+    };
+    marker.style.cursor = 'grabbing';
+    // Capture keeps the drag alive if the cursor leaves the marker; not every
+    // pointer id is capturable, and failing to capture shouldn't kill the drag.
+    try { marker.setPointerCapture(e.pointerId); } catch (err) { /* drag still works uncaptured */ }
+  });
+  invDiagramWrapEl.addEventListener('pointermove', e => {
+    if (!invMarkerDrag) return;
+    const pt = svgPointFromClient(invMarkerDrag.svg, e.clientX, e.clientY);
+    invMarkerDrag.dx = pt.x - invMarkerDrag.startX;
+    invMarkerDrag.dy = pt.y - invMarkerDrag.startY;
+    if (Math.abs(invMarkerDrag.dx) > 1 || Math.abs(invMarkerDrag.dy) > 1) invMarkerDrag.moved = true;
+    invMarkerDrag.marker.setAttribute(
+      'transform', 'translate(' + (invMarkerDrag.origX + invMarkerDrag.dx) + ',' + (invMarkerDrag.origY + invMarkerDrag.dy) + ')'
+    );
+  });
+  function endInvMarkerDrag(cancelled) {
+    if (!invMarkerDrag) return;
+    const st = invMarkerDrag;
+    invMarkerDrag = null;
+    if (!cancelled && st.moved) {
+      const svgEl = st.svg;
+      const sideX = Number(svgEl.dataset.sideX), sideY = Number(svgEl.dataset.sideY);
+      const sideW = Number(svgEl.dataset.sideW), sideH = Number(svgEl.dataset.sideH);
+      const finalX = Math.min(Math.max(st.origX + st.dx, sideX), sideX + sideW);
+      const finalY = Math.min(Math.max(st.origY + st.dy, sideY), sideY + sideH);
+      const d = INVERTER_MODELS[invModel.value];
+      const list = d ? (st.kind === 'conduit' ? d.conduitEntries : d.mountingPoints) : null;
+      if (list && list[st.idx]) {
+        list[st.idx].xFrac = sideW ? (finalX - sideX) / sideW : 0.5;
+        list[st.idx].yFrac = sideH ? (finalY - sideY) / sideH : 0.5;
+      }
+    }
+    renderInverterDiagram();
+  }
+  invDiagramWrapEl.addEventListener('pointerup', () => endInvMarkerDrag(false));
+  invDiagramWrapEl.addEventListener('pointercancel', () => endInvMarkerDrag(true));
 
   // Same fixed-checklist pattern as Module Spec's doc tracker.
   const INVERTER_DOC_TYPES = ['Datasheet', 'Installation Manual', 'Warranty', 'PVSyst .OND File', 'Quote', 'Other Uploads'];
@@ -5292,6 +5593,7 @@
       maxConduitSize: (fv.maxConduitSize || '').trim(),
       mountingHeight: (fv.mountingHeight || '').trim(),
       connections: [],
+      conduitEntries: [], mountingPoints: [],
       dcTopology: fv.dcTopology === 'direct' ? 'direct' : 'combiner',
       source: doc.name, custom: true,
     };

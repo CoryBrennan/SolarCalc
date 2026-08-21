@@ -269,6 +269,35 @@ def list_pending_catalog_versions(session: Session = Depends(get_session)) -> li
     return [_version_to_dict(v) for v in session.exec(statement).all()]
 
 
+@router.get("/catalog/{equipment_type}")
+def list_catalog_entries(equipment_type: str, session: Session = Depends(get_session)) -> list[dict]:
+    """Every manufacturer/model with an approved (active) default version --
+    the read side of the catalog that /catalog/pending and
+    /catalog/{type}/{mfr}/{model}/versions don't cover: browsing entries
+    without already knowing a manufacturer/model pair. This is what lets the
+    HMI's Module/Inverter Spec panels import a datasheet approved on a past
+    project instead of re-typing it."""
+    if equipment_type not in ("module", "inverter"):
+        raise HTTPException(status_code=422, detail=f"equipment_type must be 'module' or 'inverter', got {equipment_type!r}")
+
+    statement = select(CatalogDefault).where(CatalogDefault.equipment_type == equipment_type)
+    entries = []
+    for default in session.exec(statement).all():
+        version = session.get(CatalogVersion, default.version_id)
+        if version is None or version.status != "active":
+            continue
+        entries.append(
+            {
+                "manufacturer": default.manufacturer,
+                "model": default.model,
+                "default_version_id": default.version_id,
+                "fields": json.loads(version.fields),
+            }
+        )
+    entries.sort(key=lambda e: (e["manufacturer"].lower(), e["model"].lower()))
+    return entries
+
+
 @router.get("/catalog/{equipment_type}/{manufacturer}/{model}/versions")
 def list_catalog_versions(equipment_type: str, manufacturer: str, model: str, session: Session = Depends(get_session)) -> dict:
     statement = (
