@@ -796,66 +796,62 @@
             <p class="eyebrow">jurisdiction_lookup.py → resolve_nec_edition()</p>
             <h2>Jurisdiction</h2>
           </div>
-          <span class="chip chip-fail">IL not in stub table</span>
         </div>
-        <p class="desc">Resolves NEC edition and serving utility from state. Both underlying tables are placeholders — anything outside the handful of states covered falls back to "confirm," which is exactly what happens for this Illinois site.</p>
+        <p class="desc">Direct, manual entry for the site's legal jurisdiction and serving utility — state, county, and AHJ here are independent of Site Config's mailing address (Panel 01), since the governing jurisdiction is a distinct fact from where mail gets delivered, even though the two are usually the same state.</p>
 
         <div class="card">
-          <p class="card-title">Site address <span class="unit">sourced from Site Config, Panel 01 — edit there</span></p>
-          <div class="computed-row">
-            <div class="computed">
-              <div class="k">state</div>
-              <div class="v" id="jurisStateDisplay" style="font-size:15px;">IL</div>
+          <p class="card-title">Site jurisdiction</p>
+          <div class="field-grid">
+            <div class="field">
+              <label for="jurisState">State</label>
+              <select id="jurisState"></select>
+            </div>
+            <div class="field">
+              <label for="jurisCounty">County</label>
+              <input class="prose" type="text" id="jurisCounty" placeholder="e.g. St. Clair">
+            </div>
+            <div class="field wide">
+              <label for="jurisAhj">AHJ</label>
+              <input class="prose" type="text" id="jurisAhj" placeholder="e.g. City of East St. Louis">
+            </div>
+            <div class="field">
+              <label for="jurisNecEdition">NEC code year</label>
+              <select id="jurisNecEdition">
+                <option value="">— select —</option>
+                <option value="NEC 2026">NEC 2026</option>
+                <option value="NEC 2023">NEC 2023</option>
+                <option value="NEC 2020">NEC 2020</option>
+                <option value="NEC 2017">NEC 2017</option>
+              </select>
             </div>
           </div>
         </div>
 
         <div class="card">
-          <p class="card-title">Resolved</p>
-          <div class="computed-row">
-            <div class="computed">
-              <div class="k">nec_edition</div>
-              <div class="v" id="resolvedEdition" style="font-size:15px; color: var(--fail);">UNKNOWN — confirm with AHJ</div>
-            </div>
-            <div class="computed">
-              <div class="k">ahj_name</div>
-              <div class="v" id="resolvedAhj" style="font-size:15px;">Unresolved — IL</div>
-            </div>
+          <p class="card-title">AHJs by discipline <span class="unit">fill in whichever apply</span></p>
+          <p class="desc" style="margin-bottom:14px;">Some jurisdictions split permitting and approval across separate offices per discipline instead of one AHJ handling everything above — leave any row blank that doesn't apply here.</p>
+          <div style="overflow-x:auto;">
+            <table class="etap">
+              <thead>
+                <tr><th>Discipline</th><th>AHJ / office</th><th>Contact name</th><th>Phone</th><th>Email</th></tr>
+              </thead>
+              <tbody id="jurisAhjTableBody"></tbody>
+            </table>
           </div>
         </div>
 
         <div class="card">
           <p class="card-title">Utility</p>
-          <p class="desc" style="margin-bottom:14px;">The serving utility is an output of this panel, not a typed field on Site Config — resolved the same honest, stub-table way as the NEC edition above: looked up by state, overridable when the lookup is wrong or the state isn't covered.</p>
           <div class="field-grid">
-            <div class="field readonly">
-              <label for="utilityName">Resolved utility</label>
-              <input class="prose" type="text" id="utilityName" readonly>
-            </div>
             <div class="field wide">
-              <label for="utilityNameOverride">Override <span class="unit">optional</span></label>
-              <input class="prose" type="text" id="utilityNameOverride" placeholder="e.g. Ameren Illinois">
+              <label for="utilityName">Utility name</label>
+              <input class="prose" type="text" id="utilityName" placeholder="e.g. Ameren Illinois">
+            </div>
+            <div class="field">
+              <label for="jurisDerNumber">DER number</label>
+              <input class="prose" type="text" id="jurisDerNumber" placeholder="e.g. DER-000123">
             </div>
           </div>
-          <p class="desc" id="utilityResolutionNote" style="margin-top:12px;">—</p>
-        </div>
-
-        <div class="card">
-          <p class="card-title">Utility interconnection application</p>
-          <p class="desc" style="margin-bottom:14px;">The application package filed with the utility above — application form, one-line, site plan, equipment cut sheets, whatever the utility's portal asked for — plus anything that comes back (approval letter, comments, system impact study).</p>
-          <div class="dropzone" id="utilityDocDropzone" tabindex="0" role="button" aria-label="Upload utility interconnection documents">
-            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
-              <path d="M12 3v12m0-12 4 4m-4-4-4 4"/>
-              <path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/>
-            </svg>
-            <div class="cta">Drop the interconnection application (or anything the utility sent back) here, or click to browse</div>
-            <div class="sub">Interconnection application form · Utility approval / permission-to-operate letter · System impact study · One-line submitted · Meter spec · Other Uploads</div>
-            <input type="file" id="utilityDocInput" multiple style="display:none;">
-          </div>
-          <table class="manifest" style="margin-top:14px;">
-            <thead><tr><th>File</th><th>Detected type</th><th>Status</th><th></th></tr></thead>
-            <tbody id="utilityDocManifestBody"><tr class="empty"><td colspan="4">No documents uploaded yet</td></tr></tbody>
-          </table>
         </div>
       </section>
 
@@ -2212,7 +2208,7 @@
           </div>
           <span class="chip chip-pass" id="manifestCount">0 documents</span>
         </div>
-        <p class="desc">One ledger across the whole project — every PDF dropped on Module Spec, Inverter Spec, DC Combiner Design, Switchboard/Transformer/MV Design, Jurisdiction's utility section, or Inverter Design's PVCase BOM shows up here too, live, because this table reads the same document objects those panels do rather than a copy. Extraction is real: PDFs go to the backend's text extractor, and review/approve happens on the panel that owns the document — use <b>Open</b> to jump there.</p>
+        <p class="desc">One ledger across the whole project — every PDF dropped on Module Spec, Inverter Spec, DC Combiner Design, Switchboard/Transformer/MV Design, or Inverter Design's PVCase BOM shows up here too, live, because this table reads the same document objects those panels do rather than a copy. Extraction is real: PDFs go to the backend's text extractor, and review/approve happens on the panel that owns the document — use <b>Open</b> to jump there.</p>
 
         <div class="card">
           <p class="card-title">E911 documentation</p>
@@ -2251,6 +2247,24 @@
               <span id="logoFileMeta"></span>
             </div>
           </div>
+        </div>
+
+        <div class="card">
+          <p class="card-title">Utility interconnection application</p>
+          <p class="desc" style="margin-bottom:14px;">The application package filed with the utility on Jurisdiction (03) — application form, one-line, site plan, equipment cut sheets, whatever the utility's portal asked for — plus anything that comes back (approval letter, comments, system impact study).</p>
+          <div class="dropzone" id="utilityDocDropzone" tabindex="0" role="button" aria-label="Upload utility interconnection documents">
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
+              <path d="M12 3v12m0-12 4 4m-4-4-4 4"/>
+              <path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/>
+            </svg>
+            <div class="cta">Drop the interconnection application (or anything the utility sent back) here, or click to browse</div>
+            <div class="sub">Interconnection application form · Utility approval / permission-to-operate letter · System impact study · One-line submitted · Meter spec · Other Uploads</div>
+            <input type="file" id="utilityDocInput" multiple style="display:none;">
+          </div>
+          <table class="manifest" style="margin-top:14px;">
+            <thead><tr><th>File</th><th>Detected type</th><th>Status</th><th></th></tr></thead>
+            <tbody id="utilityDocManifestBody"><tr class="empty"><td colspan="4">No documents uploaded yet</td></tr></tbody>
+          </table>
         </div>
 
         <div class="dropzone" id="genericDocDropzone" tabindex="0" role="button" aria-label="Upload other project documents">
@@ -4021,7 +4035,7 @@
       filled.push('state');
     }
     if (a.postcode) { document.getElementById('siteZip').value = String(a.postcode).slice(0, 5); filled.push('ZIP'); }
-    if (filled.length) { resolveJurisdiction(); updateTopbar(); }
+    if (filled.length) { updateTopbar(); }
     return filled;
   }
 
@@ -5312,73 +5326,70 @@
   });
 
   renderMvEquipment();
-  // ---- jurisdiction stub lookup ----
-  const NEC_TABLE = {
-    CA: 'NEC 2022 (CEC, based on NEC 2020)',
-    TX: 'NEC 2023',
-    AZ: 'NEC 2020',
-    NV: 'NEC 2023',
-  };
-  // Same stub-table honesty as NEC_TABLE above: a small reference set, not a
-  // real utility-territory lookup (that's genuinely ambiguous by ZIP/address
-  // in states with multiple utilities, e.g. Texas's competitive TDSPs) — the
-  // override field is how the designer corrects or fills in what the table
-  // can't know.
-  const UTILITY_TABLE = {
-    IL: 'Ameren Illinois', MO: 'Ameren Missouri', CA: 'confirm — PG&E / SCE / SDG&E by service address',
-    TX: 'confirm — Oncor / CenterPoint / AEP (competitive TDSP by address)',
-    AZ: 'confirm — Arizona Public Service (APS) / Salt River Project', NV: 'NV Energy',
-  };
-  // State lives on Site Config (Panel 01) — single source of truth, this
-  // panel just resolves against it and displays a read-only mirror.
-  const siteState = document.getElementById('siteState');
+  // ---- jurisdiction: direct manual entry, independent of Site Config's
+  // mailing-address state (the two are usually the same but aren't tied
+  // together — see the panel's own desc text) ----
+  populateStateSelect('jurisState');
+  const jurisState = document.getElementById('jurisState');
+  const jurisCounty = document.getElementById('jurisCounty');
+  const jurisAhj = document.getElementById('jurisAhj');
+  const jurisNecEdition = document.getElementById('jurisNecEdition');
   const jurisdictionPill = document.getElementById('jurisdictionPill');
-  const utilityNameOverride = document.getElementById('utilityNameOverride');
 
-  function resolveJurisdiction() {
-    const state = siteState.value;
-    const edition = NEC_TABLE[state];
-
-    document.getElementById('jurisStateDisplay').textContent = state || '—';
-
-    const editionEl = document.getElementById('resolvedEdition');
-    const ahjEl = document.getElementById('resolvedAhj');
-
-    if (!edition) {
-      editionEl.textContent = 'UNKNOWN — confirm with AHJ';
-      editionEl.style.color = 'var(--fail)';
-      ahjEl.textContent = state ? 'Unresolved — ' + state : 'Unresolved — no state set on Site Config';
+  function updateJurisdictionPill() {
+    const state = jurisState.value;
+    const edition = jurisNecEdition.value;
+    if (!state || !edition) {
       jurisdictionPill.textContent = state ? 'UNRESOLVED · ' + state : 'UNRESOLVED · NO STATE';
       jurisdictionPill.className = 'pill pill-fail';
     } else {
-      editionEl.textContent = edition;
-      editionEl.style.color = 'var(--ink)';
-      ahjEl.textContent = state;
-      jurisdictionPill.textContent = edition.split(' (')[0] + ' · ' + state;
+      jurisdictionPill.textContent = edition + ' · ' + state;
       jurisdictionPill.className = 'pill pill-warn';
     }
-
-    // Utility: same override-wins-over-lookup pattern as AHJ above.
-    const override = utilityNameOverride.value.trim();
-    const suggestion = UTILITY_TABLE[state] || '';
-    const utilityEl = document.getElementById('utilityName');
-    const noteEl = document.getElementById('utilityResolutionNote');
-    utilityEl.value = override || suggestion || '';
-    if (override) {
-      noteEl.innerHTML = 'Source: <b>override</b>.';
-      noteEl.style.color = 'var(--ink-muted)';
-    } else if (suggestion) {
-      noteEl.innerHTML = 'Source: <b>stub table</b>, by state (' + state + ') — a real lookup would need the service address, not just the state. Override above if this is wrong.';
-      noteEl.style.color = 'var(--ink-muted)';
-    } else {
-      noteEl.innerHTML = state
-        ? 'No stub-table entry for ' + state + ' — enter the utility above.'
-        : 'No state set on Site Config yet — enter the utility above, or set the state.';
-      noteEl.style.color = 'var(--warn)';
-    }
   }
-  [siteState, utilityNameOverride].forEach(el => el.addEventListener('input', resolveJurisdiction));
-  resolveJurisdiction();
+  [jurisState, jurisNecEdition].forEach(el => el.addEventListener('input', updateJurisdictionPill));
+  updateJurisdictionPill();
+
+  // ---- AHJs by discipline: a fixed set of rows (not add/remove like the
+  // Project Directory tables — every project has exactly these seven
+  // possible disciplines, never more), each independently write-in ----
+  const JURIS_AHJ_TYPES = [
+    { key: 'electrical', label: 'Electrical AHJ' },
+    { key: 'building', label: 'Building AHJ' },
+    { key: 'fire', label: 'Fire AHJ' },
+    { key: 'land_use', label: 'Land Use AHJ' },
+    { key: 'road_dot', label: 'Road Use / DOT AHJ' },
+    { key: 'wetlands', label: 'Wetlands AHJ' },
+    { key: 'historic', label: 'Historic AHJ' },
+  ];
+  function blankJurisAhjContact() {
+    return { office: '', name: '', phone: '', email: '' };
+  }
+  let jurisAhjContacts = {};
+  JURIS_AHJ_TYPES.forEach(t => { jurisAhjContacts[t.key] = blankJurisAhjContact(); });
+
+  function jurisAhjFieldHtml(key, field, value, wide) {
+    return '<td><input type="text"' + (wide ? ' class="wide"' : '') +
+      ' data-juris-ahj-key="' + key + '" data-field="' + field + '" value="' + escapeAttr(value) + '"></td>';
+  }
+  function renderJurisAhjTable() {
+    document.getElementById('jurisAhjTableBody').innerHTML = JURIS_AHJ_TYPES.map(t => {
+      const c = jurisAhjContacts[t.key];
+      return '<tr><td>' + t.label + '</td>' +
+        jurisAhjFieldHtml(t.key, 'office', c.office, true) +
+        jurisAhjFieldHtml(t.key, 'name', c.name, true) +
+        jurisAhjFieldHtml(t.key, 'phone', c.phone, false) +
+        jurisAhjFieldHtml(t.key, 'email', c.email, true) +
+        '</tr>';
+    }).join('');
+  }
+  document.getElementById('jurisAhjTableBody').addEventListener('input', e => {
+    const key = e.target.dataset.jurisAhjKey;
+    const field = e.target.dataset.field;
+    if (!key || !field) return;
+    jurisAhjContacts[key][field] = e.target.value;
+  });
+  renderJurisAhjTable();
 
   const utilityDocTracker = initDocTracker({
     dropzoneId: 'utilityDocDropzone', inputId: 'utilityDocInput', manifestBodyId: 'utilityDocManifestBody',
@@ -8928,12 +8939,11 @@
 
   // ---- save / load project state ----
   const PROJECT_FIELD_IDS = [
-    // utilityName isn't listed — it's derived by resolveJurisdiction() from
-    // state + utilityNameOverride, never its own saved state.
-    'projectName', 'utilityNameOverride', 'projectType', 'projectTypeOther', 'targetAc', 'targetDc',
+    'projectName', 'projectType', 'projectTypeOther', 'targetAc', 'targetDc',
     'targetRatio', 'storageTarget', 'otherGenTarget',
     'siteStreet', 'siteCity', 'siteState', 'siteZip',
     'siteLatitude', 'siteLongitude',
+    'jurisState', 'jurisCounty', 'jurisAhj', 'jurisNecEdition', 'utilityName', 'jurisDerNumber',
     'clientBusinessName', 'clientStreet', 'clientCity', 'clientState', 'clientZip', 'clientWebsite',
     // invDcTopology isn't listed — it's derived from whichever inverter model
     // is selected (applyInverterModel() sets it), never its own saved state.
@@ -9010,6 +9020,7 @@
     return {
       savedAt: new Date().toISOString(), fields, contacts, logoDataUrl,
       combinerRows: combinerRowsOut, directoryContacts: directoryContactsOut,
+      jurisAhjContacts: JSON.parse(JSON.stringify(jurisAhjContacts)),
       sysArchBreakers: sysArchBreakers.map(b => ({ order: b.order, type: b.type, size: b.size })),
       switchboardRows: JSON.parse(JSON.stringify(switchboardRows)),
       transformerRows: transformerRows.map(r => Object.assign({}, r)),
@@ -9210,6 +9221,18 @@
       renderDirectory();
     }
 
+    if (project.jurisAhjContacts) {
+      JURIS_AHJ_TYPES.forEach(t => {
+        const saved = project.jurisAhjContacts[t.key];
+        if (saved) {
+          jurisAhjContacts[t.key] = {
+            office: saved.office || '', name: saved.name || '', phone: saved.phone || '', email: saved.email || '',
+          };
+        }
+      });
+      renderJurisAhjTable();
+    }
+
     if (Array.isArray(project.combinerRows) && project.combinerRows.length) {
       combinerRows = project.combinerRows.map(r => ({
         inputs: parseNum(r.inputs) || 1,
@@ -9221,7 +9244,7 @@
 
     applyModuleSku();
     applyInverterModel();
-    resolveJurisdiction();
+    updateJurisdictionPill();
     bondingRecompute();
     combinerRecompute();
     ampacityRecompute();
@@ -9408,7 +9431,10 @@
         ocpd_type: etapOcpdType.value,
       },
       jurisdiction: {
-        state: siteState.value,
+        state: jurisState.value,
+        county: jurisCounty.value,
+        ahj_override: jurisAhj.value,
+        nec_edition_override: jurisNecEdition.value,
       },
       iv_curve_conditions: {
         irradiance_w_m2: parseNum(ivIrradiance.value),
@@ -9468,7 +9494,7 @@
       ['Switchboard 120%', 'Result', document.getElementById('sbResult').textContent, data.switchboard.passes ? 'Pass' : 'Fail'],
       ['Bonding & Grounding', 'Secondary conductor', document.getElementById('bondConductor').textContent, data.bonding.secondary_conductor],
       ['Voltage Drop', 'VD %', document.getElementById('vdSegmentPct').textContent, data.voltage_drop.voltage_drop_pct],
-      ['Jurisdiction', 'NEC edition', document.getElementById('resolvedEdition').textContent, data.jurisdiction.nec_edition],
+      ['Jurisdiction', 'NEC edition', jurisNecEdition.value || '—', data.jurisdiction.nec_edition],
       ['Placarding', 'Estimated total ($)', document.getElementById('placardTotal').textContent, data.placarding.estimated_total],
       ['ETAP Export', 'Total source MVA', document.getElementById('etapTotalMva').textContent, data.etap.total_source_mva_at_poi],
       ['I-V Curve Field Prep', 'Expected Voc (V)', document.getElementById('ivExpVoc').textContent, data.iv_curve.expected.voc],

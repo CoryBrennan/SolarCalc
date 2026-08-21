@@ -194,6 +194,7 @@ class JurisdictionInput(BaseModel):
     state: str = "IL"
     county: str = ""
     ahj_override: str = ""
+    nec_edition_override: str = ""
 
 
 class IvCurveConditions(BaseModel):

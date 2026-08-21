@@ -196,6 +196,7 @@ def calculate(project: ProjectInput) -> dict:
         state=project.jurisdiction.state,
         county=project.jurisdiction.county,
         ahj_override=project.jurisdiction.ahj_override,
+        nec_edition_override=project.jurisdiction.nec_edition_override,
     )
 
     combiner_result, ocpd_result, switchboard_result = compute_combiner_ocpd_switchboard(project, num_inverters)

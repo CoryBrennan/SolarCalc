@@ -1,6 +1,7 @@
 """NEC edition resolution by state/county. Stub table — 4 states covered;
-everything else falls back to "confirm with AHJ" until the table is expanded
-with a real, maintained adoption dataset.
+everything else falls back to "confirm with AHJ" unless the caller supplies
+a manual nec_edition_override (the HMI's Jurisdiction panel is now a direct
+write-in, not a lookup display, so this is the common path in practice).
 """
 
 from __future__ import annotations
@@ -13,8 +14,10 @@ NEC_EDITION_BY_STATE: dict[str, str] = {
 }
 
 
-def resolve_nec_edition(state: str, county: str = "", ahj_override: str = "") -> dict:
-    edition = NEC_EDITION_BY_STATE.get(state)
+def resolve_nec_edition(
+    state: str, county: str = "", ahj_override: str = "", nec_edition_override: str = ""
+) -> dict:
+    edition = nec_edition_override or NEC_EDITION_BY_STATE.get(state)
 
     if not edition:
         return {
