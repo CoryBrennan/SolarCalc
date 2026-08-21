@@ -9435,6 +9435,10 @@
         county: jurisCounty.value,
         ahj_override: jurisAhj.value,
         nec_edition_override: jurisNecEdition.value,
+        der_number: document.getElementById('jurisDerNumber').value,
+        ahj_by_discipline: Object.fromEntries(
+          JURIS_AHJ_TYPES.map(t => [t.key, Object.assign({}, jurisAhjContacts[t.key])])
+        ),
       },
       iv_curve_conditions: {
         irradiance_w_m2: parseNum(ivIrradiance.value),

@@ -143,6 +143,26 @@ def test_calculate_passes_storage_and_other_generation_targets_through():
     assert body["site"]["other_generation_target_w"] == 500_000
 
 
+def test_calculate_accepts_der_number_and_ahj_by_discipline():
+    response = client.post(
+        "/calculate",
+        json={
+            "jurisdiction": {
+                "der_number": "DER-000123",
+                "ahj_by_discipline": {
+                    "electrical": {
+                        "office": "St. Clair County Electrical Inspections",
+                        "name": "Jane Doe",
+                        "phone": "618-555-0100",
+                        "email": "jane@example.com",
+                    },
+                },
+            }
+        },
+    )
+    assert response.status_code == 200
+
+
 def test_calculate_rejects_unknown_module_sku():
     response = client.post("/calculate", json={"module": {"sku": "999"}})
     assert response.status_code == 422

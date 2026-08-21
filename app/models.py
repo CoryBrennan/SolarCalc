@@ -190,11 +190,31 @@ class EtapAssumptions(BaseModel):
     ocpd_type: Literal["breaker", "fuse"] = "breaker"
 
 
+class JurisdictionAhjContact(BaseModel):
+    office: str = ""
+    name: str = ""
+    phone: str = ""
+    email: str = ""
+
+
+# Fixed set on the HMI side (Jurisdiction panel, Panel 03) — every project
+# has exactly these seven possible discipline-specific AHJs, never more.
+JURISDICTION_AHJ_DISCIPLINE_KEYS: list[str] = [
+    "electrical", "building", "fire", "land_use", "road_dot", "wetlands", "historic",
+]
+
+
 class JurisdictionInput(BaseModel):
     state: str = "IL"
     county: str = ""
     ahj_override: str = ""
     nec_edition_override: str = ""
+    der_number: str = ""
+    # Keyed by JURISDICTION_AHJ_DISCIPLINE_KEYS, same accept-and-round-trip
+    # treatment as ProjectInput.directory_contacts below — not read by any
+    # calc module, just carried through so "Save project" -> "/calculate"
+    # round-trips without losing data.
+    ahj_by_discipline: dict[str, JurisdictionAhjContact] = Field(default_factory=dict)
 
 
 class IvCurveConditions(BaseModel):
