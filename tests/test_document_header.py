@@ -21,7 +21,7 @@ def test_build_document_header_flattens_fields():
     assert header["ahj_name"] == "St. Clair, IL"
     assert header["nec_edition"] == "NEC 2023"
     assert header["contacts"] == [
-        {"name": "Cory Brennan", "role": "", "title": "", "email": "cory@azimuth.energy", "phone": ""}
+        {"name": "Cory Brennan", "title": "", "email": "cory@azimuth.energy", "phone": ""}
     ]
 
 

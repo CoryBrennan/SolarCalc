@@ -213,7 +213,6 @@ class IvCurveReading(BaseModel):
 
 class ContactEntry(BaseModel):
     name: str = ""
-    role: str = ""
     title: str = ""
     email: str = ""
     phone: str = ""

@@ -725,7 +725,7 @@
           </div>
           <span class="chip chip-warn" id="directoryCompletionChip">checking…</span>
         </div>
-        <p class="desc">Client-side project contacts, business information, and branding at the top — collected once so the same data goes on the cover sheet and title block of every output document instead of being re-entered per document. Below that, points of contact for every discipline and vendor this project touches — the list a PE actually reaches for when routing an RFI or chasing a submittal.</p>
+        <p class="desc">Client-side project contacts and business information at the top — collected once so the same data goes on the cover sheet and title block of every output document instead of being re-entered per document (the business logo lives on Document Intake alongside every other project upload). Below that, points of contact for every discipline and vendor this project touches — the list a PE actually reaches for when routing an RFI or chasing a submittal.</p>
 
         <div class="card">
           <p class="card-title">Business information</p>
@@ -735,8 +735,20 @@
               <input class="prose" type="text" id="clientBusinessName" placeholder="e.g. Azimuth Energy">
             </div>
             <div class="field wide">
-              <label for="clientAddress">Business address</label>
-              <textarea class="prose" id="clientAddress" rows="2" placeholder="Street, city, state, ZIP"></textarea>
+              <label for="clientStreet">Street address</label>
+              <input class="prose" type="text" id="clientStreet" placeholder="e.g. 123 Main St">
+            </div>
+            <div class="field">
+              <label for="clientCity">City</label>
+              <input class="prose" type="text" id="clientCity" placeholder="e.g. St. Louis">
+            </div>
+            <div class="field">
+              <label for="clientState">State</label>
+              <select id="clientState"></select>
+            </div>
+            <div class="field">
+              <label for="clientZip">ZIP</label>
+              <input class="prose" type="text" id="clientZip" placeholder="e.g. 63101">
             </div>
             <div class="field wide">
               <label for="clientWebsite">Website</label>
@@ -749,36 +761,6 @@
           <p class="card-title">Primary contacts <span class="chip chip-muted" id="clientContactCount">3 contacts</span></p>
           <div id="contactList"></div>
           <button class="btn" id="addContactBtn" style="margin-top: 6px;">+ Add another contact</button>
-        </div>
-
-        <div class="card">
-          <p class="card-title">Business logo</p>
-          <div class="dropzone" id="logoDropzone" tabindex="0" role="button" aria-label="Upload business logo">
-            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
-              <rect x="3" y="3" width="18" height="18" rx="2"/>
-              <circle cx="9" cy="9" r="1.8"/>
-              <path d="M21 15l-5-5-9 9"/>
-            </svg>
-            <div class="cta">Drop a logo image here, or click to browse</div>
-            <div class="sub">PNG, SVG, or JPG — used on report cover sheets and drawing title blocks</div>
-            <input type="file" id="logoInput" accept="image/*" style="display:none;">
-          </div>
-          <div class="logo-preview-wrap" id="logoPreviewWrap" style="display:none;">
-            <img id="logoPreview" alt="Business logo preview">
-            <div class="meta">
-              <b id="logoFileName"></b>
-              <span id="logoFileMeta"></span>
-            </div>
-          </div>
-        </div>
-
-        <div class="card">
-          <p class="card-title">Document header — accessible to any output document</p>
-          <p class="desc" style="margin-bottom:14px;">Everything above, plus the project name and site address from Site Config, flattened into one JSON object — the same shape <span class="mono">document_header.build_document_header()</span> returns. Any report generator, drawing title block, or quote template can consume this directly (the logo is embedded as a base64 data URI, so the export is fully self-contained).</p>
-          <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-            <button class="btn" id="exportHeaderBtn">Download document_header.json →</button>
-            <span class="chip chip-muted" id="headerGapsChip">checking…</span>
-          </div>
         </div>
 
         <div class="card">
@@ -805,12 +787,6 @@
           </div>
         </div>
 
-        <div class="card">
-          <p class="card-title">Export</p>
-          <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-            <button class="btn" id="exportDirectoryBtn">Download project_directory.json →</button>
-          </div>
-        </div>
       </section>
 
       <!-- 03 JURISDICTION -->
@@ -2256,6 +2232,27 @@
           </table>
         </div>
 
+        <div class="card">
+          <p class="card-title">Business logo</p>
+          <div class="dropzone" id="logoDropzone" tabindex="0" role="button" aria-label="Upload business logo">
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <circle cx="9" cy="9" r="1.8"/>
+              <path d="M21 15l-5-5-9 9"/>
+            </svg>
+            <div class="cta">Drop a logo image here, or click to browse</div>
+            <div class="sub">PNG, SVG, or JPG — used on report cover sheets and drawing title blocks</div>
+            <input type="file" id="logoInput" accept="image/*" style="display:none;">
+          </div>
+          <div class="logo-preview-wrap" id="logoPreviewWrap" style="display:none;">
+            <img id="logoPreview" alt="Business logo preview">
+            <div class="meta">
+              <b id="logoFileName"></b>
+              <span id="logoFileMeta"></span>
+            </div>
+          </div>
+        </div>
+
         <div class="dropzone" id="genericDocDropzone" tabindex="0" role="button" aria-label="Upload other project documents">
           <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
             <path d="M12 3v12m0-12 4 4m-4-4-4 4"/>
@@ -3658,6 +3655,16 @@
     const cityStateZip = [city, [state, zip].filter(Boolean).join(' ')].filter(Boolean).join(', ');
     return [street, cityStateZip].filter(Boolean).join(', ');
   }
+  // Same shape as formatFullSiteAddress() but for the Project Directory's
+  // business address (street/city/state/zip fields, not Site Config's).
+  function formatFullClientAddress() {
+    const street = document.getElementById('clientStreet').value.trim();
+    const city = document.getElementById('clientCity').value.trim();
+    const state = document.getElementById('clientState').value.trim();
+    const zip = document.getElementById('clientZip').value.trim();
+    const cityStateZip = [city, [state, zip].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+    return [street, cityStateZip].filter(Boolean).join(', ');
+  }
 
   // ---- 50-state select ----
   const US_STATES = [
@@ -3672,10 +3679,10 @@
     ['SD', 'South Dakota'], ['TN', 'Tennessee'], ['TX', 'Texas'], ['UT', 'Utah'], ['VT', 'Vermont'],
     ['VA', 'Virginia'], ['WA', 'Washington'], ['WV', 'West Virginia'], ['WI', 'Wisconsin'], ['WY', 'Wyoming'],
   ];
-  (function populateStateSelect() {
-    const select = document.getElementById('siteState');
-    // No preselected state — the site address starts blank so nothing sample
-    // survives into a real project by accident.
+  // No preselected state — every address using this starts blank so nothing
+  // sample survives into a real project by accident.
+  function populateStateSelect(selectId) {
+    const select = document.getElementById(selectId);
     const blank = document.createElement('option');
     blank.value = '';
     blank.textContent = '— select state —';
@@ -3686,7 +3693,9 @@
       opt.textContent = code + ' — ' + name;
       select.appendChild(opt);
     });
-  })();
+  }
+  populateStateSelect('siteState');
+  populateStateSelect('clientState');
 
   // ---- project type "Other" write-in ----
   const projectTypeSelect = document.getElementById('projectType');
@@ -7087,7 +7096,6 @@
       '</div>' +
       '<div class="field-grid">' +
         '<div class="field"><label>Name</label><input class="prose" type="text" data-field="name"></div>' +
-        '<div class="field"><label>Role</label><input class="prose" type="text" data-field="role" placeholder="e.g. Site Contact"></div>' +
         '<div class="field"><label>Job title</label><input class="prose" type="text" data-field="title"></div>' +
         '<div class="field"><label>Email</label><input class="prose" type="text" data-field="email"></div>' +
         '<div class="field"><label>Phone</label><input class="prose" type="text" data-field="phone"></div>' +
@@ -7122,7 +7130,7 @@
   const logoFileName = document.getElementById('logoFileName');
   const logoFileMeta = document.getElementById('logoFileMeta');
 
-  let logoDataUrl = null; // base64 data URI — portable, embeddable straight into the header export
+  let logoDataUrl = null; // base64 data URI — sent as client_info.logo_data_uri, embedded straight into the backend's document header
 
   function handleLogoFile(file) {
     if (!file || !file.type.startsWith('image/')) return;
@@ -7133,7 +7141,6 @@
       logoFileName.textContent = file.name;
       logoFileMeta.textContent = (file.type || 'image') + ' · ' + (Math.round(file.size / 1024)) + ' KB';
       logoPreviewWrap.style.display = 'flex';
-      recomputeHeaderGaps();
     };
     reader.readAsDataURL(file);
   }
@@ -7153,68 +7160,6 @@
     if (e.dataTransfer.files[0]) handleLogoFile(e.dataTransfer.files[0]);
   });
 
-  // ---- document header (mirrors document_header.build_document_header) ----
-  function buildDocumentHeader() {
-    const contacts = Array.from(contactList.querySelectorAll('.contact-block')).map(block => ({
-      name: block.querySelector('[data-field="name"]').value,
-      role: block.querySelector('[data-field="role"]').value,
-      title: block.querySelector('[data-field="title"]').value,
-      email: block.querySelector('[data-field="email"]').value,
-      phone: block.querySelector('[data-field="phone"]').value,
-    })).filter(c => c.name || c.title || c.email || c.phone);
-
-    return {
-      project_name: document.getElementById('projectName').value,
-      utility_name: document.getElementById('utilityName').value,
-      site_address: formatFullSiteAddress(),
-      ahj_name: document.getElementById('resolvedAhj').textContent,
-      nec_edition: document.getElementById('resolvedEdition').textContent,
-      business_name: document.getElementById('clientBusinessName').value,
-      business_address: document.getElementById('clientAddress').value,
-      website: document.getElementById('clientWebsite').value,
-      logo_data_uri: logoDataUrl,
-      contacts: contacts,
-    };
-  }
-
-  const REQUIRED_HEADER_FIELDS = ['project_name', 'site_address', 'business_name', 'business_address'];
-  function missingHeaderFields(header) {
-    const missing = REQUIRED_HEADER_FIELDS.filter(f => !header[f]);
-    if (!header.contacts.length) missing.push('contacts');
-    if (!header.logo_data_uri) missing.push('logo');
-    return missing;
-  }
-
-  function recomputeHeaderGaps() {
-    const header = buildDocumentHeader();
-    const missing = missingHeaderFields(header);
-    const chip = document.getElementById('headerGapsChip');
-    if (missing.length === 0) {
-      chip.textContent = 'All fields set';
-      chip.className = 'chip chip-pass';
-    } else {
-      chip.textContent = 'Missing: ' + missing.join(', ');
-      chip.className = 'chip chip-warn';
-    }
-  }
-  [
-    'projectName', 'siteStreet', 'siteCity', 'siteState', 'siteZip', 'clientBusinessName', 'clientAddress', 'clientWebsite',
-  ].forEach(id => document.getElementById(id).addEventListener('input', recomputeHeaderGaps));
-  contactList.addEventListener('input', recomputeHeaderGaps);
-  recomputeHeaderGaps();
-
-  document.getElementById('exportHeaderBtn').addEventListener('click', () => {
-    const header = buildDocumentHeader();
-    const blob = new Blob([JSON.stringify(header, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'document_header.json';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-  });
 
   // ---- bonding & grounding (mirrors bonding_calc.size_bonding_and_grounding) ----
   const XFMR_CONDUCTOR_ORDER = [
@@ -7361,6 +7306,23 @@
     return '<td><input type="text" class="wide" data-key="' + cat.key + '" data-index="' + idx + '" data-field="' + field + '" value="' + escapeAttr(value) + '"></td>';
   }
 
+  // Engineering-only: lets one row's company/name/email/etc. be copied onto
+  // another instead of retyped — useful when one firm covers more than one
+  // discipline (a civil engineer who's also the surveyor, say).
+  function directoryCopyOptionsHtml(excludeKey, excludeIdx) {
+    let html = '<option value="">Copy from…</option>';
+    DIRECTORY_CATEGORIES.filter(c => c.group === 'engineering').forEach(cat => {
+      const rows = directoryContacts[cat.key];
+      rows.forEach((c, idx) => {
+        if (cat.key === excludeKey && idx === excludeIdx) return;
+        const who = c.company || c.name;
+        const label = cat.label + (rows.length > 1 ? ' #' + (idx + 1) : '') + (who ? ' — ' + who : '');
+        html += '<option value="' + cat.key + '|' + idx + '">' + escapeHtml(label) + '</option>';
+      });
+    });
+    return html;
+  }
+
   function directoryRowsHtml(cat) {
     const rows = directoryContacts[cat.key];
     const isEngineering = cat.group === 'engineering';
@@ -7369,7 +7331,14 @@
       const isLast = idx === rows.length - 1;
       const labelCell = isFirst ? '<td rowspan="' + rows.length + '">' + cat.label + '</td>' : '';
       const certCell = isEngineering ? directoryFieldHtml(cat, idx, 'certifications', c.certifications) : '';
+      const copyControl = isEngineering
+        ? '<select class="copy-select" data-copy-key="' + cat.key + '" data-copy-index="' + idx + '">' +
+            directoryCopyOptionsHtml(cat.key, idx) +
+          '</select> ' +
+          '<button type="button" class="contact-remove" data-copy-apply="' + cat.key + '" data-copy-index="' + idx + '">Copy</button> '
+        : '';
       const actions =
+        copyControl +
         (isLast ? '<button type="button" class="contact-remove" data-add-row="' + cat.key + '">+ Row</button>' : '') +
         (!isFirst ? ' <button type="button" class="contact-remove" data-remove-row="' + cat.key + '" data-index="' + idx + '">Remove</button>' : '');
       return '<tr>' +
@@ -7412,11 +7381,20 @@
   function handleDirectoryClick(e) {
     const addKey = e.target.dataset.addRow;
     const removeKey = e.target.dataset.removeRow;
+    const copyKey = e.target.dataset.copyApply;
     if (addKey) {
       directoryContacts[addKey].push(blankDirectoryContact());
       renderDirectory();
     } else if (removeKey) {
       directoryContacts[removeKey].splice(Number(e.target.dataset.index), 1);
+      renderDirectory();
+    } else if (copyKey) {
+      const idx = Number(e.target.dataset.copyIndex);
+      const select = e.target.closest('tr').querySelector('.copy-select');
+      const chosen = select ? select.value : '';
+      if (!chosen) return;
+      const [srcKey, srcIdx] = chosen.split('|');
+      directoryContacts[copyKey][idx] = Object.assign({}, directoryContacts[srcKey][Number(srcIdx)]);
       renderDirectory();
     }
   }
@@ -7424,22 +7402,6 @@
   directoryVendorBody.addEventListener('input', handleDirectoryInput);
   directoryEngineeringBody.addEventListener('click', handleDirectoryClick);
   directoryVendorBody.addEventListener('click', handleDirectoryClick);
-
-  document.getElementById('exportDirectoryBtn').addEventListener('click', () => {
-    const out = [];
-    DIRECTORY_CATEGORIES.forEach(cat => {
-      directoryContacts[cat.key].forEach(c => out.push(Object.assign({ category: cat.label, group: cat.group }, c)));
-    });
-    const blob = new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'project_directory.json';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-  });
 
   renderDirectory();
 
@@ -8958,7 +8920,7 @@
     'targetRatio', 'storageTarget', 'otherGenTarget',
     'siteStreet', 'siteCity', 'siteState', 'siteZip',
     'siteLatitude', 'siteLongitude',
-    'clientBusinessName', 'clientAddress', 'clientWebsite',
+    'clientBusinessName', 'clientStreet', 'clientCity', 'clientState', 'clientZip', 'clientWebsite',
     // invDcTopology isn't listed — it's derived from whichever inverter model
     // is selected (applyInverterModel() sets it), never its own saved state.
     'modSku', 'invModel',
@@ -9020,7 +8982,6 @@
     });
     const contacts = Array.from(contactList.querySelectorAll('.contact-block')).map(block => ({
       name: block.querySelector('[data-field="name"]').value,
-      role: block.querySelector('[data-field="role"]').value,
       title: block.querySelector('[data-field="title"]').value,
       email: block.querySelector('[data-field="email"]').value,
       phone: block.querySelector('[data-field="phone"]').value,
@@ -9208,7 +9169,6 @@
         addContact();
         const block = contactList.lastElementChild;
         block.querySelector('[data-field="name"]').value = c.name || '';
-        block.querySelector('[data-field="role"]').value = c.role || '';
         block.querySelector('[data-field="title"]').value = c.title || '';
         block.querySelector('[data-field="email"]').value = c.email || '';
         block.querySelector('[data-field="phone"]').value = c.phone || '';
@@ -9249,7 +9209,6 @@
     applyInverterModel();
     resolveJurisdiction();
     bondingRecompute();
-    recomputeHeaderGaps();
     combinerRecompute();
     ampacityRecompute();
     ocpdSyncDefault();
@@ -9319,7 +9278,6 @@
   function buildBackendPayload() {
     const contacts = Array.from(contactList.querySelectorAll('.contact-block')).map(block => ({
       name: block.querySelector('[data-field="name"]').value,
-      role: block.querySelector('[data-field="role"]').value,
       title: block.querySelector('[data-field="title"]').value,
       email: block.querySelector('[data-field="email"]').value,
       phone: block.querySelector('[data-field="phone"]').value,
@@ -9453,7 +9411,7 @@
       },
       client_info: {
         business_name: document.getElementById('clientBusinessName').value,
-        business_address: document.getElementById('clientAddress').value,
+        business_address: formatFullClientAddress(),
         website: document.getElementById('clientWebsite').value,
         logo_data_uri: logoDataUrl,
         contacts,
