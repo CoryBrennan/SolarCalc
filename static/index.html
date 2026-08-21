@@ -1084,73 +1084,83 @@
             <p class="eyebrow">models.py → InverterSpec</p>
             <h2>Inverter Spec</h2>
           </div>
-          <span class="chip chip-pass">Extracted from datasheet</span>
+          <span class="chip chip-warn" id="invStatusChip">No inverter added yet</span>
         </div>
-        <p class="desc">Feeds OCPD sizing (<span class="mono">ocpd_calc.py</span>) and the 120% busbar check (<span class="mono">switchboard_calc.py</span>). Every model in the dropdown below — the three CPS SCH-DO/US-800 ratings and anything added since — comes from a datasheet dropped in Document tracking: drop it, review what got extracted (DC input topology isn't in a datasheet in parseable form, so that's a judgement call you make during review), approve it, and it joins the list. There is no manual entry form; archive the source document to remove the model it produced.</p>
-
-        <div class="card">
-          <p class="card-title">Document tracking</p>
-          <div class="dropzone" id="invDocDropzone" tabindex="0" role="button" aria-label="Upload inverter documents">
-            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
-              <path d="M12 3v12m0-12 4 4m-4-4-4 4"/>
-              <path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/>
-            </svg>
-            <div class="cta">Drop an inverter datasheet PDF here, or click to browse</div>
-            <div class="sub">Datasheet (adds it to the inverter list once approved) · Installation Manual · Warranty · PVSyst .OND File · Quote · Other Uploads (e.g. Modbus Map documents, CAD file)</div>
-            <input type="file" id="invDocInput" accept="application/pdf" multiple style="display:none;">
-          </div>
-          <table class="manifest" style="margin-top:14px;">
-            <thead><tr><th>File</th><th>Detected type</th><th>Status</th><th></th></tr></thead>
-            <tbody id="invDocManifestBody"><tr class="empty"><td colspan="4">No documents uploaded yet</td></tr></tbody>
-          </table>
-        </div>
+        <p class="desc">Feeds OCPD sizing (<span class="mono">ocpd_calc.py</span>) and the 120% busbar check (<span class="mono">switchboard_calc.py</span>). There's no built-in parts list to pick from — every inverter here comes from the project itself: type one in by hand below, or upload and approve a datasheet on Document Intake (18). Either way, every field on this panel stays directly editable afterwards.</p>
 
         <div class="card">
           <p class="card-title">Nameplate</p>
           <div class="field-grid">
             <div class="field wide">
               <label for="invModel">Model <span class="unit">manufacturer · model · rating</span></label>
-              <select id="invModel"></select>
+              <select id="invModel"><option value="">— no inverter added yet —</option></select>
             </div>
-            <div class="field"><label for="invAcRating">AC power rating (or derated) <span class="unit">VA</span></label><input type="text" id="invAcRating" readonly></div>
-            <div class="field"><label>Nominal AC voltage <span class="unit">V</span></label><input type="text" id="invNominalVoltage" readonly></div>
-            <div class="field"><label>Phases</label><input type="text" id="invPhases" readonly></div>
-            <div class="field"><label>Max output current <span class="unit">A</span></label><input type="text" id="invMaxOutputCurrent" readonly></div>
-            <div class="field"><label>MPPT V min (operating) <span class="unit">V</span></label><input type="text" id="invMpptVMin" readonly></div>
-            <div class="field"><label>MPPT V max (max DC input) <span class="unit">V</span></label><input type="text" id="invMpptVMax" readonly></div>
-            <div class="field readonly"><label>Max DC input current <span class="unit">A</span></label><input type="text" id="invMaxDcInput" readonly></div>
-            <div class="field"><label>Manufacturer max OCPD (AC) <span class="unit">A</span></label><input type="text" id="invMaxOcpd" readonly></div>
-            <div class="field"><label>Terminal wire range (AC) <span class="unit">AWG/kcmil</span></label><input type="text" id="invTerminalRange" readonly></div>
+            <div class="field wide" style="flex-direction: row; align-items: flex-end; gap: 10px;">
+              <div class="field" style="flex:1;"><label for="invNewManufacturer">New inverter — manufacturer</label><input class="prose" type="text" id="invNewManufacturer" placeholder="e.g. Chint Power Systems"></div>
+              <div class="field" style="flex:1;"><label for="invNewModel">New inverter — model</label><input class="prose" type="text" id="invNewModel" placeholder="e.g. CPS SCH350KTL-DO/US-800"></div>
+              <button class="btn" id="invAddManualBtn" type="button" style="flex:0 0 auto;">+ Add inverter</button>
+            </div>
+            <p class="desc" id="invAddManualStatus" style="grid-column:1/-1; margin:-4px 0 0;"></p>
+            <div class="field"><label for="invAcRating">AC power rating (or derated) <span class="unit">VA</span></label><input type="text" id="invAcRating"></div>
+            <div class="field"><label>Nominal AC voltage <span class="unit">V</span></label><input type="text" id="invNominalVoltage"></div>
+            <div class="field"><label>Phases</label><input type="text" id="invPhases"></div>
+            <div class="field"><label>Max output current <span class="unit">A</span></label><input type="text" id="invMaxOutputCurrent"></div>
+            <div class="field"><label>Manufacturer max OCPD (AC) <span class="unit">A</span></label><input type="text" id="invMaxOcpd"></div>
+            <div class="field"><label>Terminal wire range (AC) <span class="unit">AWG/kcmil</span></label><input type="text" id="invTerminalRange"></div>
+            <div class="field"><label>MPPT V min (operating) <span class="unit">V</span></label><input type="text" id="invMpptVMin"></div>
+            <div class="field"><label>MPPT V max (max DC input) <span class="unit">V</span></label><input type="text" id="invMpptVMax"></div>
+            <div class="field"><label>Max DC input current <span class="unit">A</span></label><input type="text" id="invMaxDcInput"></div>
+            <div class="field"><label>MPPTs</label><input type="text" id="invMpptCount"></div>
+            <div class="field"><label>Full-power MPPT window @45°C <span class="unit">V</span></label><input class="prose" type="text" id="invMpptWindow"></div>
+            <div class="field wide"><label>Max PV short-circuit current</label><input class="prose" type="text" id="invMaxPvIsc"></div>
+            <div class="field wide" style="flex-direction: row; align-items: center; gap: 8px;">
+              <input type="checkbox" id="invHasDcCombiner" style="width:auto;">
+              <label for="invHasDcCombiner" style="justify-content:flex-start; gap:6px;">This inverter has a DC combiner <span class="unit">unchecked = accepts PV source circuits directly</span></label>
+            </div>
+            <input type="hidden" id="invDcTopology" value="direct">
           </div>
           <p class="desc" id="invSourceNote" style="margin-top:12px;">—</p>
         </div>
 
         <div class="card">
-          <p class="card-title">DC input configuration</p>
-          <div class="field-grid">
-            <div class="field wide">
-              <label>DC input topology</label>
-              <input class="prose" type="text" id="invDcTopologyDisplay" readonly>
-            </div>
-          </div>
-          <input type="hidden" id="invDcTopology" value="combiner">
-          <p class="desc" style="margin-top:12px;">Not a separate setting — it's a property of the inverter model selected above, fixed for the datasheet models and chosen when a model is approved from an ingested datasheet. Drives whether DC Combiner Design applies, and which inverters show a combiner on Inverter Design (per row, off that row's own model — a mixed fleet can have both).</p>
-        </div>
-
-        <div class="card">
-          <p class="card-title">Mechanical &amp; reference <span class="unit">not in InverterSpec</span></p>
+          <p class="card-title">Mechanical &amp; installation <span class="unit">not in InverterSpec</span></p>
           <div class="field-grid">
             <div class="field wide" style="flex-direction: row; align-items: center; gap: 16px;">
               <label style="display:flex; align-items:center; gap:6px; justify-content:flex-start;"><input type="radio" name="invUnitSystem" id="invUnitMetric" value="metric" checked style="width:auto;"> Metric</label>
               <label style="display:flex; align-items:center; gap:6px; justify-content:flex-start;"><input type="radio" name="invUnitSystem" id="invUnitImperial" value="imperial" style="width:auto;"> Imperial</label>
             </div>
-            <div class="field"><label>Dimensions (W×H×D)</label><input class="prose" type="text" id="invDimensions" readonly></div>
-            <div class="field"><label>Weight <span class="unit" id="invWeightUnit">kg</span></label><input type="text" id="invWeight" readonly></div>
-            <div class="field"><label>Enclosure</label><input class="prose" type="text" id="invEnclosure" readonly></div>
-            <div class="field"><label>MPPTs</label><input type="text" id="invMpptCount" readonly></div>
-            <div class="field"><label>Full-power MPPT window @45°C <span class="unit">V</span></label><input class="prose" type="text" id="invMpptWindow" readonly></div>
-            <div class="field wide"><label>Max PV short-circuit current</label><input class="prose" type="text" id="invMaxPvIsc" readonly></div>
+            <div class="field"><label>Dimensions <span class="unit">W × H × D, <span id="invDimensionsUnit">mm</span></span></label><input class="prose" type="text" id="invDimensions" placeholder="e.g. 1150 × 700 × 363"></div>
+            <div class="field"><label>Weight <span class="unit" id="invWeightUnit">kg</span></label><input type="text" id="invWeight"></div>
+            <div class="field wide"><label>Clearance requirement</label><input class="prose" type="text" id="invClearance" placeholder="e.g. 36 in front, 12 in sides per manufacturer/NEC 110.26"></div>
+            <div class="field"><label>Max conduit size</label><input class="prose" type="text" id="invMaxConduitSize" placeholder="e.g. 2 in"></div>
+            <div class="field"><label>Mounting height</label><input class="prose" type="text" id="invMountingHeight" placeholder="e.g. 24 in AFG to bottom"></div>
           </div>
+        </div>
+
+        <div class="card">
+          <p class="card-title">Connections <span class="unit">input for the custom CAD/device builder (31)</span></p>
+          <p class="desc" style="margin-bottom:14px;">Every physical wire connection this inverter needs, with its connector type — e.g. 3 AC inputs (screw terminal), 1 neutral, 1 ground, 2 DC connections (Bulkhead Solar Connector, MC4), 2 communications (RJ45).</p>
+          <div style="overflow-x:auto;">
+            <table class="etap">
+              <thead><tr><th>Connection type</th><th>Count</th><th>Connector type</th><th></th></tr></thead>
+              <tbody id="invConnectionsBody"></tbody>
+            </table>
+          </div>
+          <button class="btn" id="invAddConnectionBtn" type="button" style="margin-top:10px;">+ Add connection</button>
+          <datalist id="invConnectorTypeOptions">
+            <option value="Screw terminal">
+            <option value="Bulkhead Solar Connector (MC4)">
+            <option value="Bulkhead Solar Connector (Amphenol)">
+            <option value="Bolt-on Crimp Terminal">
+            <option value="RJ45">
+          </datalist>
+        </div>
+
+        <div class="card">
+          <p class="card-title">Inverter diagram <span class="unit">illustrative — proportions are approximate</span></p>
+          <p class="desc" id="invDiagramNote" style="margin-bottom:14px;">Select or add an inverter to see its dimensions.</p>
+          <div id="invDiagramWrap" style="display:flex; justify-content:center;"></div>
+          <p class="desc" style="margin-top:10px;">Front, top, bottom, and side views from this inverter's own H × W × D. Drag-and-drop placement of conduit entries and mounting points on the side view is planned as a follow-up, not built yet.</p>
         </div>
 
       </section>
@@ -2228,7 +2238,7 @@
           </div>
           <span class="chip chip-pass" id="manifestCount">0 documents</span>
         </div>
-        <p class="desc">One ledger across the whole project — every PDF dropped on Module Spec, Inverter Spec, DC Combiner Design, Switchboard/Transformer/MV Design, or Inverter Design's PVCase BOM shows up here too, live, because this table reads the same document objects those panels do rather than a copy. Extraction is real: PDFs go to the backend's text extractor, and review/approve happens on the panel that owns the document — use <b>Open</b> to jump there.</p>
+        <p class="desc">One ledger across the whole project — every PDF for Module Spec, Inverter Spec, DC Combiner Design, Switchboard/Transformer/MV Design, or Inverter Design's PVCase BOM shows up here too, live, because this table reads the same document objects those panels do rather than a copy. Extraction is real: PDFs go to the backend's text extractor, and review/approve happens right here for Module/Inverter datasheets, or on the panel that owns the document for everything else — use <b>Open</b> to jump there.</p>
 
         <div class="card">
           <p class="card-title">E911 documentation</p>
@@ -2298,6 +2308,38 @@
           <table class="manifest" style="margin-top:14px;">
             <thead><tr><th>File</th><th>Detected type</th><th>Status</th><th></th></tr></thead>
             <tbody id="modDocManifestBody"><tr class="empty"><td colspan="4">No documents uploaded yet</td></tr></tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <p class="card-title">Inverter documents <span class="unit">Inverter Spec (06)</span></p>
+          <p class="desc" style="margin-bottom:14px;">A datasheet upload is reviewed and approved into the inverter list on Inverter Spec; the rest are just tracked here. Every inverter's electrical/mechanical values stay directly editable on Inverter Spec regardless of source.</p>
+          <div id="invDocChecklist" style="margin-bottom:14px;"></div>
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button class="btn" type="button" id="invDocDatasheetBtn">Upload datasheet →</button>
+            <button class="btn btn-quiet" type="button" id="invDocManualBtn">Upload install manual →</button>
+            <button class="btn btn-quiet" type="button" id="invDocWarrantyBtn">Upload warranty →</button>
+            <button class="btn btn-quiet" type="button" id="invDocOndBtn">Upload .OND file →</button>
+            <button class="btn btn-quiet" type="button" id="invDocQuoteBtn">Upload quote →</button>
+          </div>
+          <input type="file" id="invDocDatasheetInput" accept="application/pdf" style="display:none;">
+          <input type="file" id="invDocManualInput" style="display:none;">
+          <input type="file" id="invDocWarrantyInput" style="display:none;">
+          <input type="file" id="invDocOndInput" style="display:none;">
+          <input type="file" id="invDocQuoteInput" style="display:none;">
+
+          <div class="dropzone" id="invDocDropzone" tabindex="0" role="button" aria-label="Upload other inverter documents" style="margin-top:14px;">
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
+              <path d="M12 3v12m0-12 4 4m-4-4-4 4"/>
+              <path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/>
+            </svg>
+            <div class="cta">Drop other inverter documents here, or click to browse</div>
+            <div class="sub">Anything not covered by the buttons above — e.g. Modbus Map documents, CAD file</div>
+            <input type="file" id="invDocInput" multiple style="display:none;">
+          </div>
+          <table class="manifest" style="margin-top:14px;">
+            <thead><tr><th>File</th><th>Detected type</th><th>Status</th><th></th></tr></thead>
+            <tbody id="invDocManifestBody"><tr class="empty"><td colspan="4">No documents uploaded yet</td></tr></tbody>
           </table>
         </div>
 
@@ -4778,32 +4820,12 @@
   applyModuleSku();
 
   // ---- inverter catalog ----
-  // Same shape as the module catalog: one dropdown, any manufacturer. The three
-  // CPS entries keep the ids the Python side uses; added models are first-class
-  // (selectable per inverter, summed into Actual AC) but frontend-only until
-  // they exist in the Python catalog too.
-  const CPS_SOURCE = 'CPS-SCH350KTL-DO-US-800-Datasheet-1-6-2025.pdf';
-  function cpsInverter(kw, maxOutputCurrentA, maxOcpdA) {
-    return {
-      manufacturer: 'Chint Power Systems', model: 'CPS SCH' + kw + 'KTL-DO/US-800',
-      acRatingW: kw * 1000, nominalAcV: 800.0, phases: 3,
-      maxOutputCurrentA: maxOutputCurrentA, maxOcpdA: maxOcpdA,
-      mpptVMin: 500.0, mpptVMax: 1500.0,
-      maxDcInput: '600 — derived: 40 A × 15 MPPTs', mpptCount: 15,
-      mpptWindow: '880 – 1300', maxPvIsc: '975 A total / 65 A per MPPT',
-      terminalRange: '4/0 – 750 kcmil',
-      dimensionsMm: [1150, 700, 363], weightKg: 95.0, enclosure: 'NEMA 4X',
-      // This large a central inverter always takes recombined DC output
-      // circuits rather than raw strings.
-      dcTopology: 'combiner',
-      source: CPS_SOURCE,
-    };
-  }
-  let INVERTER_MODELS = {
-    '250': cpsInverter(250, 181, 300),
-    '300': cpsInverter(300, 217, 350),
-    '350': cpsInverter(350, 253, 400),
-  };
+  // Same shape as the module catalog: one dropdown, any manufacturer.
+  // Starts empty on purpose -- no pre-seeded manufacturer parts, same as
+  // MODULE_SKUS. Every entry comes from the engineer, either typed in
+  // directly ("+ Add inverter manually" below) or approved from a
+  // datasheet on Document Intake (18).
+  let INVERTER_MODELS = {};
   function inverterLabel(key) {
     const d = INVERTER_MODELS[key];
     if (!d) return key;
@@ -4818,14 +4840,31 @@
     const keep = invModel.value;
     invModel.innerHTML = Object.keys(INVERTER_MODELS).map(k =>
       '<option value="' + escapeAttr(k) + '">' + escapeText(inverterLabel(k)) + '</option>').join('');
-    if (INVERTER_MODELS[keep]) invModel.value = keep;
-    else if (INVERTER_MODELS['350']) invModel.value = '350';
+    if (INVERTER_MODELS[keep]) { invModel.value = keep; return; }
+    const firstKey = Object.keys(INVERTER_MODELS)[0];
+    invModel.value = firstKey || '';
   }
 
   function applyInverterModel() {
     const d = INVERTER_MODELS[invModel.value];
-    if (!d) return;
-    const set = (id, v) => { document.getElementById(id).value = v; };
+    const set = (id, v) => { document.getElementById(id).value = (v === null || v === undefined) ? '' : v; };
+    const chip = document.getElementById('invStatusChip');
+    if (!d) {
+      ['invAcRating', 'invNominalVoltage', 'invPhases', 'invMaxOutputCurrent', 'invMaxOcpd', 'invMpptVMin',
+        'invMpptVMax', 'invMaxDcInput', 'invTerminalRange', 'invMpptCount', 'invMpptWindow', 'invMaxPvIsc',
+        'invClearance', 'invMaxConduitSize', 'invMountingHeight']
+        .forEach(id => set(id, ''));
+      document.getElementById('invHasDcCombiner').checked = false;
+      document.getElementById('invDcTopology').value = 'direct';
+      document.getElementById('invSourceNote').textContent = 'No inverter added yet — type one in above, or approve a datasheet on Document Intake (18).';
+      chip.textContent = 'No inverter added yet';
+      chip.className = 'chip chip-warn';
+      renderInverterConnections();
+      applyInverterMechanicalUnits();
+      renderInverterDiagram();
+      if (combOutputReady) refreshCombinerSummary();
+      return;
+    }
     set('invAcRating', d.acRatingW.toLocaleString('en-US'));
     set('invNominalVoltage', d.nominalAcV.toFixed(1));
     set('invPhases', d.phases);
@@ -4833,26 +4872,36 @@
     set('invMaxOcpd', d.maxOcpdA);
     set('invMpptVMin', d.mpptVMin.toFixed(1));
     set('invMpptVMax', d.mpptVMax.toFixed(1));
-    set('invMaxDcInput', d.maxDcInput || '—');
-    set('invTerminalRange', d.terminalRange || '—');
-    set('invMpptCount', d.mpptCount || '—');
-    set('invMpptWindow', d.mpptWindow || '—');
-    set('invMaxPvIsc', d.maxPvIsc || '—');
-    set('invEnclosure', d.enclosure || '—');
+    set('invMaxDcInput', d.maxDcInput || '');
+    set('invTerminalRange', d.terminalRange || '');
+    set('invMpptCount', d.mpptCount || '');
+    set('invMpptWindow', d.mpptWindow || '');
+    set('invMaxPvIsc', d.maxPvIsc || '');
+    set('invClearance', d.clearanceRequirement || '');
+    set('invMaxConduitSize', d.maxConduitSize || '');
+    set('invMountingHeight', d.mountingHeight || '');
     const topology = d.dcTopology === 'direct' ? 'direct' : 'combiner';
     document.getElementById('invDcTopology').value = topology;
-    set('invDcTopologyDisplay', topology === 'combiner'
-      ? 'Requires external DC combiner — PV output circuit into inverter'
-      : 'Accepts PV source circuits directly — no combiner');
+    document.getElementById('invHasDcCombiner').checked = topology === 'combiner';
     // combOutputReady is a `var` (hoisted-undefined, not TDZ) belonging to the
     // DC Combiner block further down — this stays false until that block has
     // finished its own init, so the applicability refresh is safe to call
     // whenever the model changes, including from the very first init pass.
     if (combOutputReady) refreshCombinerSummary();
     document.getElementById('invSourceNote').innerHTML = d.source
-      ? 'Source: <span class="mono">' + escapeText(d.source) + '</span>. Every field here is derived from the model above — pick the datasheet variant actually being installed rather than editing values in place.'
-      : 'Added by hand — no datasheet on file. Every field here is derived from the model above.';
+      ? 'Source: <span class="mono">' + escapeText(d.source) + '</span>. Every field above is directly editable — fix a value here rather than going back to the datasheet review.'
+      : 'Added by hand — no datasheet on file. Every field above is directly editable.';
+    chip.textContent = d.source ? 'From datasheet' : 'Added manually';
+    chip.className = 'chip chip-pass';
+    // With no default inverter any more, inverterDesignRows can end up
+    // pointing at a model that no longer exists (e.g. after a removal) --
+    // same re-pointing removeInverterCatalogEntry() already does.
+    if (typeof inverterDesignRows !== 'undefined') {
+      inverterDesignRows.forEach(r => { if (!INVERTER_MODELS[r.model]) r.model = invModel.value; });
+    }
+    renderInverterConnections();
     applyInverterMechanicalUnits();
+    renderInverterDiagram();
     // Same trap as the module cascade: these are hoisted declarations that read
     // consts defined further down, so `typeof` is not a usable guard.
     if (!inverterCascadeReady) return;
@@ -4864,22 +4913,207 @@
   }
   invModel.addEventListener('change', applyInverterModel);
 
+  document.getElementById('invHasDcCombiner').addEventListener('change', () => {
+    const d = INVERTER_MODELS[invModel.value];
+    const topology = document.getElementById('invHasDcCombiner').checked ? 'combiner' : 'direct';
+    if (d) d.dcTopology = topology;
+    document.getElementById('invDcTopology').value = topology;
+    document.getElementById('invDcTopology').dispatchEvent(new Event('input', { bubbles: true }));
+    if (combOutputReady) refreshCombinerSummary();
+  });
+
   function applyInverterMechanicalUnits() {
     const d = INVERTER_MODELS[invModel.value];
-    if (!d) return;
     const checked = document.querySelector('input[name="invUnitSystem"]:checked');
     const imperial = checked && checked.value === 'imperial';
-    const dims = d.dimensionsMm;
     const dimEl = document.getElementById('invDimensions');
     const weightEl = document.getElementById('invWeight');
-    dimEl.value = (!dims || !dims.length) ? '—'
-      : (imperial ? dims.map(mm => (mm / 25.4).toFixed(2)).join(' × ') + ' in' : dims.join(' × ') + ' mm');
-    weightEl.value = d.weightKg == null ? '—'
-      : (imperial ? (d.weightKg * 2.20462).toFixed(2) : d.weightKg.toFixed(1));
     document.getElementById('invWeightUnit').textContent = imperial ? 'lb' : 'kg';
+    document.getElementById('invDimensionsUnit').textContent = imperial ? 'in' : 'mm';
+    if (!d) { dimEl.value = ''; weightEl.value = ''; return; }
+    const dims = d.dimensionsMm;
+    dimEl.value = (!dims || !dims.length) ? ''
+      : (imperial ? dims.map(mm => (mm / 25.4).toFixed(2)).join(' × ') : dims.join(' × '));
+    weightEl.value = d.weightKg == null ? ''
+      : (imperial ? (d.weightKg * 2.20462).toFixed(2) : d.weightKg.toFixed(1));
   }
   document.querySelectorAll('input[name="invUnitSystem"]').forEach(el =>
     el.addEventListener('change', applyInverterMechanicalUnits));
+
+  // Every Nameplate/Mechanical/Installation field writes straight back into
+  // the selected INVERTER_MODELS entry, same "always editable, not just at
+  // creation time" treatment as Module Spec.
+  function commitInverterEdit() {
+    const d = INVERTER_MODELS[invModel.value];
+    if (!d) return;
+    const num = id => { const n = parseFloat(document.getElementById(id).value); return Number.isFinite(n) ? n : 0; };
+    const txt = id => document.getElementById(id).value;
+    d.acRatingW = num('invAcRating'); d.nominalAcV = num('invNominalVoltage');
+    d.phases = num('invPhases'); d.maxOutputCurrentA = num('invMaxOutputCurrent');
+    d.maxOcpdA = num('invMaxOcpd'); d.mpptVMin = num('invMpptVMin'); d.mpptVMax = num('invMpptVMax');
+    d.maxDcInput = txt('invMaxDcInput'); d.terminalRange = txt('invTerminalRange');
+    d.mpptCount = txt('invMpptCount'); d.mpptWindow = txt('invMpptWindow'); d.maxPvIsc = txt('invMaxPvIsc');
+    d.clearanceRequirement = txt('invClearance'); d.maxConduitSize = txt('invMaxConduitSize');
+    d.mountingHeight = txt('invMountingHeight');
+
+    const checked = document.querySelector('input[name="invUnitSystem"]:checked');
+    const imperial = checked && checked.value === 'imperial';
+    const dimsNums = document.getElementById('invDimensions').value.split(/[×x,]/).map(t => parseFloat(t.trim())).filter(Number.isFinite);
+    if (dimsNums.length === 3) d.dimensionsMm = imperial ? dimsNums.map(v => v * 25.4) : dimsNums;
+    const weightVal = parseFloat(document.getElementById('invWeight').value);
+    d.weightKg = Number.isFinite(weightVal) ? (imperial ? weightVal / 2.20462 : weightVal) : null;
+
+    refreshInverterModelOptions(); // label includes acRatingW, which may have just changed
+    renderInverterDiagram();
+    if (!inverterCascadeReady) return;
+    recompute();
+    ocpdSyncDefault();
+    vdropRecompute();
+    recomputeStringLength();
+    recomputeInverterDesign();
+  }
+  [
+    'invAcRating', 'invNominalVoltage', 'invPhases', 'invMaxOutputCurrent', 'invMaxOcpd', 'invMpptVMin',
+    'invMpptVMax', 'invMaxDcInput', 'invTerminalRange', 'invMpptCount', 'invMpptWindow', 'invMaxPvIsc',
+    'invDimensions', 'invWeight', 'invClearance', 'invMaxConduitSize', 'invMountingHeight',
+  ].forEach(id => document.getElementById(id).addEventListener('input', commitInverterEdit));
+
+  // ---- + Add inverter manually ----
+  let manualInverterSeq = 0;
+  document.getElementById('invAddManualBtn').addEventListener('click', () => {
+    const manufacturer = document.getElementById('invNewManufacturer').value.trim();
+    const model = document.getElementById('invNewModel').value.trim();
+    const statusEl = document.getElementById('invAddManualStatus');
+    if (!manufacturer || !model) {
+      statusEl.textContent = 'Manufacturer and model are both needed — they are what the inverter is called in the list.';
+      return;
+    }
+    manualInverterSeq++;
+    let key = (manufacturer + '-' + model).replace(/\s+/g, '_').replace(/[^A-Za-z0-9_-]/g, '');
+    if (!key || INVERTER_MODELS[key]) key = (key || 'inverter') + '-' + manualInverterSeq;
+    INVERTER_MODELS[key] = {
+      manufacturer: manufacturer, model: model, acRatingW: 0, nominalAcV: 0, phases: 3,
+      maxOutputCurrentA: 0, maxOcpdA: 0, mpptVMin: 0, mpptVMax: 0, maxDcInput: '', mpptCount: '',
+      mpptWindow: '', maxPvIsc: '', terminalRange: '', dimensionsMm: [], weightKg: null,
+      clearanceRequirement: '', maxConduitSize: '', mountingHeight: '', connections: [],
+      dcTopology: 'combiner', source: '', custom: true,
+    };
+    refreshInverterModelOptions();
+    invModel.value = key;
+    applyInverterModel();
+    document.getElementById('invNewManufacturer').value = '';
+    document.getElementById('invNewModel').value = '';
+    statusEl.textContent = 'Added — every value below starts at zero/blank; fill them in.';
+    if (inverterCascadeReady) { refreshInverterBulkOptions(); recomputeInverterDesign(); }
+  });
+
+  // ---- Connections: every physical wire connection + connector type, kept
+  // on the inverter's own record. A self-contained list for now (not
+  // written into the Custom Device Builder's shared terminal-group registry,
+  // panel 31) -- same shape by convention (type + count), so it's ready to
+  // feed that integration later without needing to be redesigned.
+  const INVERTER_CONNECTION_TYPES = ['AC Input', 'Neutral', 'Ground', 'DC', 'Communications', 'Other'];
+  function renderInverterConnections() {
+    const body = document.getElementById('invConnectionsBody');
+    const d = INVERTER_MODELS[invModel.value];
+    const rows = d ? (d.connections || []) : [];
+    if (!rows.length) {
+      body.innerHTML = '<tr class="empty"><td colspan="4">' + (d ? 'No connections added yet' : 'Select or add an inverter first') + '</td></tr>';
+      return;
+    }
+    body.innerHTML = rows.map((c, i) =>
+      '<tr>' +
+        '<td><select data-conn-idx="' + i + '" data-conn-field="type">' +
+          INVERTER_CONNECTION_TYPES.map(t => '<option value="' + escapeAttr(t) + '"' + (t === c.type ? ' selected' : '') + '>' + escapeText(t) + '</option>').join('') +
+        '</select></td>' +
+        '<td style="text-align:right;"><input type="text" class="wide" style="text-align:right;" data-conn-idx="' + i + '" data-conn-field="count" value="' + escapeAttr(c.count) + '"></td>' +
+        '<td><input type="text" class="wide" list="invConnectorTypeOptions" data-conn-idx="' + i + '" data-conn-field="connectorType" value="' + escapeAttr(c.connectorType || '') + '"></td>' +
+        '<td><button type="button" class="contact-remove" data-conn-remove="' + i + '">Remove</button></td>' +
+      '</tr>'
+    ).join('');
+  }
+  document.getElementById('invAddConnectionBtn').addEventListener('click', () => {
+    const d = INVERTER_MODELS[invModel.value];
+    if (!d) return;
+    if (!d.connections) d.connections = [];
+    d.connections.push({ type: 'AC Input', count: 1, connectorType: '' });
+    renderInverterConnections();
+  });
+  document.getElementById('invConnectionsBody').addEventListener('input', e => {
+    const idx = e.target.dataset.connIdx;
+    const field = e.target.dataset.connField;
+    const d = INVERTER_MODELS[invModel.value];
+    if (idx === undefined || !field || !d || !d.connections) return;
+    d.connections[Number(idx)][field] = field === 'count' ? (parseInt(e.target.value, 10) || 0) : e.target.value;
+  });
+  document.getElementById('invConnectionsBody').addEventListener('click', e => {
+    const idx = e.target.dataset.connRemove;
+    const d = INVERTER_MODELS[invModel.value];
+    if (idx === undefined || !d || !d.connections) return;
+    d.connections.splice(Number(idx), 1);
+    renderInverterConnections();
+  });
+
+  // ---- inverter diagram: front/top/bottom/side views, illustrative H/W/D ----
+  function fmtInverterDiagramLen(mm) {
+    return (mm === null || mm === undefined || !mm) ? '—' : Math.round(mm) + ' mm';
+  }
+  function inverterRectViewSvg(x0, y0, w, h, wLabel, hLabel, wKnown, hKnown, title) {
+    return (
+      '<text x="' + (x0 + w / 2) + '" y="' + (y0 - 22) + '" text-anchor="middle" font-size="12" fill="var(--ink-muted)">' + escapeText(title) + '</text>' +
+      '<rect x="' + x0 + '" y="' + y0 + '" width="' + w + '" height="' + h + '" fill="var(--surface-2)" stroke="var(--ink)" stroke-width="2"/>' +
+      '<line x1="' + x0 + '" y1="' + (y0 - 8) + '" x2="' + (x0 + w) + '" y2="' + (y0 - 8) + '" stroke="var(--ink-muted)"/>' +
+      '<text x="' + (x0 + w / 2) + '" y="' + (y0 - 10) + '" text-anchor="middle" font-size="11" fill="var(--ink)">' + wLabel + ': ' + fmtInverterDiagramLen(wKnown) + '</text>' +
+      '<line x1="' + (x0 - 8) + '" y1="' + y0 + '" x2="' + (x0 - 8) + '" y2="' + (y0 + h) + '" stroke="var(--ink-muted)"/>' +
+      '<text x="' + (x0 - 12) + '" y="' + (y0 + h / 2) + '" text-anchor="middle" font-size="11" fill="var(--ink)" transform="rotate(-90 ' + (x0 - 12) + ' ' + (y0 + h / 2) + ')">' + hLabel + ': ' + fmtInverterDiagramLen(hKnown) + '</text>'
+    );
+  }
+  function renderInverterDiagram() {
+    const d = INVERTER_MODELS[invModel.value];
+    const wrap = document.getElementById('invDiagramWrap');
+    const note = document.getElementById('invDiagramNote');
+    if (!d) {
+      wrap.innerHTML = '';
+      note.textContent = 'Select or add an inverter to see its dimensions.';
+      return;
+    }
+    const dims = (d.dimensionsMm && d.dimensionsMm.length === 3 && d.dimensionsMm.every(v => v > 0)) ? d.dimensionsMm : null;
+    const W = dims ? dims[0] : 1150, H = dims ? dims[1] : 700, D = dims ? dims[2] : 363;
+    const scale = 110 / Math.max(W, H, D);
+    const w = W * scale, h = H * scale, dd = D * scale;
+    const pad = 60, gap = 50;
+    const frontX = pad, topX = frontX + w + gap, bottomX = topX + w + gap, sideX = bottomX + w + gap;
+    const y0 = 50;
+    const svgW = Math.round(sideX + dd + pad);
+    const svgH = Math.round(y0 + Math.max(h, dd) + 40);
+
+    wrap.innerHTML =
+      '<svg viewBox="0 0 ' + svgW + ' ' + svgH + '" width="100%" style="max-width:640px;" xmlns="http://www.w3.org/2000/svg">' +
+        inverterRectViewSvg(frontX, y0, w, h, 'W', 'H', dims ? W : null, dims ? H : null, 'Front') +
+        inverterRectViewSvg(topX, y0, w, dd, 'W', 'D', dims ? W : null, dims ? D : null, 'Top') +
+        inverterRectViewSvg(bottomX, y0, w, dd, 'W', 'D', dims ? W : null, dims ? D : null, 'Bottom') +
+        inverterRectViewSvg(sideX, y0, dd, h, 'D', 'H', dims ? D : null, dims ? H : null, 'Side') +
+      '</svg>';
+
+    note.textContent = dims
+      ? 'Dimensions from this inverter\'s own record.'
+      : 'No dimensions on file yet — the outlines above use a placeholder aspect ratio until Mechanical & Installation has real W × H × D.';
+  }
+
+  // Same fixed-checklist pattern as Module Spec's doc tracker.
+  const INVERTER_DOC_TYPES = ['Datasheet', 'Installation Manual', 'Warranty', 'PVSyst .OND File', 'Quote', 'Other Uploads'];
+  function renderInverterDocChecklist() {
+    const el = document.getElementById('invDocChecklist');
+    if (!el) return;
+    el.innerHTML = INVERTER_DOC_TYPES.map(type => {
+      const matches = invDocTracker.docs.filter(d => d.type === type && !d.archived);
+      const ok = matches.length > 0;
+      return '<div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-top:1px solid var(--border);">' +
+        '<span>' + escapeText(type) + '</span>' +
+        '<span class="chip ' + (ok ? 'chip-pass' : 'chip-muted') + '">' + (ok ? matches.length + (matches.length === 1 ? ' file' : ' files') : 'Not uploaded yet') + '</span>' +
+      '</div>';
+    }).join('');
+  }
 
   const invDocTracker = initDocTracker({
     dropzoneId: 'invDocDropzone', inputId: 'invDocInput', manifestBodyId: 'invDocManifestBody',
@@ -4894,7 +5128,14 @@
     onArchive: doc => { if (doc.catalogKey) removeInverterCatalogEntry(doc.catalogKey); },
     onRestore: doc => { if (doc.catalogKey) approveInverterDoc(doc); },
     onSendToAgent: doc => sendDocToExtractionAgent(doc, 'inverter', invDocTracker),
+    afterRender: renderInverterDocChecklist,
   });
+  renderInverterDocChecklist();
+  wireTypedDocButton('invDocDatasheetBtn', 'invDocDatasheetInput', 'Datasheet', invDocTracker);
+  wireTypedDocButton('invDocManualBtn', 'invDocManualInput', 'Installation Manual', invDocTracker);
+  wireTypedDocButton('invDocWarrantyBtn', 'invDocWarrantyInput', 'Warranty', invDocTracker);
+  wireTypedDocButton('invDocOndBtn', 'invDocOndInput', 'PVSyst .OND File', invDocTracker);
+  wireTypedDocButton('invDocQuoteBtn', 'invDocQuoteInput', 'Quote', invDocTracker);
 
   // ---- inverter catalog from datasheet ingest ----
   // Same pattern as the module catalog: every model beyond the three CPS
@@ -4942,7 +5183,6 @@
       maxDcInputA: findLabeledNumber(text, ['Max(?:imum)? (?:DC )?Input Current', 'Max(?:imum)? Short Circuit Current'], { unit: 'A', min: 1, max: 2000 }),
       mpptCount: findLabeledNumber(text, ['Number of MPPTs?', 'MPP Trackers?', 'MPPTs?', 'Number of MPP Trackers?'], { min: 1, max: 40 }),
       weightKg: findLabeledNumber(text, ['Weight'], { unit: 'kg', min: 5, max: 500 }),
-      enclosure: findLabeledText(text, ['Enclosure(?: (?:Rating|Type))?', 'Ingress Protection', 'IP Rating']),
       dims: findLabeledDims(text, ['Dimensions?', 'Dimension \\(W\\s?[x×]\\s?H\\s?[x×]\\s?D\\)']),
     };
   }
@@ -4962,7 +5202,8 @@
         maxOutputCurrentA: p.maxOutputCurrentA, maxOcpdA: p.maxOcpdA,
         mpptVMin: p.mpptVMin, mpptVMax: p.mpptVMax,
         maxDcInputA: p.maxDcInputA, mpptCount: p.mpptCount, weightKg: p.weightKg,
-        enclosure: p.enclosure, dims: p.dims.length === 3 ? p.dims.join(' × ') : '',
+        dims: p.dims.length === 3 ? p.dims.join(' × ') : '',
+        clearanceRequirement: '', maxConduitSize: '', mountingHeight: '',
       };
       doc.parsedRequiredCount = INVERTER_REQUIRED_FIELDS.filter(([k]) => p[k] != null).length;
     }
@@ -4988,8 +5229,9 @@
         '</select></div>' +
         INVERTER_REQUIRED_FIELDS.map(([k, l, u]) => inputHtml(k, l, u)).join('') +
         inputHtml('maxDcInputA', 'Max DC input current', 'A, optional') + inputHtml('mpptCount', 'MPPTs', 'optional') +
-        inputHtml('enclosure', 'Enclosure', 'optional', true) + inputHtml('dims', 'Dimensions W×H×D', 'mm, optional', true) +
-        inputHtml('weightKg', 'Weight', 'kg, optional') +
+        inputHtml('dims', 'Dimensions W×H×D', 'mm, optional', true) + inputHtml('weightKg', 'Weight', 'kg, optional') +
+        inputHtml('clearanceRequirement', 'Clearance requirement', 'optional', true) +
+        inputHtml('maxConduitSize', 'Max conduit size', 'optional') + inputHtml('mountingHeight', 'Mounting height', 'optional') +
       '</div>' +
       '<details><summary style="cursor:pointer; color:var(--ink-muted); font-size:12.5px;">Extracted text (' + (doc.pages || 0) + ' page' + (doc.pages === 1 ? '' : 's') + ', ' + (doc.text || '').trim().length + ' characters)</summary>' +
         '<pre class="capture" style="max-height:220px; margin-top:8px;">' + escapeText(doc.text || '(no text extracted)') + '</pre></details>' +
@@ -5011,7 +5253,6 @@
     const setIf = (key, val) => { if (val != null) fv[key] = val; };
     ['acRatingW', 'nominalAcV', 'phases', 'maxOutputCurrentA', 'maxOcpdA', 'mpptVMin', 'mpptVMax', 'maxDcInputA', 'mpptCount', 'weightKg']
       .forEach(k => setIf(k, p[k]));
-    if (p.enclosure) fv.enclosure = p.enclosure;
     if (p.dims.length === 3) fv.dims = p.dims.join(' × ');
     doc.parsedRequiredCount = INVERTER_REQUIRED_FIELDS.filter(([k]) => p[k] != null).length;
   }
@@ -5046,7 +5287,11 @@
       maxDcInput: num(fv.maxDcInputA) != null ? String(num(fv.maxDcInputA)) : '', mpptCount: fv.mpptCount || '',
       mpptWindow: '', maxPvIsc: '', terminalRange: '',
       dimensionsMm: dims.length === 3 ? dims : [],
-      weightKg: num(fv.weightKg), enclosure: (fv.enclosure || '').trim(),
+      weightKg: num(fv.weightKg),
+      clearanceRequirement: (fv.clearanceRequirement || '').trim(),
+      maxConduitSize: (fv.maxConduitSize || '').trim(),
+      mountingHeight: (fv.mountingHeight || '').trim(),
+      connections: [],
       dcTopology: fv.dcTopology === 'direct' ? 'direct' : 'combiner',
       source: doc.name, custom: true,
     };
@@ -5065,13 +5310,13 @@
     if (!INVERTER_MODELS[key]) return;
     const wasSelected = invModel.value === key;
     delete INVERTER_MODELS[key];
+    refreshInverterModelOptions();
     // Inverter Design rows pointing at the removed model would compute an AC
     // rating of zero, so they fall back to the current selection.
     if (typeof inverterDesignRows !== 'undefined') {
-      inverterDesignRows.forEach(r => { if (!INVERTER_MODELS[r.model]) r.model = '350'; });
+      inverterDesignRows.forEach(r => { if (!INVERTER_MODELS[r.model]) r.model = invModel.value; });
     }
-    refreshInverterModelOptions();
-    if (wasSelected) { invModel.value = '350'; applyInverterModel(); }
+    if (wasSelected) applyInverterModel();
     if (inverterCascadeReady) { refreshInverterBulkOptions(); recomputeInverterDesign(); }
   }
 
@@ -5859,20 +6104,23 @@
   // Typed upload buttons: each tags its file with a known type directly,
   // rather than relying on classify()'s filename-keyword guess -- clicking
   // "Upload warranty" always means Warranty, whatever the file is called.
-  function wireModuleDocButton(btnId, inputId, typeLabel) {
+  // Generic: any typed upload button + its hidden file input, tagging every
+  // selected file with a known type directly on the given tracker rather
+  // than relying on classify()'s filename-keyword guess.
+  function wireTypedDocButton(btnId, inputId, typeLabel, tracker) {
     const btn = document.getElementById(btnId);
     const input = document.getElementById(inputId);
     btn.addEventListener('click', () => input.click());
     input.addEventListener('change', () => {
-      Array.from(input.files).forEach(f => modDocTracker.addFile(f, typeLabel));
+      Array.from(input.files).forEach(f => tracker.addFile(f, typeLabel));
       input.value = '';
     });
   }
-  wireModuleDocButton('modDocDatasheetBtn', 'modDocDatasheetInput', 'Module datasheet');
-  wireModuleDocButton('modDocManualBtn', 'modDocManualInput', 'Installation Manual');
-  wireModuleDocButton('modDocWarrantyBtn', 'modDocWarrantyInput', 'Warranty');
-  wireModuleDocButton('modDocPanBtn', 'modDocPanInput', 'PVSyst .PAN File');
-  wireModuleDocButton('modDocQuoteBtn', 'modDocQuoteInput', 'Quote');
+  wireTypedDocButton('modDocDatasheetBtn', 'modDocDatasheetInput', 'Module datasheet', modDocTracker);
+  wireTypedDocButton('modDocManualBtn', 'modDocManualInput', 'Installation Manual', modDocTracker);
+  wireTypedDocButton('modDocWarrantyBtn', 'modDocWarrantyInput', 'Warranty', modDocTracker);
+  wireTypedDocButton('modDocPanBtn', 'modDocPanInput', 'PVSyst .PAN File', modDocTracker);
+  wireTypedDocButton('modDocQuoteBtn', 'modDocQuoteInput', 'Quote', modDocTracker);
 
   initDocTracker({
     dropzoneId: 'e911DocDropzone', inputId: 'e911DocInput', manifestBodyId: 'e911DocManifestBody',
