@@ -4091,6 +4091,20 @@
     if (e.key === 'Enter') { e.preventDefault(); runMapSearch(); }
   });
 
+  // Prep the search bar with the address as it's typed, so hitting Search
+  // doesn't require retyping it — but a direct edit to the search box (a
+  // pasted coordinate pair, a different query) wins from then on, same
+  // override-beats-derived pattern used for AHJ/utility name elsewhere.
+  let siteMapSearchTouchedByUser = false;
+  document.getElementById('siteMapSearch').addEventListener('input', () => { siteMapSearchTouchedByUser = true; });
+  function syncMapSearchFromAddress() {
+    if (siteMapSearchTouchedByUser) return;
+    const full = formatFullSiteAddress();
+    if (full) document.getElementById('siteMapSearch').value = full;
+  }
+  ['siteStreet', 'siteCity', 'siteState', 'siteZip'].forEach(id =>
+    document.getElementById(id).addEventListener('input', syncMapSearchFromAddress));
+
   siteMapReady = true;
   renderMap();
 
