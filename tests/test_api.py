@@ -53,6 +53,40 @@ def test_site_geocode_passes_address_through_to_lookup_and_returns_result(monkey
     assert captured["street"] == "1 Metropolitan Sq"
 
 
+def test_ashrae_nearby_stations_passes_coordinates_through_to_lookup(monkeypatch):
+    captured = {}
+
+    def fake_nearby_stations(request):
+        captured["lat"] = request.lat
+        captured["limit"] = request.limit
+        return {"stations": [{"wmo": "724395", "place": "ST LOUIS REGIONAL AP, IL, USA", "distance_mi": 0.0}], "resolved": True, "warnings": []}
+
+    monkeypatch.setattr("app.main.ashrae_lookup.nearby_stations", fake_nearby_stations)
+
+    response = client.post("/ashrae/nearby-stations", json={"lat": 38.883, "lon": -90.050, "limit": 3})
+
+    assert response.status_code == 200
+    assert response.json()["stations"][0]["wmo"] == "724395"
+    assert captured["lat"] == 38.883
+    assert captured["limit"] == 3
+
+
+def test_ashrae_station_data_passes_wmo_through_to_lookup(monkeypatch):
+    captured = {}
+
+    def fake_station_design_data(request):
+        captured["wmo"] = request.wmo
+        return {"resolved": True, "warnings": [], "name": "ST LOUIS REGIONAL AP, IL, USA", "cool_db_2": 31.6}
+
+    monkeypatch.setattr("app.main.ashrae_lookup.station_design_data", fake_station_design_data)
+
+    response = client.post("/ashrae/station-data", json={"wmo": "724395"})
+
+    assert response.status_code == 200
+    assert response.json()["cool_db_2"] == 31.6
+    assert captured["wmo"] == "724395"
+
+
 def test_site_gps_validate_end_to_end_with_real_emlid_export_row():
     # TCU1 row verbatim from a real Emlid Flow 360 export (Ameren Peoria,
     # Illinois West ftUS State Plane) -- FIX solution, matched to a design

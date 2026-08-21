@@ -22,6 +22,7 @@ from sqlmodel import Session
 
 from app import (
     ampacity_calc,
+    ashrae_lookup,
     bonding_calc,
     device_templates,
     document_header,
@@ -55,6 +56,7 @@ from app.device_template_routes import router as device_template_router
 from app.skyvisor_routes import router as skyvisor_router
 from app.fluke_export_import import FlukeImportError
 from app.fluke_validate import FlukeValidateRequest
+from app.ashrae_lookup import AshraeNearbyRequest, AshraeStationDataRequest
 from app.gps_validation_calc import GpsValidationRequest, PileValidationRequest
 from app.models import ProjectInput, SiteAddress
 from app.module_catalog import MODULE_SKUS
@@ -167,6 +169,24 @@ def gps_validate(request: GpsValidationRequest) -> dict:
     threshold) are rejected rather than compared -- see
     app/gps_validation_calc.py for the quality gate."""
     return gps_validation_calc.validate_request(request)
+
+
+@app.post("/ashrae/nearby-stations")
+def ashrae_nearby_stations(request: AshraeNearbyRequest) -> dict:
+    """Finds the closest ASHRAE stations to a coordinate -- a convenience
+    lookup against ashrae-meteo.info's own (undocumented) endpoint, run
+    server-side to avoid a cross-origin fetch from the HMI. Not a
+    substitute for the ASHRAE Site Data panel's manual verification step;
+    see app/ashrae_lookup.py."""
+    return ashrae_lookup.nearby_stations(request)
+
+
+@app.post("/ashrae/station-data")
+def ashrae_station_data(request: AshraeStationDataRequest) -> dict:
+    """Fetches one station's design-critical values by WMO. See
+    app/ashrae_lookup.py for exactly which fields are mapped and why
+    'average high' deliberately isn't among them."""
+    return ashrae_lookup.station_design_data(request)
 
 
 @app.get("/")
