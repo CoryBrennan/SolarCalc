@@ -1283,20 +1283,20 @@
           <p class="card-title">Quantity on site</p>
           <div class="field-grid">
             <div class="field">
-              <label for="invDesignQuantity">Inverter Quantity</label>
-              <input type="text" id="invDesignQuantity">
-            </div>
-            <div class="field">
-              <label for="invDesignSwitchboardCount">Switchboard Quantity</label>
-              <input type="text" id="invDesignSwitchboardCount">
+              <label for="invDesignInterconnectionQuantity">Interconnection Quantity</label>
+              <input type="text" id="invDesignInterconnectionQuantity">
             </div>
             <div class="field">
               <label for="invDesignTransformerQuantity">Transformer Quantity</label>
               <input type="text" id="invDesignTransformerQuantity">
             </div>
             <div class="field">
-              <label for="invDesignInterconnectionQuantity">Interconnection Quantity</label>
-              <input type="text" id="invDesignInterconnectionQuantity">
+              <label for="invDesignSwitchboardCount">Switchboard Quantity</label>
+              <input type="text" id="invDesignSwitchboardCount">
+            </div>
+            <div class="field">
+              <label for="invDesignQuantity">Inverter Quantity</label>
+              <input type="text" id="invDesignQuantity">
             </div>
           </div>
           <!-- Derived, not entered: the module and inverter counts the rest of
@@ -1387,7 +1387,7 @@
           <div class="bulk-group">
             <div class="field-grid">
               <div class="field wide">
-                <label for="invBulkModel">Model</label>
+                <label for="invBulkModel">Inverter model</label>
                 <select id="invBulkModel"></select>
               </div>
             </div>
@@ -1400,16 +1400,15 @@
 
           <div class="bulk-group">
             <div class="field-grid">
-              <div class="field">
-                <label for="invBulkSwitchboard">Switchboard</label>
-                <select id="invBulkSwitchboard"></select>
+              <div class="field wide">
+                <label for="invBulkModuleModel">Module model</label>
+                <select id="invBulkModuleModel"></select>
               </div>
             </div>
             <div class="bulk-btns">
-              <button class="btn btn-primary" data-bulk-apply="switchboard" type="button">Apply to selected</button>
-              <button class="btn" data-bulk-selectall type="button">Select all</button>
-              <button class="btn" data-bulk-selectnone type="button">Clear selection</button>
+              <button class="btn btn-primary" data-bulk-apply="moduleModel" type="button">Set as site module</button>
             </div>
+            <p class="desc" style="margin-top:10px;">The whole design uses one module (Module Spec, 05) — no per-inverter selection like the model above, so this just switches it without leaving this page.</p>
           </div>
 
           <div class="bulk-group">
@@ -1426,6 +1425,20 @@
             </div>
             <div class="bulk-btns">
               <button class="btn" data-bulk-apply="fullrating" type="button">Reset to full rating</button>
+            </div>
+          </div>
+
+          <div class="bulk-group">
+            <div class="field-grid">
+              <div class="field">
+                <label for="invBulkSwitchboard">Switchboard</label>
+                <select id="invBulkSwitchboard"></select>
+              </div>
+            </div>
+            <div class="bulk-btns">
+              <button class="btn btn-primary" data-bulk-apply="switchboard" type="button">Apply to selected</button>
+              <button class="btn" data-bulk-selectall type="button">Select all</button>
+              <button class="btn" data-bulk-selectnone type="button">Clear selection</button>
             </div>
           </div>
 
@@ -1480,29 +1493,6 @@
               <thead><tr><th></th><th>Edit</th><th>Inverter</th><th>Model (from Inverter Spec)</th><th>Power</th><th style="text-align:right;">AC kW</th><th style="text-align:right;">Strings</th><th style="text-align:right;">DC kW</th><th>DC combiner</th><th>Switchboard</th></tr></thead>
               <tbody id="invDesignBody"></tbody>
             </table>
-          </div>
-        </div>
-
-        <div class="card">
-          <p class="card-title">PVCase planning brief</p>
-          <p class="desc" style="margin-bottom:14px;">What to key into PVCase before building the site layout — modules-per-string, and the exact equipment tags PVCase should end up producing — computed from Module Spec, Inverter Spec, PV String Design, and the naming convention above, so PVCase and this app start from the same numbers instead of a second manual translation.</p>
-          <div class="bulk-btns" style="margin-top:0; margin-bottom:14px;">
-            <button class="btn btn-primary" id="pvcasePlanBtn" type="button">Generate planning brief</button>
-          </div>
-          <p class="desc" id="pvcasePlanStatus"></p>
-          <div id="pvcasePlanResult" style="display:none;">
-            <table class="manifest" style="margin-bottom:14px;">
-              <tbody>
-                <tr><td>Modules per string to use in PVCase</td><td id="pvcasePlanModulesPerString">—</td></tr>
-                <tr><td>Estimated string count</td><td id="pvcasePlanStringCount">—</td></tr>
-                <tr><td>Planned inverters / DC combiners / transformers</td><td id="pvcasePlanCounts">—</td></tr>
-              </tbody>
-            </table>
-            <ul id="pvcasePlanNotes" style="margin:0 0 14px 18px; padding:0;"></ul>
-            <details>
-              <summary style="cursor:pointer;">Expected equipment tags</summary>
-              <pre id="pvcasePlanTags" style="white-space:pre-wrap; font-size:12px; margin-top:8px;"></pre>
-            </details>
           </div>
         </div>
 
@@ -3521,7 +3511,30 @@
             <h2>PVCase</h2>
           </div>
         </div>
-        <p class="desc">Everything that checks this design against an actual PVCase layout export, moved off Array Electrical Design (08) so that panel stays focused on the design itself. Modules-per-string, equipment tags, and other planning inputs PVCase needs are still generated on Array Electrical Design's PVCase planning brief card — bring that brief here once PVCase has produced a real BOM/DWG to check it against.</p>
+        <p class="desc">Everything to do with an actual PVCase layout — planning inputs to key in before building it, and checking the export against those once it's built — moved off Array Electrical Design (08) so that panel stays focused on the design itself.</p>
+
+        <div class="card">
+          <p class="card-title">PVCase planning brief</p>
+          <p class="desc" style="margin-bottom:14px;">What to key into PVCase before building the site layout — modules-per-string, and the exact equipment tags PVCase should end up producing — computed from Module Spec, Inverter Spec, PV String Design, and the naming convention on Array Electrical Design (08), so PVCase and this app start from the same numbers instead of a second manual translation.</p>
+          <div class="bulk-btns" style="margin-top:0; margin-bottom:14px;">
+            <button class="btn btn-primary" id="pvcasePlanBtn" type="button">Generate planning brief</button>
+          </div>
+          <p class="desc" id="pvcasePlanStatus"></p>
+          <div id="pvcasePlanResult" style="display:none;">
+            <table class="manifest" style="margin-bottom:14px;">
+              <tbody>
+                <tr><td>Modules per string to use in PVCase</td><td id="pvcasePlanModulesPerString">—</td></tr>
+                <tr><td>Estimated string count</td><td id="pvcasePlanStringCount">—</td></tr>
+                <tr><td>Planned inverters / DC combiners / transformers</td><td id="pvcasePlanCounts">—</td></tr>
+              </tbody>
+            </table>
+            <ul id="pvcasePlanNotes" style="margin:0 0 14px 18px; padding:0;"></ul>
+            <details>
+              <summary style="cursor:pointer;">Expected equipment tags</summary>
+              <pre id="pvcasePlanTags" style="white-space:pre-wrap; font-size:12px; margin-top:8px;"></pre>
+            </details>
+          </div>
+        </div>
 
         <div class="card">
           <p class="card-title">PVCase BOM import</p>
@@ -3543,7 +3556,7 @@
 
         <div class="card">
           <p class="card-title">PVCase validation</p>
-          <p class="desc" style="margin-bottom:14px;">Once the PVCase design is built and exported, point at the BOM export and/or CAD Release DWG — both live in Dropbox, so a local path works, no upload needed — and check them against the planning brief generated on Array Electrical Design (08). Runs against the Backend URL configured on Client Inputs; scanning a DWG drives a real local AutoCAD session and can take a couple of minutes on a large drawing.</p>
+          <p class="desc" style="margin-bottom:14px;">Once the PVCase design is built and exported, point at the BOM export and/or CAD Release DWG — both live in Dropbox, so a local path works, no upload needed — and check them against the planning brief above. Runs against the Backend URL configured on Client Inputs; scanning a DWG drives a real local AutoCAD session and can take a couple of minutes on a large drawing.</p>
           <div class="field-grid" style="margin-bottom:14px;">
             <div class="field wide">
               <label for="pvcaseBomPathInput">BOM export path (.xlsx)</label>
@@ -7418,17 +7431,19 @@
     const lengthKeys = Object.keys(s.byLength).map(Number).sort((a, b) => b - a);
     const head = title + ' — ' + s.inverters + ' inverter' + (s.inverters === 1 ? '' : 's') +
       ', ' + fmt(s.acKw) + ' kW AC / ' + fmt(s.dcKw) + ' kW DC';
-    let items = modelKeys.map(k => '<li>' + s.byModel[k] + ' &times; ' + k + '</li>').join('');
     // The design is built around a single module (Module Spec), so the count
-    // just needs its own name/wattage, not a per-model breakdown like above.
+    // just needs its own name/wattage, not a per-model breakdown like the
+    // inverters below. String-length breakdown nests under it rather than
+    // standing as its own bullet, since it's just how those modules break
+    // down into strings.
     const md = MODULE_SKUS[modSku.value];
-    items += '<li>' + (md
+    let items = '<li>' + (md
       ? '(' + fmt(s.modules) + ') ' + escapeText(md.manufacturer) + ' ' + md.pmax + 'W Modules'
-      : fmt(s.modules) + ' modules') + '</li>';
-    items += '<li>' + s.strings + ' string' + (s.strings === 1 ? '' : 's') +
+      : fmt(s.modules) + ' modules') +
       (lengthKeys.length ? '<ul>' + lengthKeys.map(n =>
         '<li>' + s.byLength[n] + ' string' + (s.byLength[n] === 1 ? '' : 's') + ' of ' + n + ' modules</li>').join('') + '</ul>' : '') +
       '</li>';
+    items += modelKeys.map(k => '<li>' + s.byModel[k] + ' &times; ' + k + '</li>').join('');
     return '<div class="summary-block"><div class="h">' + head + '</div><ul>' + items + '</ul></div>';
   }
 
@@ -7446,52 +7461,121 @@
     document.getElementById('invSummaryBreakdown').innerHTML = html;
   }
 
-  // ---- simplified one-line diagram: a linear block chain, not a real
-  // schematic -- Interconnection -> Transformer -> Switchboard -> Inverters
-  // -> Module Strings, each box showing how many of that thing the current
-  // design has. Quantities either come straight from the Quantity on site
-  // fields (Interconnection, Transformer -- nothing else derives them) or
-  // are counted from the schedule itself (Switchboard, Inverters, Strings),
-  // same source those numbers use everywhere else on this panel.
-  function sldBoxSvg(x, y, w, h, title, countLabel) {
+  // ---- simplified one-line diagram: an individual box per device, not one
+  // box-per-stage-with-a-count -- Interconnection -> Transformer ->
+  // Switchboard -> Inverters -> Module Strings, arrows drawn between actual
+  // devices. Switchboard->Inverter and Inverter->String connections use the
+  // real assignment this schedule already tracks (row.switchboard, and
+  // allStringRefs()'s per-inverter string list); Interconnection->Transformer
+  // and Transformer->Switchboard have no such linkage anywhere in the app
+  // (both are just typed quantities), so those two hops fan every box on one
+  // side to every box on the other as the best simplification available.
+  const SLD_MAX_PER_STAGE = 8;
+  function sldBoxSvg(x, y, w, h, label, muted) {
     return (
-      '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="8" fill="var(--surface-2)" stroke="var(--ink)" stroke-width="2"/>' +
-      '<text x="' + (x + w / 2) + '" y="' + (y + h / 2 - 6) + '" text-anchor="middle" font-size="13" font-weight="600" fill="var(--ink)">' + escapeText(title) + '</text>' +
-      '<text x="' + (x + w / 2) + '" y="' + (y + h / 2 + 14) + '" text-anchor="middle" font-size="12" fill="var(--ink-muted)">' + escapeText(countLabel) + '</text>'
+      '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="6" fill="' + (muted ? 'var(--surface)' : 'var(--surface-2)') + '" stroke="var(--ink)" stroke-width="1.5"/>' +
+      '<text x="' + (x + w / 2) + '" y="' + (y + h / 2 + 4) + '" text-anchor="middle" font-size="10.5" fill="' + (muted ? 'var(--ink-muted)' : 'var(--ink)') + '">' + escapeText(label) + '</text>'
     );
   }
-  function sldArrowSvg(x1, x2, y) {
-    return (
-      '<line x1="' + x1 + '" y1="' + y + '" x2="' + (x2 - 9) + '" y2="' + y + '" stroke="var(--ink-muted)" stroke-width="2"/>' +
-      '<polygon points="' + (x2 - 9) + ',' + (y - 5) + ' ' + x2 + ',' + y + ' ' + (x2 - 9) + ',' + (y + 5) + '" fill="var(--ink-muted)"/>'
-    );
+  // Numbered placeholders for stages with no per-unit identity of their own
+  // (Interconnection/Transformer are just a typed count) -- a single "—" box
+  // stands in when the count is blank/zero so the chain never breaks.
+  function sldCountedItems(n, prefix) {
+    return n > 0
+      ? Array.from({ length: n }, (_, i) => ({ key: prefix + i, label: prefix + ' ' + (i + 1) }))
+      : [{ key: prefix + '-none', label: '—' }];
+  }
+  // Caps a stage's box count so the diagram stays readable on a large site --
+  // collapses the remainder into one "+N more" box that still connects
+  // onward, rather than silently truncating the design out of the picture.
+  function sldCapItems(items) {
+    if (items.length <= SLD_MAX_PER_STAGE) return items;
+    const shown = items.slice(0, SLD_MAX_PER_STAGE - 1);
+    shown.push({ key: '__more__', label: '+' + (items.length - shown.length) + ' more' });
+    return shown;
   }
   function renderSldDiagram() {
     const wrap = document.getElementById('sldDiagramWrap');
     if (!wrap) return;
-    const interconnectQty = document.getElementById('invDesignInterconnectionQuantity').value.trim();
-    const xfmrQty = document.getElementById('invDesignTransformerQuantity').value.trim();
-    const swbdQty = switchboardTags().length;
-    const invCount = inverterDesignRows.length;
-    const stringCount = summarizeRows(inverterDesignRows).strings;
-    const stages = [
-      { title: 'Interconnection', count: interconnectQty || '—' },
-      { title: 'Transformer', count: xfmrQty || '—' },
-      { title: 'Switchboard', count: swbdQty || '—' },
-      { title: 'Inverters', count: invCount || '—' },
-      { title: 'Module Strings', count: stringCount || '—' },
+    const interconnectN = parseInt(parseNum(document.getElementById('invDesignInterconnectionQuantity').value), 10) || 0;
+    const xfmrN = parseInt(parseNum(document.getElementById('invDesignTransformerQuantity').value), 10) || 0;
+    const swbdTags = switchboardTags();
+    const invNames = effectiveInverterNames();
+    const stringRefs = allStringRefs();
+
+    const stagesRaw = [
+      { title: 'Interconnection', items: sldCountedItems(interconnectN, 'Interconnection') },
+      { title: 'Transformer', items: sldCountedItems(xfmrN, 'Transformer') },
+      { title: 'Switchboard', items: swbdTags.length ? swbdTags.map(t => ({ key: t, label: t })) : [{ key: 'sb-none', label: '—' }] },
+      { title: 'Inverters', items: inverterDesignRows.length
+          ? inverterDesignRows.map((row, i) => ({ key: i, label: invNames[i], switchboard: row.switchboard }))
+          : [{ key: 'inv-none', label: '—' }] },
+      { title: 'Module Strings', items: stringRefs.length
+          ? stringRefs.map(ref => ({ key: ref.i + '-' + ref.s, label: ref.label, invKey: ref.i }))
+          : [{ key: 'str-none', label: '—' }] },
     ];
-    const boxW = 128, boxH = 62, gap = 42, y = 18;
-    const svgW = stages.length * boxW + (stages.length - 1) * gap + 20;
-    const svgH = y * 2 + boxH;
-    let svg = '';
-    stages.forEach((stage, i) => {
-      const x = 10 + i * (boxW + gap);
-      const label = (stage.count === '—' ? '—' : '×' + stage.count);
-      svg += sldBoxSvg(x, y, boxW, boxH, stage.title, label);
-      if (i < stages.length - 1) svg += sldArrowSvg(x + boxW, x + boxW + gap, y + boxH / 2);
+    const stages = stagesRaw.map(stage => ({ title: stage.title, items: sldCapItems(stage.items) }));
+
+    const boxW = 116, boxH = 34, vGap = 8, hGap = 56, pad = 14;
+    const colHeight = stage => stage.items.length * (boxH + vGap) - vGap;
+    const maxColHeight = Math.max.apply(null, stages.map(colHeight));
+    const svgW = stages.length * boxW + (stages.length - 1) * hGap + pad * 2;
+    const svgH = maxColHeight + 40;
+
+    // Anchor points (right-middle / left-middle of each box) per stage, so
+    // the connector pass below doesn't recompute layout math.
+    const anchors = stages.map(stage => {
+      const colH = colHeight(stage);
+      const y0 = 20 + (maxColHeight - colH) / 2;
+      return stage.items.map((item, i) => ({
+        item: item,
+        x: 0, // filled in once column x is known, below
+        y: y0 + i * (boxH + vGap) + boxH / 2,
+        boxY: y0 + i * (boxH + vGap),
+      }));
     });
-    wrap.innerHTML = '<svg viewBox="0 0 ' + svgW + ' ' + svgH + '" width="100%" style="max-width:760px;" xmlns="http://www.w3.org/2000/svg">' + svg + '</svg>';
+
+    let svg = '';
+    const colX = [];
+    stages.forEach((stage, ci) => {
+      const x = pad + ci * (boxW + hGap);
+      colX.push(x);
+      stage.items.forEach((item, i) => {
+        const a = anchors[ci][i];
+        svg += sldBoxSvg(x, a.boxY, boxW, boxH, item.label, item.key === '__more__');
+      });
+    });
+
+    // Connections: real assignment where this schedule tracks one (switchboard
+    // -> inverter via row.switchboard, inverter -> string via allStringRefs'
+    // own i index), full fan-out where no such linkage exists anywhere.
+    function connect(ci, matcher) {
+      const from = anchors[ci], to = anchors[ci + 1];
+      let out = '';
+      from.forEach(f => {
+        to.forEach(t => {
+          if (matcher(f.item, t.item)) {
+            const x1 = colX[ci] + boxW, x2 = colX[ci + 1];
+            out += '<line x1="' + x1 + '" y1="' + f.y + '" x2="' + x2 + '" y2="' + t.y + '" stroke="var(--ink-muted)" stroke-width="1" opacity="0.55"/>';
+          }
+        });
+      });
+      return out;
+    }
+    const fanOut = () => true;
+    const bySwitchboard = (swbd, inv) => swbd.key === '__more__' || inv.key === '__more__' || inv.key === 'inv-none' || swbd.key === 'sb-none' || inv.switchboard === swbd.key;
+    const byInverter = (inv, str) => inv.key === '__more__' || str.key === '__more__' || str.key === 'str-none' || inv.key === 'inv-none' || str.invKey === inv.key;
+    let linksSvg = '';
+    linksSvg += connect(0, fanOut);       // Interconnection -> Transformer
+    linksSvg += connect(1, fanOut);       // Transformer -> Switchboard
+    linksSvg += connect(2, bySwitchboard); // Switchboard -> Inverters
+    linksSvg += connect(3, byInverter);    // Inverters -> Module Strings
+    svg = linksSvg + svg;
+
+    stages.forEach((stage, ci) => {
+      svg += '<text x="' + (colX[ci] + boxW / 2) + '" y="12" text-anchor="middle" font-size="11" font-weight="600" fill="var(--ink-muted)">' + escapeText(stage.title) + '</text>';
+    });
+    wrap.innerHTML = '<svg viewBox="0 0 ' + svgW + ' ' + svgH + '" width="100%" style="max-width:900px;" xmlns="http://www.w3.org/2000/svg">' + svg + '</svg>';
   }
 
   // Editing one string's module count must not re-render the grid the user is
@@ -7566,6 +7650,13 @@
     const keepSb = sbSel.value;
     sbSel.innerHTML = switchboardTags().map(t => '<option value="' + t + '">' + t + '</option>').join('');
     if (switchboardTags().includes(keepSb)) sbSel.value = keepSb;
+
+    // Reflects the site's one module (Module Spec) -- selecting a different
+    // one here switches it directly, same as picking it there.
+    const moduleSel = document.getElementById('invBulkModuleModel');
+    moduleSel.innerHTML = Object.keys(MODULE_SKUS).map(k =>
+      '<option value="' + escapeAttr(k) + '">' + escapeText(moduleLabel(k)) + '</option>').join('');
+    if (MODULE_SKUS[modSku.value]) moduleSel.value = modSku.value;
 
     // The conductor list comes from the shared NEC ampacity table, which is
     // declared further down the file — populate it once that exists.
@@ -7727,6 +7818,12 @@
       } else if (what === 'model') {
         const v = document.getElementById('invBulkModel').value;
         if (v) rows.forEach(r => { r.model = v; });
+      } else if (what === 'moduleModel') {
+        // Not per-row like inverter model -- there's only one module for the
+        // whole site, so this switches Module Spec's own selection directly
+        // rather than touching targetedInverterRows() at all.
+        const v = document.getElementById('invBulkModuleModel').value;
+        if (v && MODULE_SKUS[v]) { modSku.value = v; applyModuleSku(); }
       } else if (what === 'switchboard') {
         const v = document.getElementById('invBulkSwitchboard').value;
         if (v) rows.forEach(r => { r.switchboard = v; });
