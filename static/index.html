@@ -4381,6 +4381,13 @@
     // with the selection rather than staying pinned to one datasheet.
     TEMP_COEFF_VOC = d.tempCoeffVoc;
     MODULE_W = d.pmax;
+    // With no default module any more, combinerRows can easily start out (or
+    // end up, if their module got removed) pointing at a SKU that no longer
+    // exists -- same re-pointing removeModuleCatalogEntry() already does,
+    // just also needed here for the "first module ever added" case.
+    if (typeof combinerRows !== 'undefined') {
+      combinerRows.forEach(r => { if (!MODULE_SKUS[r.moduleSku]) r.moduleSku = modSku.value; });
+    }
     applyModuleMechanicalUnits();
     renderModuleDiagram();
     // These inputs are directly editable now but selecting a *different*
@@ -4511,9 +4518,9 @@
         '<text x="' + (ox + rw + 37) + '" y="' + (oy + rh / 2 + 48) + '" text-anchor="middle" font-size="12" fill="var(--ink)">D: ' + fmtModuleDiagramLen(dims ? D : null) + '</text>' +
         '<rect x="' + (ox + rw / 2 - 12) + '" y="' + (oy + rh * 0.35) + '" width="24" height="16" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/>' +
         '<text x="' + (ox + rw / 2) + '" y="' + (oy + rh * 0.35 - 8) + '" text-anchor="middle" font-size="11" fill="var(--accent)">J-box: ' + escapeText(jbox) + '</text>' +
-        '<line x1="' + (ox + rw / 2 - 16) + '" y1="' + (oy + rh) + '" x2="' + (ox + rw / 2 - 16) + '" y2="' + (oy + rh + 56) + '" stroke="var(--ink)" stroke-width="2"/>' +
+        '<line x1="' + (ox + rw / 2 - 6) + '" y1="' + (oy + rh * 0.35 + 16) + '" x2="' + (ox + rw / 2 - 16) + '" y2="' + (oy + rh + 56) + '" stroke="var(--ink)" stroke-width="2" fill="none"/>' +
         '<circle cx="' + (ox + rw / 2 - 16) + '" cy="' + (oy + rh + 62) + '" r="6" fill="none" stroke="var(--ink)" stroke-width="2"/>' +
-        '<line x1="' + (ox + rw / 2 + 16) + '" y1="' + (oy + rh) + '" x2="' + (ox + rw / 2 + 16) + '" y2="' + (oy + rh + 56) + '" stroke="var(--ink)" stroke-width="2"/>' +
+        '<line x1="' + (ox + rw / 2 + 6) + '" y1="' + (oy + rh * 0.35 + 16) + '" x2="' + (ox + rw / 2 + 16) + '" y2="' + (oy + rh + 56) + '" stroke="var(--ink)" stroke-width="2" fill="none"/>' +
         '<circle cx="' + (ox + rw / 2 + 16) + '" cy="' + (oy + rh + 62) + '" r="6" fill="none" stroke="var(--ink)" stroke-width="2"/>' +
         '<text x="' + (ox + rw / 2) + '" y="' + (oy + rh + 86) + '" text-anchor="middle" font-size="12" fill="var(--ink)">Whip: ' + fmtModuleDiagramLen(d.whipLengthMm) + ' · ' + escapeText(connector) + '</text>' +
       '</svg>';
@@ -9706,6 +9713,17 @@
         manufacturer: (MODULE_SKUS[modSku.value] || {}).manufacturer || '',
         first_year_degradation_pct: parseNum(document.getElementById('modFirstYearDegradation').value),
         annual_degradation_pct: parseNum(document.getElementById('modAnnualDegradation').value),
+        // Only actually used by the backend when sku isn't one of its own
+        // small hardcoded set -- see module_catalog.resolve_module_spec().
+        // Sent unconditionally since it's harmless either way.
+        pmax: parseNum(document.getElementById('modPmax').value),
+        voc: parseNum(document.getElementById('modVoc').value),
+        vmp: parseNum(document.getElementById('modVmp').value),
+        isc: parseNum(document.getElementById('modIsc').value),
+        imp: parseNum(document.getElementById('modImp').value),
+        bifacial_pmax: parseNum(document.getElementById('modBifacial').value),
+        temp_coeff_voc_pct_per_c: parseNum(document.getElementById('modTempCoeffVoc').value),
+        temp_coeff_isc_pct_per_c: parseNum(document.getElementById('modTempCoeffIsc').value),
       },
       inverter: {
         model: document.getElementById('invModel').value,

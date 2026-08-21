@@ -30,10 +30,10 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from app.cable_routing_calc import RoutingLegTemplate, apply_routing_template, size_cable_with_routing
+from app import module_catalog
 from app.combiner_calc import size_combiners
 from app.conductor_tables import CONDUCTOR_ORDER
 from app.models import ProjectInput
-from app.module_catalog import MODULE_SKUS
 from app.pvcase_bom_import import CableSegment, PvcaseBomData
 
 _CIRCUIT_TYPES = ["transformer_to_inverter", "inverter_to_combiner", "combiner_to_string"]
@@ -86,10 +86,10 @@ def _circuit_current_voltage(circuit: str, project: ProjectInput) -> tuple[float
     if circuit == "inverter_to_combiner":
         if project.inverter.dc_topology != "combiner":
             return None
-        combiner_result = size_combiners(project.combiner_rows, project.module.max_series_fuse_rating_a)
+        combiner_result = size_combiners(project.combiner_rows, project.module.max_series_fuse_rating_a, project.module)
         return combiner_result["max_output_ampacity_a"], project.inverter.max_dc_voltage_v
     if circuit == "combiner_to_string":
-        module = MODULE_SKUS[project.module.sku]
+        module = module_catalog.resolve_module_spec(project.module.sku, project.module)
         return module.isc * 1.25, project.inverter.max_dc_voltage_v
     raise ValueError(f"Unknown circuit type: {circuit!r}")
 

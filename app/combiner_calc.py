@@ -7,13 +7,15 @@ input is individually fused.
 
 from __future__ import annotations
 
+from app import module_catalog
 from app.conductor_tables import next_standard_size, select_conductor
-from app.models import CombinerRow
-from app.module_catalog import MODULE_SKUS
+from app.models import CombinerRow, ModuleSpec
 
 
-def compute_combiner_row(row: CombinerRow, max_series_fuse_rating_a: float) -> dict:
-    module = MODULE_SKUS[row.module_sku]
+def compute_combiner_row(
+    row: CombinerRow, max_series_fuse_rating_a: float, module_fallback: ModuleSpec | None = None
+) -> dict:
+    module = module_catalog.resolve_module_spec(row.module_sku, module_fallback)
     input_min_fuse_a = module.isc * 1.25
     input_fuse_a = min(next_standard_size(input_min_fuse_a), max_series_fuse_rating_a)
     output_ampacity_a = input_fuse_a * row.inputs
@@ -33,8 +35,10 @@ def compute_combiner_row(row: CombinerRow, max_series_fuse_rating_a: float) -> d
     }
 
 
-def size_combiners(rows: list[CombinerRow], max_series_fuse_rating_a: float) -> dict:
-    computed_rows = [compute_combiner_row(row, max_series_fuse_rating_a) for row in rows]
+def size_combiners(
+    rows: list[CombinerRow], max_series_fuse_rating_a: float, module_fallback: ModuleSpec | None = None
+) -> dict:
+    computed_rows = [compute_combiner_row(row, max_series_fuse_rating_a, module_fallback) for row in rows]
     total_strings = sum(row.inputs for row in rows)
     max_output_ampacity_a = max((r["output_ampacity_a"] for r in computed_rows), default=0)
 

@@ -7,16 +7,19 @@ from __future__ import annotations
 
 from fastapi import HTTPException
 
-from app import combiner_calc, ocpd_calc, switchboard_calc
+from app import combiner_calc, module_catalog, ocpd_calc, switchboard_calc
 from app.models import ProjectInput
-from app.module_catalog import MODULE_SKUS
 
 
 def validate_module_skus(project: ProjectInput) -> None:
-    if project.module.sku not in MODULE_SKUS:
+    try:
+        module_catalog.resolve_module_spec(project.module.sku, project.module)
+    except KeyError:
         raise HTTPException(status_code=422, detail=f"Unknown module SKU: {project.module.sku!r}")
     for row in project.combiner_rows:
-        if row.module_sku not in MODULE_SKUS:
+        try:
+            module_catalog.resolve_module_spec(row.module_sku, project.module)
+        except KeyError:
             raise HTTPException(status_code=422, detail=f"Unknown module SKU on combiner row: {row.module_sku!r}")
 
 
@@ -24,7 +27,7 @@ def compute_actual_capacity(project: ProjectInput) -> tuple[float, float]:
     """Actual DC/AC capacity — nameplate rating x quantity actually on site,
     as distinct from SiteConfig's target_dc/ac_capacity_w (design goals that
     guide but never override ModuleSpec.quantity / InverterSpec.quantity)."""
-    module_pmax_w = MODULE_SKUS[project.module.sku].pmax
+    module_pmax_w = module_catalog.resolve_module_spec(project.module.sku, project.module).pmax
     actual_dc_w = module_pmax_w * project.module.quantity
     actual_ac_w = project.inverter.ac_rating_w * project.inverter.quantity
     return actual_dc_w, actual_ac_w
@@ -44,12 +47,12 @@ def resolve_ocpd_continuous_current(project: ProjectInput, combiner_result: dict
         row = rows[idx] if 0 <= idx < len(rows) else rows[0]
         return row["output_ampacity_a"]
     # pv_source
-    return MODULE_SKUS[project.module.sku].isc
+    return module_catalog.resolve_module_spec(project.module.sku, project.module).isc
 
 
 def compute_combiner_ocpd_switchboard(project: ProjectInput, num_inverters: int) -> tuple[dict, dict, dict]:
     combiner_result = (
-        combiner_calc.size_combiners(project.combiner_rows, project.module.max_series_fuse_rating_a)
+        combiner_calc.size_combiners(project.combiner_rows, project.module.max_series_fuse_rating_a, project.module)
         if project.inverter.dc_topology == "combiner"
         else {"rows": [], "combiner_count": 0, "total_strings": 0, "max_output_ampacity_a": 0.0}
     )

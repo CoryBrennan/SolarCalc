@@ -16,9 +16,8 @@ switchboard_block already generates for the same inverters.
 
 from __future__ import annotations
 
-from app import ocpd_calc
+from app import module_catalog, ocpd_calc
 from app.models import ProjectInput
-from app.module_catalog import MODULE_SKUS
 
 
 def format_phase_config(phases: int, wires: int, equipment_ground: bool) -> str:
@@ -42,7 +41,7 @@ def per_inverter_dc_capacity_w(project: ProjectInput) -> float:
     """
     if project.inverter.quantity <= 0:
         return 0.0
-    total_dc_w = MODULE_SKUS[project.module.sku].pmax * project.module.quantity
+    total_dc_w = module_catalog.resolve_module_spec(project.module.sku, project.module).pmax * project.module.quantity
     return total_dc_w / project.inverter.quantity
 
 

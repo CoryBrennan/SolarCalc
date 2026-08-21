@@ -33,6 +33,7 @@ from app import (
     gps_validation_calc,
     iv_curve_calc,
     jurisdiction_lookup,
+    module_catalog,
     placarding_calc,
     pvapx_generator,
     pvcase_bom_import,
@@ -59,7 +60,6 @@ from app.fluke_validate import FlukeValidateRequest
 from app.ashrae_lookup import AshraeNearbyRequest, AshraeStationDataRequest
 from app.gps_validation_calc import GpsValidationRequest, PileValidationRequest
 from app.models import ProjectInput, SiteAddress
-from app.module_catalog import MODULE_SKUS
 from app.pdf_extract import PdfExtractionError, extract_pdf_text
 from app.project_calc import compute_actual_capacity, compute_combiner_ocpd_switchboard, validate_module_skus
 from app.pvapx_generator import FlukePvapxFromDesignRequest, FlukePvapxRequest
@@ -226,6 +226,7 @@ def calculate(project: ProjectInput) -> dict:
         inverter=project.inverter,
         ashrae=project.ashrae,
         ampacity_input=project.ampacity,
+        module_fallback=project.module,
     )
 
     bonding_result = bonding_calc.size_bonding_and_grounding(project.transformer)
@@ -255,6 +256,7 @@ def calculate(project: ProjectInput) -> dict:
         irradiance_w_m2=project.iv_curve_conditions.irradiance_w_m2,
         cell_temp_c=project.iv_curve_conditions.cell_temp_c,
         modules_per_string=project.iv_curve_conditions.modules_per_string,
+        module_fallback=project.module,
     )
     iv_validation = iv_curve_calc.validate_reading(
         expected=iv_expected,
@@ -451,6 +453,7 @@ def fluke_validate_export(request: FlukeValidateRequest) -> dict:
         module_sku=request.project.module.sku,
         modules_per_string=request.project.iv_curve_conditions.modules_per_string,
         bom=bom,
+        module_fallback=request.project.module,
     )
     return {"all_pass": report.all_pass(), "coverage_complete": report.coverage_complete(), **dataclasses.asdict(report)}
 
@@ -465,7 +468,9 @@ def fluke_generate_pvapx(request: FlukePvapxRequest) -> dict:
     software and confirm it loads before trusting it on an actual job. Only
     meaningful running on the engineer's own machine, same as DWG scanning
     and BOM/export parsing -- all three are local Dropbox-synced file paths."""
-    if request.project.module.sku not in MODULE_SKUS:
+    try:
+        module = module_catalog.resolve_module_spec(request.project.module.sku, request.project.module)
+    except KeyError:
         raise HTTPException(status_code=422, detail=f"Unknown module SKU {request.project.module.sku!r} -- not in module_catalog.MODULE_SKUS")
 
     try:
@@ -473,7 +478,6 @@ def fluke_generate_pvapx(request: FlukePvapxRequest) -> dict:
     except PvcaseBomError as exc:
         raise HTTPException(status_code=422, detail=f"BOM parse error: {exc}") from exc
 
-    module = MODULE_SKUS[request.project.module.sku]
     counts = pvapx_generator.generate_pvapx(
         request.template_path,
         request.output_path,
@@ -508,7 +512,9 @@ def fluke_generate_pvapx_from_design(request: FlukePvapxFromDesignRequest) -> di
     evenly). See app/pvapx_generator.py's build_hierarchy_from_plan()
     docstring for exactly what's derived vs. assumed, and the same
     MANDATORY validation gate as /fluke/pvapx."""
-    if request.project.module.sku not in MODULE_SKUS:
+    try:
+        module = module_catalog.resolve_module_spec(request.project.module.sku, request.project.module)
+    except KeyError:
         raise HTTPException(status_code=422, detail=f"Unknown module SKU {request.project.module.sku!r} -- not in module_catalog.MODULE_SKUS")
     if request.project.inverter.dc_topology != "combiner":
         raise HTTPException(status_code=422, detail="Design-derived .pvapx generation assumes dc_topology == 'combiner' (one DC combiner per inverter) -- see build_hierarchy_from_plan()'s docstring.")
@@ -524,7 +530,6 @@ def fluke_generate_pvapx_from_design(request: FlukePvapxFromDesignRequest) -> di
         modules_per_inverter = request.project.module.quantity / n_inverters
         strings_per_combiner = round(modules_per_inverter / modules_per_string)
 
-    module = MODULE_SKUS[request.project.module.sku]
     counts = pvapx_generator.generate_pvapx_from_plan(
         request.template_path,
         request.output_path,

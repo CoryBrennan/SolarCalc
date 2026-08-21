@@ -12,8 +12,8 @@ from __future__ import annotations
 
 import math
 
+from app import module_catalog
 from app.models import ASHRAESiteData, ClientVoltageDropLimits, InverterSpec, ModuleSpec
-from app.module_catalog import MODULE_SKUS
 
 MPPT_LIFE_TARGET_YEARS = 15.0
 
@@ -45,7 +45,7 @@ def compute_string_length_range(
     ashrae: ASHRAESiteData,
     voltage_drop_limits: ClientVoltageDropLimits,
 ) -> dict:
-    d = MODULE_SKUS[module.sku]
+    d = module_catalog.resolve_module_spec(module.sku, module)
 
     # Per-SKU coefficient (see module_catalog.py) -- was a shared global
     # constant until a second, real module family with a different Voc

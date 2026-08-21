@@ -41,10 +41,10 @@ from dataclasses import dataclass, field
 
 from pydantic import BaseModel
 
+from app import module_catalog
 from app.fluke_export_import import FlukeReading
 from app.iv_curve_calc import expected_iv_point
-from app.models import ProjectInput
-from app.module_catalog import MODULE_SKUS
+from app.models import ModuleSpec, ProjectInput
 from app.pvcase_bom_import import PvcaseBomData
 from app.pvcase_validate import TagSetDiff
 
@@ -76,13 +76,14 @@ def validate_readings(
     tolerance_pct: float = 5.0,
     module_sku: str | None = None,
     modules_per_string: int | None = None,
+    module_fallback: ModuleSpec | None = None,
 ) -> list[IVValidationResult]:
     """`module_sku`/`modules_per_string` are only needed as a fallback for
     parameters with no vendor Modeled value -- if every reading carries
     Modeled values (true of a real Solmetric export), they're unused."""
     results: list[IVValidationResult] = []
     for reading in readings:
-        results.extend(_validate_one(reading, tolerance_pct, module_sku, modules_per_string))
+        results.extend(_validate_one(reading, tolerance_pct, module_sku, modules_per_string, module_fallback))
     return results
 
 
@@ -91,6 +92,7 @@ def _validate_one(
     tolerance_pct: float,
     module_sku: str | None,
     modules_per_string: int | None,
+    module_fallback: ModuleSpec | None = None,
 ) -> list[IVValidationResult]:
     checks = [
         ("isc_a", reading.isc_measured_a, reading.isc_modeled_a, reading.isc_deviation_vs_modeled_pct),
@@ -103,7 +105,7 @@ def _validate_one(
         module_sku is not None and modules_per_string is not None
         and reading.irradiance_w_m2 is not None and reading.temp_c is not None
     ):
-        fallback = expected_iv_point(module_sku, reading.irradiance_w_m2, reading.temp_c, modules_per_string)
+        fallback = expected_iv_point(module_sku, reading.irradiance_w_m2, reading.temp_c, modules_per_string, module_fallback)
 
     results: list[IVValidationResult] = []
     for name, measured, modeled, vendor_deviation_pct in checks:
@@ -146,15 +148,18 @@ def check_design_intent_divergence(
     modules_per_string: int,
     current_tolerance_pct: float = 3.0,
     voltage_tolerance_pct: float = 8.0,
+    module_fallback: ModuleSpec | None = None,
 ) -> list[DesignIntentDivergence]:
-    if module_sku not in MODULE_SKUS:
-        raise ValueError(f"Unknown module_sku {module_sku!r} -- not in module_catalog.MODULE_SKUS")
+    try:
+        module_catalog.resolve_module_spec(module_sku, module_fallback)
+    except KeyError:
+        raise ValueError(f"Unknown module_sku {module_sku!r} -- not in module_catalog.MODULE_SKUS and no valid electricals supplied inline")
 
     results: list[DesignIntentDivergence] = []
     for reading in readings:
         if reading.irradiance_w_m2 is None or reading.temp_c is None:
             continue
-        design_point = expected_iv_point(module_sku, reading.irradiance_w_m2, reading.temp_c, modules_per_string)
+        design_point = expected_iv_point(module_sku, reading.irradiance_w_m2, reading.temp_c, modules_per_string, module_fallback)
         checks = [
             ("isc_a", reading.isc_modeled_a, design_point["isc"], current_tolerance_pct),
             ("voc_v", reading.voc_modeled_v, design_point["voc"], voltage_tolerance_pct),
@@ -219,6 +224,7 @@ def build_validation_report(
     module_sku: str | None = None,
     modules_per_string: int | None = None,
     bom: PvcaseBomData | None = None,
+    module_fallback: ModuleSpec | None = None,
 ) -> FlukeValidationReport:
     warnings: list[str] = []
     if not readings:
@@ -226,7 +232,7 @@ def build_validation_report(
 
     divergence: list[DesignIntentDivergence] = []
     if module_sku is not None and modules_per_string is not None:
-        divergence = check_design_intent_divergence(readings, module_sku, modules_per_string)
+        divergence = check_design_intent_divergence(readings, module_sku, modules_per_string, module_fallback=module_fallback)
 
     coverage = check_coverage(readings, bom) if bom is not None else None
     if bom is None:
@@ -234,7 +240,7 @@ def build_validation_report(
 
     return FlukeValidationReport(
         reading_count=len(readings),
-        validation=validate_readings(readings, tolerance_pct, module_sku, modules_per_string),
+        validation=validate_readings(readings, tolerance_pct, module_sku, modules_per_string, module_fallback),
         design_intent_divergence=divergence,
         coverage=coverage,
         warnings=warnings,

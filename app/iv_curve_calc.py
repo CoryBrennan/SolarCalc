@@ -8,11 +8,18 @@ curve-shape translation.
 
 from __future__ import annotations
 
-from app.module_catalog import MODULE_SKUS
+from app import module_catalog
+from app.models import ModuleSpec
 
 
-def expected_iv_point(module_sku: str, irradiance_w_m2: float, cell_temp_c: float, modules_per_string: int) -> dict:
-    module = MODULE_SKUS[module_sku]
+def expected_iv_point(
+    module_sku: str,
+    irradiance_w_m2: float,
+    cell_temp_c: float,
+    modules_per_string: int,
+    module_fallback: ModuleSpec | None = None,
+) -> dict:
+    module = module_catalog.resolve_module_spec(module_sku, module_fallback)
     g = irradiance_w_m2 / 1000
     dt = cell_temp_c - 25
 

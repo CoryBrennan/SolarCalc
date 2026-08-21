@@ -5,9 +5,9 @@ derated per Table 310.15(B)(1) (ambient temperature) and Table 310.15(C)(1)
 
 from __future__ import annotations
 
+from app import module_catalog
 from app.conductor_tables import select_conductor
-from app.models import AmpacityInput, ASHRAESiteData, InverterSpec
-from app.module_catalog import MODULE_SKUS
+from app.models import AmpacityInput, ASHRAESiteData, InverterSpec, ModuleSpec
 
 # Table 310.15(B)(1), ambient in °C, banded by upper bound of each range.
 _TEMP_CORRECTION_75C: list[tuple[float, float]] = [
@@ -50,13 +50,12 @@ def size_conductor(
     inverter: InverterSpec,
     ashrae: ASHRAESiteData,
     ampacity_input: AmpacityInput,
+    module_fallback: ModuleSpec | None = None,
 ) -> dict:
-    module = MODULE_SKUS[module_sku]
-
     if ampacity_input.circuit_type == "dc_source":
-        base_current = module.isc * 1.25
+        base_current = module_catalog.resolve_module_spec(module_sku, module_fallback).isc * 1.25
     elif ampacity_input.circuit_type == "dc_output":
-        base_current = module.isc * 1.25 * ampacity_input.parallel_strings
+        base_current = module_catalog.resolve_module_spec(module_sku, module_fallback).isc * 1.25 * ampacity_input.parallel_strings
     else:  # ac_output
         base_current = inverter.max_output_current_a * 1.25
 

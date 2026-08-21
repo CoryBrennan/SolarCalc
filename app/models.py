@@ -67,6 +67,19 @@ class ModuleSpec(BaseModel):
     max_system_voltage_v: float = 1500
     first_year_degradation_pct: float = 1.0
     annual_degradation_pct: float = 0.4
+    # Used only when sku isn't one of module_catalog.MODULE_SKUS's small
+    # hardcoded set -- lets a manually-entered or datasheet-approved module
+    # (the HMI's MODULE_SKUS, never added to the Python catalog) still
+    # resolve to real electricals instead of a hard 422. See
+    # module_catalog.resolve_module_spec().
+    pmax: float = 0
+    voc: float = 0
+    vmp: float = 0
+    isc: float = 0
+    imp: float = 0
+    bifacial_pmax: float = 0
+    temp_coeff_voc_pct_per_c: float = -0.24
+    temp_coeff_isc_pct_per_c: float = 0.04
 
 
 class InverterSpec(BaseModel):

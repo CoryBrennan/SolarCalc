@@ -202,6 +202,44 @@ def test_calculate_rejects_unknown_module_sku():
     assert response.status_code == 422
 
 
+def test_calculate_accepts_a_custom_module_sku_with_inline_electricals():
+    """A module the HMI's Module Spec panel added by hand or approved from a
+    datasheet has a SKU never in module_catalog.MODULE_SKUS -- as long as the
+    request supplies real electricals inline, it should resolve instead of
+    422ing (module_catalog.resolve_module_spec)."""
+    response = client.post(
+        "/calculate",
+        json={
+            "module": {
+                "sku": "doc-42", "manufacturer": "TestCo", "quantity": 100,
+                "pmax": 500, "voc": 45.0, "vmp": 38.0, "isc": 14.0, "imp": 13.2,
+                "bifacial_pmax": 550, "temp_coeff_voc_pct_per_c": -0.3, "temp_coeff_isc_pct_per_c": 0.05,
+            },
+            "combiner_rows": [{"inputs": 2, "bus_rating_a": 200, "module_sku": "doc-42"}],
+        },
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["site"]["actual_dc_capacity_w"] == 500 * 100
+    assert body["combiners"]["rows"][0]["module_sku"] == "doc-42"
+
+
+def test_calculate_rejects_combiner_row_referencing_a_different_unknown_sku():
+    """The fallback only ever substitutes the *main* module's electricals --
+    a combiner row pointing at some other, genuinely unknown SKU must still
+    422 rather than silently borrowing the wrong module's data."""
+    response = client.post(
+        "/calculate",
+        json={
+            "module": {
+                "sku": "doc-42", "pmax": 500, "voc": 45.0, "vmp": 38.0, "isc": 14.0, "imp": 13.2,
+            },
+            "combiner_rows": [{"inputs": 2, "bus_rating_a": 200, "module_sku": "doc-99"}],
+        },
+    )
+    assert response.status_code == 422
+
+
 def test_calculate_switchboard_passes_when_topology_is_direct():
     """When the inverter takes PV source circuits directly (no combiner), the
     combiner-derived backfed load shouldn't apply — this project's switchboard
