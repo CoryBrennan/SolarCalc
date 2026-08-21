@@ -1208,12 +1208,22 @@
 
         <div class="card">
           <p class="card-title">String length by module</p>
-          <p class="desc" style="margin-bottom:14px;">Every module in the Module Spec list against the currently selected inverter, so a module can be chosen on what it does to the string rather than on wattage alone. The row for the selected module is highlighted.</p>
+          <p class="desc" style="margin-bottom:14px;">Every module in the Module Spec list against the currently selected inverter, so a module can be chosen on what it does to the string rather than on wattage alone. Max system voltage is each module's own value from Module Spec (05) — typically 1000 VDC or 1500 VDC depending on how the module is listed (UL/IEC) — not something set on this panel.</p>
+
+          <div class="computed-row" style="margin-bottom:16px;">
+            <div class="computed" style="grid-column: 1 / -1;">
+              <div class="k">Module in use for this design</div>
+              <div class="v" id="moduleInUseName" style="font-size:19px;">—</div>
+              <p class="desc" id="moduleInUseDetail" style="margin-top:6px;">—</p>
+            </div>
+          </div>
+
           <div style="overflow-x:auto;">
             <table class="etap">
               <thead>
                 <tr>
                   <th>Module</th><th style="text-align:right;">P<sub>max</sub> (W)</th>
+                  <th style="text-align:right;">Max system V</th>
                   <th style="text-align:right;">Min length</th><th style="text-align:right;">Max length</th>
                   <th style="text-align:right;">Recommended</th><th style="text-align:right;">MPPT life (yr)</th>
                   <th style="text-align:right;">String V<sub>oc</sub> cold (V)</th><th style="text-align:right;">String kW</th>
@@ -1228,8 +1238,20 @@
 
         <div class="card">
           <p class="card-title">String length range — max system voltage &amp; MPPT window</p>
-          <p class="desc" style="margin-bottom:14px;">Details the module currently selected on Module Spec — click <b>Use this</b> in the table above to detail a different one. For each candidate string length (modules in series): V<sub>oc</sub> at ASHRAE extreme low (cold — must clear both the module's max system voltage and the inverter's MPPT max) and V<sub>mp</sub> at ASHRAE average high (hot — must not sag below the inverter's MPPT min). MPPT life is how many years the hot string V<sub>mp</sub> stays above the MPPT minimum once module degradation (first-year, then annual, both from the module) and the Total DC voltage drop limit are applied — a length is only recommended at <span class="mono">&ge; 15</span> years. Tick the lengths this design will actually use.</p>
+          <p class="desc" style="margin-bottom:14px;">Details the module currently selected on Module Spec — click <b>Use this</b> in the table above to detail a different one. For each candidate string length (modules in series): V<sub>oc</sub> at ASHRAE extreme low (cold — must clear both the module's max system voltage and the inverter's MPPT max) and V<sub>mp</sub> at ASHRAE average high (hot — must not sag below the inverter's MPPT min). MPPT life is how many years the hot string V<sub>mp</sub> stays above the MPPT minimum once module degradation (first-year, then annual, both from the module) and the expected DC voltage drop below are applied — a length is only recommended at <span class="mono">&ge; 15</span> years. Tick the lengths this design will actually use.</p>
+
+          <div class="field-grid" style="margin-bottom:14px;">
+            <div class="field">
+              <label for="stringPredesignVdrop">Pre-design DC voltage drop (expected) <span class="unit">%</span></label>
+              <input type="text" id="stringPredesignVdrop" placeholder="blank = use Voltage Drop Limits (17)">
+            </div>
+          </div>
+          <p class="desc" id="stringPredesignVdropNote" style="margin-bottom:14px;">—</p>
+
           <div class="computed-row">
+            <div class="computed"><div class="k">Module max system voltage</div><div class="v" id="stringMaxSystemV">—<small> VDC</small></div></div>
+            <div class="computed"><div class="k">Module first-year degradation</div><div class="v" id="stringFirstYearDeg">—<small> %</small></div></div>
+            <div class="computed"><div class="k">Module annual degradation</div><div class="v" id="stringAnnualDeg">—<small> % / yr</small></div></div>
             <div class="computed"><div class="k">Min string length</div><div class="v" id="stringLenMin">—<small> modules</small></div></div>
             <div class="computed"><div class="k">Max string length</div><div class="v" id="stringLenMax">—<small> modules</small></div></div>
             <div class="computed"><div class="k">Recommended</div><div class="v" id="stringLenRecommended" style="font-size:20px;">—<small> modules</small></div></div>
@@ -6744,14 +6766,23 @@
     const maxLen = vocPerModuleCold > 0 ? Math.floor(voltageCeiling / vocPerModuleCold) : 0;
     const minLen = vmpPerModuleHot > 0 ? Math.ceil(mpptVMin / vmpPerModuleHot) : 0;
 
-    const vDropFrac = parseNum(document.getElementById('vdTotalDc').value) / 100;
+    // The MPPT-life calc needs an *expected* DC voltage drop, not the Voltage
+    // Drop Limits (17) ceiling those conductors are only later designed to meet
+    // -- at this stage nothing has been sized yet. Absent a typed override, the
+    // Total DC limit is the best available stand-in (a string that clears its
+    // own limit can't be doing worse than this), so it stays the fallback.
+    const predesignRaw = document.getElementById('stringPredesignVdrop').value.trim();
+    const predesignPct = predesignRaw === '' ? null : parseNum(predesignRaw);
+    const vDropIsOverride = predesignPct !== null && Number.isFinite(predesignPct);
+    const vDropPct = vDropIsOverride ? predesignPct : parseNum(document.getElementById('vdTotalDc').value);
+    const vDropFrac = vDropPct / 100;
     const firstYearDegFrac = d.firstYearDeg / 100;
     const annualDegFrac = d.annualDeg / 100;
 
     return {
       module: d, pmax: d.pmax,
       vocPerModuleCold, vmpPerModuleHot, maxSystemV, mpptVMin, mpptVMax, minLen, maxLen,
-      vDropFrac, firstYearDegFrac, annualDegFrac,
+      vDropFrac, vDropPct, vDropIsOverride, firstYearDegFrac, annualDegFrac,
     };
   }
 
@@ -6829,10 +6860,10 @@
       const valid = r && r.maxLen >= r.minLen && r.minLen > 0;
       if (valid) anyValid = true;
       const life = rec === null ? null : mpptLifeYears(rec, r);
-      const isSelected = k === modSku.value;
-      return '<tr' + (isSelected ? ' class="poi-row"' : '') + '>' +
+      return '<tr>' +
         '<td>' + escapeText(moduleLabel(k)) + '</td>' +
         '<td style="text-align:right;">' + r.pmax + '</td>' +
+        '<td style="text-align:right;">' + r.maxSystemV + '</td>' +
         '<td style="text-align:right;">' + (valid ? r.minLen : '—') + '</td>' +
         '<td style="text-align:right;">' + (valid ? r.maxLen : '—') + '</td>' +
         '<td style="text-align:right; color:' + (rec === null ? 'var(--fail)' : 'var(--pass)') + ';">' +
@@ -6840,14 +6871,14 @@
         '<td style="text-align:right;">' + (life === null ? '—' : (Number.isFinite(life) ? life.toFixed(1) : '∞')) + '</td>' +
         '<td style="text-align:right;">' + (rec === null ? '—' : (r.vocPerModuleCold * rec).toFixed(1)) + '</td>' +
         '<td style="text-align:right;">' + (rec === null ? '—' : ((rec * r.pmax) / 1000).toFixed(2)) + '</td>' +
-        '<td>' + (isSelected ? '<span class="chip chip-pass">In use</span>'
-          : '<button type="button" class="contact-remove" data-use-module="' + escapeAttr(k) + '">Use this</button>') + '</td>' +
+        '<td><button type="button" class="contact-remove" data-use-module="' + escapeAttr(k) + '">Use this</button></td>' +
       '</tr>';
     }).join('');
     const hint = document.getElementById('moduleRangeHint');
     hint.textContent = anyValid
       ? 'Computed against the inverter selected on Inverter Spec and the ASHRAE design temperatures. A dash means no length in the range clears both the cold-Voc ceiling and the MPPT floor.'
       : 'No module in the catalog produces a valid string length against the current inverter and design temperatures — check the MPPT window and the ASHRAE temperatures.';
+    renderModuleInUseBox();
   }
   document.getElementById('moduleRangeBody').addEventListener('click', e => {
     const key = e.target.dataset.useModule;
@@ -6855,6 +6886,29 @@
     modSku.value = key;
     applyModuleSku();
   });
+
+  // Pulled out of the table into its own highlighted block so the module this
+  // design is actually built around isn't just a highlighted row to spot in a
+  // long comparison table -- "Use this" above still switches it.
+  function renderModuleInUseBox() {
+    const nameEl = document.getElementById('moduleInUseName');
+    const detailEl = document.getElementById('moduleInUseDetail');
+    const d = MODULE_SKUS[modSku.value];
+    if (!d) {
+      nameEl.textContent = 'No module selected';
+      detailEl.textContent = 'Add or select a module on Module Spec (05), or click Use this on a row below, to design strings around it.';
+      return;
+    }
+    const r = computeStringLengthRange(modSku.value);
+    const rec = r ? recommendedLengthFor(r) : null;
+    const life = (r && rec !== null) ? mpptLifeYears(rec, r) : null;
+    nameEl.textContent = moduleLabel(modSku.value);
+    detailEl.textContent = r
+      ? 'Pmax ' + r.pmax + ' W · Max system voltage ' + r.maxSystemV + ' VDC · Recommended string length ' +
+        (rec === null ? 'none in range' : rec + ' modules') +
+        (life === null ? '' : ' · MPPT life ' + (Number.isFinite(life) ? life.toFixed(1) : '∞') + ' yr')
+      : 'Not enough data yet to compute a string length range for this module.';
+  }
 
   function recomputeStringLength() {
     renderModuleRangeSummary();
@@ -6867,6 +6921,13 @@
     document.getElementById('stringRangeNote').innerHTML =
       'Detailing <b>' + escapeText(moduleLabel(modSku.value)) + '</b>, the module selected on Module Spec.';
     const valid = r.maxLen >= r.minLen && r.minLen > 0;
+
+    document.getElementById('stringMaxSystemV').innerHTML = r.maxSystemV + '<small> VDC</small>';
+    document.getElementById('stringFirstYearDeg').innerHTML = (r.firstYearDegFrac * 100).toFixed(2) + '<small> %</small>';
+    document.getElementById('stringAnnualDeg').innerHTML = (r.annualDegFrac * 100).toFixed(2) + '<small> % / yr</small>';
+    document.getElementById('stringPredesignVdropNote').textContent = r.vDropIsOverride
+      ? 'Using the ' + r.vDropPct.toFixed(2) + '% typed in above for the MPPT-life calculation below, instead of the Voltage Drop Limits (17) Total DC limit.'
+      : 'No override typed in above — MPPT life below uses the ' + r.vDropPct.toFixed(2) + '% Total DC limit from Voltage Drop Limits (17) as the expected pre-design voltage drop.';
 
     document.getElementById('stringLenMin').innerHTML = r.minLen + '<small> modules</small>';
     document.getElementById('stringLenMax').innerHTML = r.maxLen + '<small> modules</small>';
@@ -6931,7 +6992,7 @@
 
   [document.getElementById('ashraeMinTemp'), document.getElementById('ashraeAvgHighTemp'),
    document.getElementById('invMpptVMin'), document.getElementById('invMpptVMax'),
-   document.getElementById('vdTotalDc'), targetDc]
+   document.getElementById('vdTotalDc'), document.getElementById('stringPredesignVdrop'), targetDc]
     .forEach(el => el.addEventListener('input', recomputeStringLength));
   recomputeStringLength();
 
