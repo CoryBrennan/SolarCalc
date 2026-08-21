@@ -128,6 +128,19 @@ def test_calculate_default_project_matches_browser_verified_numbers():
     assert body["site"]["calculated_dc_ac_ratio"] == 1.3
     assert body["site"]["actual_dc_capacity_w"] == 6_814_800
     assert body["site"]["actual_ac_capacity_w"] == 5_250_000
+    assert body["site"]["storage_target_wh"] == 0
+    assert body["site"]["other_generation_target_w"] == 0
+
+
+def test_calculate_passes_storage_and_other_generation_targets_through():
+    response = client.post(
+        "/calculate",
+        json={"site": {"storage_target_wh": 2_000_000, "other_generation_target_w": 500_000}},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["site"]["storage_target_wh"] == 2_000_000
+    assert body["site"]["other_generation_target_w"] == 500_000
 
 
 def test_calculate_rejects_unknown_module_sku():

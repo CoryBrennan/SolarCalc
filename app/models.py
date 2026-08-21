@@ -44,6 +44,13 @@ class SiteConfig(BaseModel):
     # are derived from.
     target_ac_capacity_w: float = 5_000_000
     target_dc_capacity_w: float = 6_500_000
+    # Same "design goal, not as-built" treatment as the two above — only
+    # meaningful for project types with a storage or non-PV generation
+    # component (Solar+Storage, Storage Only, Microgrid on the HMI side);
+    # 0 for a plain PV project rather than None, since nothing downstream
+    # branches on "not applicable" vs. "not sized yet."
+    storage_target_wh: float = 0
+    other_generation_target_w: float = 0
 
     @property
     def calculated_dc_ac_ratio(self) -> float:

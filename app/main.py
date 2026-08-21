@@ -269,6 +269,8 @@ def calculate(project: ProjectInput) -> dict:
             "target_ac_capacity_w": site.target_ac_capacity_w,
             "target_dc_capacity_w": site.target_dc_capacity_w,
             "calculated_dc_ac_ratio": round(site.calculated_dc_ac_ratio, 4),
+            "storage_target_wh": site.storage_target_wh,
+            "other_generation_target_w": site.other_generation_target_w,
             "actual_dc_capacity_w": round(actual_dc_w, 2),
             "actual_ac_capacity_w": round(actual_ac_w, 2),
         },
