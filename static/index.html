@@ -1020,61 +1020,59 @@
             <p class="eyebrow">models.py → ModuleSpec</p>
             <h2>Module Spec</h2>
           </div>
-          <span class="chip chip-pass">Extracted from datasheet</span>
+          <span class="chip chip-warn" id="modStatusChip">No module added yet</span>
         </div>
-        <p class="desc">STC electrical characteristics used by <span class="mono">voltage_calc.py</span> and <span class="mono">ampacity_calc.py</span>. Every module in the dropdown below — the five ReneSola RS9 SKUs and anything added since — comes from a datasheet dropped in Document tracking: drop it, review what got extracted, approve it, and it joins the list. There is no manual entry form; if a value is wrong, fix it on the datasheet's review card and re-approve, or archive the document to remove the module it produced.</p>
-
-        <div class="card">
-          <p class="card-title">Document tracking</p>
-          <div class="dropzone" id="modDocDropzone" tabindex="0" role="button" aria-label="Upload module documents">
-            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
-              <path d="M12 3v12m0-12 4 4m-4-4-4 4"/>
-              <path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/>
-            </svg>
-            <div class="cta">Drop a module datasheet PDF here, or click to browse</div>
-            <div class="sub">Module datasheet (adds it to the module list once approved) · Installation Manual · Warranty · PVSyst .PAN File · Quote · Other Uploads (e.g. Wind Rating documents, Flash Test data)</div>
-            <input type="file" id="modDocInput" accept="application/pdf" multiple style="display:none;">
-          </div>
-          <table class="manifest" style="margin-top:14px;">
-            <thead><tr><th>File</th><th>Detected type</th><th>Status</th><th></th></tr></thead>
-            <tbody id="modDocManifestBody"><tr class="empty"><td colspan="4">No documents uploaded yet</td></tr></tbody>
-          </table>
-        </div>
+        <p class="desc">STC electrical characteristics used by <span class="mono">voltage_calc.py</span> and <span class="mono">ampacity_calc.py</span>. There's no built-in parts list to pick from — every module here comes from the project itself: type one in by hand below, or upload and approve a datasheet on Document Intake (18). Either way, every field on this panel stays directly editable afterwards.</p>
 
         <div class="card">
           <p class="card-title">Nameplate (STC)</p>
           <div class="field-grid">
             <div class="field wide">
               <label for="modSku">Module <span class="unit">manufacturer · model · wattage</span></label>
-              <select id="modSku"></select>
+              <select id="modSku"><option value="">— no module added yet —</option></select>
             </div>
-            <div class="field"><label>P<sub>max</sub> <span class="unit">W</span></label><input type="text" id="modPmax" readonly></div>
-            <div class="field"><label>V<sub>oc</sub> <span class="unit">V</span></label><input type="text" id="modVoc" readonly></div>
-            <div class="field"><label>V<sub>mp</sub> <span class="unit">V</span></label><input type="text" id="modVmp" readonly></div>
-            <div class="field"><label>I<sub>sc</sub> <span class="unit">A</span></label><input type="text" id="modIsc" readonly></div>
-            <div class="field"><label>I<sub>mp</sub> <span class="unit">A</span></label><input type="text" id="modImp" readonly></div>
-            <div class="field"><label for="modTempCoeffVoc">Temp coeff. V<sub>oc</sub> <span class="unit">%/°C</span></label><input type="text" id="modTempCoeffVoc" readonly></div>
-            <div class="field"><label for="modTempCoeffIsc">Temp coeff. I<sub>sc</sub> <span class="unit">%/°C</span></label><input type="text" id="modTempCoeffIsc" readonly></div>
-            <div class="field"><label for="modMaxSystemVoltage">Max system voltage <span class="unit">V</span></label><input type="text" id="modMaxSystemVoltage" readonly></div>
-            <div class="field"><label for="modMaxFuse">Max series fuse rating <span class="unit">A</span></label><input type="text" id="modMaxFuse" readonly></div>
-            <div class="field"><label for="modFirstYearDegradation">First-year degradation <span class="unit">%</span></label><input type="text" id="modFirstYearDegradation" readonly></div>
-            <div class="field"><label for="modAnnualDegradation">Annual degradation <span class="unit">%/yr</span></label><input type="text" id="modAnnualDegradation" readonly></div>
+            <div class="field wide" style="flex-direction: row; align-items: flex-end; gap: 10px;">
+              <div class="field" style="flex:1;"><label for="modNewManufacturer">New module — manufacturer</label><input class="prose" type="text" id="modNewManufacturer" placeholder="e.g. Azimuth Solar"></div>
+              <div class="field" style="flex:1;"><label for="modNewModel">New module — model</label><input class="prose" type="text" id="modNewModel" placeholder="e.g. AZ-620"></div>
+              <button class="btn" id="modAddManualBtn" type="button" style="flex:0 0 auto;">+ Add module</button>
+            </div>
+            <p class="desc" id="modAddManualStatus" style="grid-column:1/-1; margin:-4px 0 0;"></p>
+            <div class="field"><label>P<sub>max</sub> <span class="unit">W</span></label><input type="text" id="modPmax"></div>
+            <div class="field"><label>V<sub>oc</sub> <span class="unit">V</span></label><input type="text" id="modVoc"></div>
+            <div class="field"><label>V<sub>mp</sub> <span class="unit">V</span></label><input type="text" id="modVmp"></div>
+            <div class="field"><label>I<sub>sc</sub> <span class="unit">A</span></label><input type="text" id="modIsc"></div>
+            <div class="field"><label>I<sub>mp</sub> <span class="unit">A</span></label><input type="text" id="modImp"></div>
+            <div class="field"><label for="modTempCoeffVoc">Temp coeff. V<sub>oc</sub> <span class="unit">%/°C</span></label><input type="text" id="modTempCoeffVoc"></div>
+            <div class="field"><label for="modTempCoeffIsc">Temp coeff. I<sub>sc</sub> <span class="unit">%/°C</span></label><input type="text" id="modTempCoeffIsc"></div>
+            <div class="field"><label for="modMaxSystemVoltage">Max system voltage <span class="unit">V</span></label><input type="text" id="modMaxSystemVoltage"></div>
+            <div class="field"><label for="modMaxFuse">Max series fuse rating <span class="unit">A</span></label><input type="text" id="modMaxFuse"></div>
+            <div class="field"><label for="modFirstYearDegradation">First-year degradation <span class="unit">%</span></label><input type="text" id="modFirstYearDegradation"></div>
+            <div class="field"><label for="modAnnualDegradation">Annual degradation <span class="unit">%/yr</span></label><input type="text" id="modAnnualDegradation"></div>
           </div>
           <p class="desc" id="modSourceNote" style="margin-top:12px;">—</p>
         </div>
 
         <div class="card">
-          <p class="card-title">Mechanical <span class="unit">reference only — not in ModuleSpec</span></p>
+          <p class="card-title">Mechanical &amp; cabling <span class="unit">reference only — not in ModuleSpec</span></p>
           <div class="field-grid">
             <div class="field wide" style="flex-direction: row; align-items: center; gap: 16px;">
               <label style="display:flex; align-items:center; gap:6px; justify-content:flex-start;"><input type="radio" name="modUnitSystem" id="modUnitMetric" value="metric" checked style="width:auto;"> Metric</label>
               <label style="display:flex; align-items:center; gap:6px; justify-content:flex-start;"><input type="radio" name="modUnitSystem" id="modUnitImperial" value="imperial" style="width:auto;"> Imperial</label>
             </div>
-            <div class="field wide"><label>Cell type</label><input class="prose" type="text" id="modCellType" readonly></div>
-            <div class="field"><label>Dimensions</label><input class="prose" type="text" id="modDimensions" readonly></div>
-            <div class="field"><label>Weight <span class="unit" id="modWeightUnit">kg</span></label><input type="text" id="modWeight" readonly></div>
-            <div class="field"><label>Bifacial (+10% rear) P<sub>max</sub> <span class="unit">W</span></label><input type="text" id="modBifacial" readonly></div>
+            <div class="field wide"><label>Cell type</label><input class="prose" type="text" id="modCellType"></div>
+            <div class="field"><label>Dimensions <span class="unit">H × W × D, <span id="modDimensionsUnit">mm</span></span></label><input class="prose" type="text" id="modDimensions" placeholder="e.g. 2384 × 1303 × 33"></div>
+            <div class="field"><label>Weight <span class="unit" id="modWeightUnit">kg</span></label><input type="text" id="modWeight"></div>
+            <div class="field"><label>Bifacial rear P<sub>max</sub> <span class="unit">W</span></label><input type="text" id="modBifacial"></div>
+            <div class="field"><label>Wire whip length <span class="unit" id="modWhipLengthUnit">mm</span></label><input type="text" id="modWhipLength" placeholder="e.g. 1200"></div>
+            <div class="field wide"><label>End connector type</label><input class="prose" type="text" id="modConnectorType" placeholder="e.g. MC4"></div>
+            <div class="field wide"><label>Junction box location</label><input class="prose" type="text" id="modJboxLocation" placeholder="e.g. rear, center"></div>
           </div>
+        </div>
+
+        <div class="card">
+          <p class="card-title">Module diagram <span class="unit">illustrative — proportions are approximate</span></p>
+          <p class="desc" id="modDiagramNote" style="margin-bottom:14px;">Select or add a module to see its dimensions.</p>
+          <div id="modDiagramWrap" style="display:flex; justify-content:center;"></div>
         </div>
 
       </section>
@@ -2269,6 +2267,38 @@
               <span id="logoFileMeta"></span>
             </div>
           </div>
+        </div>
+
+        <div class="card">
+          <p class="card-title">Module documents <span class="unit">Module Spec (05)</span></p>
+          <p class="desc" style="margin-bottom:14px;">A datasheet upload is reviewed and approved into the module list on Module Spec; the rest are just tracked here. Every module's electrical/mechanical values stay directly editable on Module Spec regardless of source.</p>
+          <div id="modDocChecklist" style="margin-bottom:14px;"></div>
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button class="btn" type="button" id="modDocDatasheetBtn">Upload datasheet →</button>
+            <button class="btn btn-quiet" type="button" id="modDocManualBtn">Upload install manual →</button>
+            <button class="btn btn-quiet" type="button" id="modDocWarrantyBtn">Upload warranty →</button>
+            <button class="btn btn-quiet" type="button" id="modDocPanBtn">Upload .PAN file →</button>
+            <button class="btn btn-quiet" type="button" id="modDocQuoteBtn">Upload quote →</button>
+          </div>
+          <input type="file" id="modDocDatasheetInput" accept="application/pdf" style="display:none;">
+          <input type="file" id="modDocManualInput" style="display:none;">
+          <input type="file" id="modDocWarrantyInput" style="display:none;">
+          <input type="file" id="modDocPanInput" style="display:none;">
+          <input type="file" id="modDocQuoteInput" style="display:none;">
+
+          <div class="dropzone" id="modDocDropzone" tabindex="0" role="button" aria-label="Upload other module documents" style="margin-top:14px;">
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
+              <path d="M12 3v12m0-12 4 4m-4-4-4 4"/>
+              <path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/>
+            </svg>
+            <div class="cta">Drop other module documents here, or click to browse</div>
+            <div class="sub">Anything not covered by the buttons above — e.g. Wind Rating documents, Flash Test data</div>
+            <input type="file" id="modDocInput" multiple style="display:none;">
+          </div>
+          <table class="manifest" style="margin-top:14px;">
+            <thead><tr><th>File</th><th>Detected type</th><th>Status</th><th></th></tr></thead>
+            <tbody id="modDocManifestBody"><tr class="empty"><td colspan="4">No documents uploaded yet</td></tr></tbody>
+          </table>
         </div>
 
         <div class="card">
@@ -4292,43 +4322,10 @@
   // ETAP/switchboard code, and calling it this early would hit those before they exist.
 
   // ---- module catalog ----
-  // One dropdown holds every module the design might use, whatever the
-  // manufacturer. The five ReneSola entries keep the ids the Python
-  // module_catalog uses ('700'…'720') so Backend Verification keeps comparing
-  // like for like; anything added from another datasheet gets its own id and
-  // is frontend-only until it is added to app/module_catalog.py as well.
-  const BACKEND_MODULE_SKUS = ['700', '705', '710', '715', '720'];
-  const RENESOLA_SOURCE = 'ReneSola RS9-700~720NBG-E1 2384+1303+33.pdf';
-  function reneSola(pmax, voc, vmp, isc, imp, bifacial) {
-    return {
-      manufacturer: 'ReneSola', model: 'RS9-' + pmax + 'NBG-E1',
-      pmax: pmax, voc: voc, vmp: vmp, isc: isc, imp: imp, bifacial: bifacial,
-      tempCoeffVoc: -0.24, tempCoeffIsc: 0.04, maxSystemV: 1500, maxFuse: 35,
-      firstYearDeg: 1.0, annualDeg: 0.4,
-      cellType: 'Mono N-Type, 132 (6×22) half-cut',
-      dimensionsMm: [2384, 1303, 33], weightKg: 38.7, source: RENESOLA_SOURCE,
-    };
-  }
-  let MODULE_SKUS = {
-    '700': reneSola(700, 48.60, 40.50, 18.32, 17.29, 770),
-    '705': reneSola(705, 48.80, 40.70, 18.36, 17.33, 776),
-    '710': reneSola(710, 49.00, 40.90, 18.40, 17.36, 781),
-    '715': reneSola(715, 49.20, 41.10, 18.44, 17.40, 787),
-    '720': reneSola(720, 49.40, 41.30, 18.49, 17.44, 792),
-    // Real values from the Encore Brighton project's own .pvapx files
-    // (2026-08-10) -- see module_catalog.py's matching backend entry.
-    // bifacial/dimensionsMm/weightKg/cellType/maxFuse aren't in that
-    // source, so they're left as reasonable placeholders, not real
-    // datasheet values -- confirm before relying on them.
-    'ZXM7-UHLDD144': {
-      manufacturer: 'Znshine PV-Tech', model: 'ZXM7-UHLDD144',
-      pmax: 580, voc: 51.5, vmp: 42.8, isc: 14.35, imp: 13.56, bifacial: 580,
-      tempCoeffVoc: -0.25, tempCoeffIsc: 0.04, maxSystemV: 1500, maxFuse: 35,
-      firstYearDeg: 1.0, annualDeg: 0.4,
-      cellType: '(not in source data)',
-      dimensionsMm: [0, 0, 0], weightKg: 0, source: 'solar_calc_engine verification, 2026-08-10 (see module_catalog.py)',
-    },
-  };
+  // Starts empty on purpose -- no pre-seeded manufacturer parts. Every entry
+  // has to come from the engineer, either typed in directly ("+ Add module
+  // manually" below) or approved from a datasheet on Document Intake (18).
+  let MODULE_SKUS = {};
   // The manufacturer is part of the module's identity now, not a separate
   // field that could disagree with the model beside it.
   function moduleLabel(key) {
@@ -4342,14 +4339,26 @@
     const keep = modSku.value;
     modSku.innerHTML = Object.keys(MODULE_SKUS).map(k =>
       '<option value="' + escapeAttr(k) + '">' + escapeText(moduleLabel(k)) + '</option>').join('');
-    if (MODULE_SKUS[keep]) modSku.value = keep;
-    else if (MODULE_SKUS['720']) modSku.value = '720';
+    if (MODULE_SKUS[keep]) { modSku.value = keep; return; }
+    const firstKey = Object.keys(MODULE_SKUS)[0];
+    modSku.value = firstKey || '';
   }
 
   function applyModuleSku() {
     const d = MODULE_SKUS[modSku.value];
-    if (!d) return;
-    const set = (id, v) => { document.getElementById(id).value = v; };
+    const set = (id, v) => { document.getElementById(id).value = (v === null || v === undefined) ? '' : v; };
+    const chip = document.getElementById('modStatusChip');
+    if (!d) {
+      ['modPmax', 'modVoc', 'modVmp', 'modIsc', 'modImp', 'modBifacial', 'modTempCoeffVoc', 'modTempCoeffIsc',
+        'modMaxSystemVoltage', 'modMaxFuse', 'modFirstYearDegradation', 'modAnnualDegradation', 'modCellType']
+        .forEach(id => set(id, ''));
+      document.getElementById('modSourceNote').textContent = 'No module added yet — type one in above, or approve a datasheet on Document Intake (18).';
+      chip.textContent = 'No module added yet';
+      chip.className = 'chip chip-warn';
+      applyModuleMechanicalUnits();
+      renderModuleDiagram();
+      return;
+    }
     set('modPmax', d.pmax);
     set('modVoc', d.voc.toFixed(2));
     set('modVmp', d.vmp.toFixed(2));
@@ -4362,17 +4371,20 @@
     set('modMaxFuse', d.maxFuse);
     set('modFirstYearDegradation', d.firstYearDeg);
     set('modAnnualDegradation', d.annualDeg);
-    set('modCellType', d.cellType || '—');
+    set('modCellType', d.cellType || '');
     document.getElementById('modSourceNote').innerHTML = d.source
-      ? 'Source: <span class="mono">' + escapeText(d.source) + '</span>. Every field here is derived from the module above — pick the datasheet variant actually being installed rather than editing values in place.'
-      : 'Added by hand — no datasheet on file. Every field here is derived from the module above.';
+      ? 'Source: <span class="mono">' + escapeText(d.source) + '</span>. Every field above is directly editable — fix a value here rather than going back to the datasheet review.'
+      : 'Added by hand — no datasheet on file. Every field above is directly editable.';
+    chip.textContent = d.source ? 'From datasheet' : 'Added manually';
+    chip.className = 'chip chip-pass';
     // Voc/Vmp temperature scaling is the module's own coefficient, so it moves
     // with the selection rather than staying pinned to one datasheet.
     TEMP_COEFF_VOC = d.tempCoeffVoc;
     MODULE_W = d.pmax;
     applyModuleMechanicalUnits();
-    // readonly inputs never fire input events of their own, but the fuse rating
-    // drives the combiner and per-string OCPD calcs downstream.
+    renderModuleDiagram();
+    // These inputs are directly editable now but selecting a *different*
+    // module still has to push its fuse rating into the combiner/OCPD calcs.
     document.getElementById('modMaxFuse').dispatchEvent(new Event('input', { bubbles: true }));
     // Every one of these is a hoisted function declaration, so `typeof` says
     // "function" even before the consts they read are initialized — the flag is
@@ -4387,36 +4399,169 @@
   }
   modSku.addEventListener('change', applyModuleSku);
 
+  // Every Nameplate/Mechanical field on this panel writes straight back into
+  // the selected MODULE_SKUS entry -- whether it arrived from a datasheet
+  // approval or "+ Add module manually", every value stays editable here
+  // afterwards rather than only being settable once at creation time.
+  function commitModuleEdit() {
+    const key = modSku.value;
+    const d = MODULE_SKUS[key];
+    if (!d) return;
+    const num = id => { const n = parseFloat(document.getElementById(id).value); return Number.isFinite(n) ? n : 0; };
+    d.pmax = num('modPmax'); d.voc = num('modVoc'); d.vmp = num('modVmp');
+    d.isc = num('modIsc'); d.imp = num('modImp'); d.bifacial = num('modBifacial');
+    d.tempCoeffVoc = num('modTempCoeffVoc'); d.tempCoeffIsc = num('modTempCoeffIsc');
+    d.maxSystemV = num('modMaxSystemVoltage'); d.maxFuse = num('modMaxFuse');
+    d.firstYearDeg = num('modFirstYearDegradation'); d.annualDeg = num('modAnnualDegradation');
+    d.cellType = document.getElementById('modCellType').value;
+    d.connectorType = document.getElementById('modConnectorType').value;
+    d.jboxLocation = document.getElementById('modJboxLocation').value;
+
+    const checked = document.querySelector('input[name="modUnitSystem"]:checked');
+    const imperial = checked && checked.value === 'imperial';
+    const dimsNums = document.getElementById('modDimensions').value.split(/[×x,]/).map(t => parseFloat(t.trim())).filter(Number.isFinite);
+    if (dimsNums.length === 3) d.dimensionsMm = imperial ? dimsNums.map(v => v * 25.4) : dimsNums;
+    const weightVal = parseFloat(document.getElementById('modWeight').value);
+    d.weightKg = Number.isFinite(weightVal) ? (imperial ? weightVal / 2.20462 : weightVal) : null;
+    const whipVal = parseFloat(document.getElementById('modWhipLength').value);
+    d.whipLengthMm = Number.isFinite(whipVal) ? (imperial ? whipVal * 25.4 : whipVal) : null;
+
+    TEMP_COEFF_VOC = d.tempCoeffVoc;
+    MODULE_W = d.pmax;
+    refreshModuleSkuOptions(); // the dropdown label includes pmax, which may have just changed
+    renderModuleDiagram();
+    if (!moduleCascadeReady) return;
+    recompute();
+    ivRecomputeExpected();
+    combinerRecompute();
+    ampacityRecompute();
+    ocpdSyncDefault();
+    recomputeStringLength();
+  }
+  [
+    'modPmax', 'modVoc', 'modVmp', 'modIsc', 'modImp', 'modBifacial', 'modTempCoeffVoc', 'modTempCoeffIsc',
+    'modMaxSystemVoltage', 'modMaxFuse', 'modFirstYearDegradation', 'modAnnualDegradation', 'modCellType',
+    'modDimensions', 'modWeight', 'modWhipLength', 'modConnectorType', 'modJboxLocation',
+  ].forEach(id => document.getElementById(id).addEventListener('input', commitModuleEdit));
+
+  // ---- + Add module manually: no datasheet required, no default parts list
+  // to pick from -- this is the only other way (besides Document Intake's
+  // datasheet approval) a module gets into MODULE_SKUS. ----
+  let manualModuleSeq = 0;
+  document.getElementById('modAddManualBtn').addEventListener('click', () => {
+    const manufacturer = document.getElementById('modNewManufacturer').value.trim();
+    const model = document.getElementById('modNewModel').value.trim();
+    const statusEl = document.getElementById('modAddManualStatus');
+    if (!manufacturer || !model) {
+      statusEl.textContent = 'Manufacturer and model are both needed — they are what the module is called in the list.';
+      return;
+    }
+    manualModuleSeq++;
+    let key = (manufacturer + '-' + model).replace(/\s+/g, '_').replace(/[^A-Za-z0-9_-]/g, '');
+    if (!key || MODULE_SKUS[key]) key = (key || 'module') + '-' + manualModuleSeq;
+    MODULE_SKUS[key] = {
+      manufacturer: manufacturer, model: model, pmax: 0, voc: 0, vmp: 0, isc: 0, imp: 0, bifacial: 0,
+      tempCoeffVoc: -0.24, tempCoeffIsc: 0.04, maxSystemV: 1500, maxFuse: 15,
+      firstYearDeg: 1.0, annualDeg: 0.4, cellType: '', dimensionsMm: [], weightKg: null,
+      whipLengthMm: null, connectorType: '', jboxLocation: '', source: '', custom: true,
+    };
+    refreshModuleSkuOptions();
+    modSku.value = key;
+    applyModuleSku();
+    document.getElementById('modNewManufacturer').value = '';
+    document.getElementById('modNewModel').value = '';
+    statusEl.textContent = 'Added — every value below starts at zero/blank; fill them in.';
+    if (typeof renderCombinerRows === 'function') renderCombinerRows();
+  });
+
+  // ---- module diagram: illustrative H/W/D + whip/connector/J-box ----
+  function fmtModuleDiagramLen(mm) {
+    return (mm === null || mm === undefined || !mm) ? '—' : Math.round(mm) + ' mm';
+  }
+  function renderModuleDiagram() {
+    const d = MODULE_SKUS[modSku.value];
+    const wrap = document.getElementById('modDiagramWrap');
+    const note = document.getElementById('modDiagramNote');
+    if (!d) {
+      wrap.innerHTML = '';
+      note.textContent = 'Select or add a module to see its dimensions.';
+      return;
+    }
+    const dims = (d.dimensionsMm && d.dimensionsMm.length === 3 && d.dimensionsMm.every(v => v > 0)) ? d.dimensionsMm : null;
+    const H = dims ? dims[0] : 1700, W = dims ? dims[1] : 1000, D = dims ? dims[2] : 35;
+    const scale = 220 / Math.max(H, W);
+    const rw = W * scale, rh = H * scale;
+    const ox = 100, oy = 46;
+    const connector = d.connectorType || '—';
+    const jbox = d.jboxLocation || '—';
+    const svgW = Math.round(ox + rw + 140), svgH = Math.round(oy + rh + 110);
+
+    wrap.innerHTML =
+      '<svg viewBox="0 0 ' + svgW + ' ' + svgH + '" width="100%" style="max-width:520px;" xmlns="http://www.w3.org/2000/svg">' +
+        '<rect x="' + ox + '" y="' + oy + '" width="' + rw + '" height="' + rh + '" fill="var(--surface-2)" stroke="var(--ink)" stroke-width="2"/>' +
+        '<line x1="' + ox + '" y1="' + (oy - 14) + '" x2="' + (ox + rw) + '" y2="' + (oy - 14) + '" stroke="var(--ink-muted)"/>' +
+        '<line x1="' + ox + '" y1="' + (oy - 20) + '" x2="' + ox + '" y2="' + (oy - 8) + '" stroke="var(--ink-muted)"/>' +
+        '<line x1="' + (ox + rw) + '" y1="' + (oy - 20) + '" x2="' + (ox + rw) + '" y2="' + (oy - 8) + '" stroke="var(--ink-muted)"/>' +
+        '<text x="' + (ox + rw / 2) + '" y="' + (oy - 22) + '" text-anchor="middle" font-size="12" fill="var(--ink)">W: ' + fmtModuleDiagramLen(dims ? W : null) + '</text>' +
+        '<line x1="' + (ox - 14) + '" y1="' + oy + '" x2="' + (ox - 14) + '" y2="' + (oy + rh) + '" stroke="var(--ink-muted)"/>' +
+        '<line x1="' + (ox - 20) + '" y1="' + oy + '" x2="' + (ox - 8) + '" y2="' + oy + '" stroke="var(--ink-muted)"/>' +
+        '<line x1="' + (ox - 20) + '" y1="' + (oy + rh) + '" x2="' + (ox - 8) + '" y2="' + (oy + rh) + '" stroke="var(--ink-muted)"/>' +
+        '<text x="' + (ox - 26) + '" y="' + (oy + rh / 2) + '" text-anchor="middle" font-size="12" fill="var(--ink)" transform="rotate(-90 ' + (ox - 26) + ' ' + (oy + rh / 2) + ')">H: ' + fmtModuleDiagramLen(dims ? H : null) + '</text>' +
+        '<rect x="' + (ox + rw + 30) + '" y="' + (oy + rh / 2 - 30) + '" width="14" height="60" fill="var(--surface-2)" stroke="var(--ink)" stroke-width="2"/>' +
+        '<text x="' + (ox + rw + 37) + '" y="' + (oy + rh / 2 + 48) + '" text-anchor="middle" font-size="12" fill="var(--ink)">D: ' + fmtModuleDiagramLen(dims ? D : null) + '</text>' +
+        '<rect x="' + (ox + rw / 2 - 12) + '" y="' + (oy + rh * 0.35) + '" width="24" height="16" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/>' +
+        '<text x="' + (ox + rw / 2) + '" y="' + (oy + rh * 0.35 - 8) + '" text-anchor="middle" font-size="11" fill="var(--accent)">J-box: ' + escapeText(jbox) + '</text>' +
+        '<line x1="' + (ox + rw / 2 - 16) + '" y1="' + (oy + rh) + '" x2="' + (ox + rw / 2 - 16) + '" y2="' + (oy + rh + 56) + '" stroke="var(--ink)" stroke-width="2"/>' +
+        '<circle cx="' + (ox + rw / 2 - 16) + '" cy="' + (oy + rh + 62) + '" r="6" fill="none" stroke="var(--ink)" stroke-width="2"/>' +
+        '<line x1="' + (ox + rw / 2 + 16) + '" y1="' + (oy + rh) + '" x2="' + (ox + rw / 2 + 16) + '" y2="' + (oy + rh + 56) + '" stroke="var(--ink)" stroke-width="2"/>' +
+        '<circle cx="' + (ox + rw / 2 + 16) + '" cy="' + (oy + rh + 62) + '" r="6" fill="none" stroke="var(--ink)" stroke-width="2"/>' +
+        '<text x="' + (ox + rw / 2) + '" y="' + (oy + rh + 86) + '" text-anchor="middle" font-size="12" fill="var(--ink)">Whip: ' + fmtModuleDiagramLen(d.whipLengthMm) + ' · ' + escapeText(connector) + '</text>' +
+      '</svg>';
+
+    note.textContent = dims
+      ? 'Dimensions from this module\'s own record. Wire whip and connector positions are illustrative, not to scale.'
+      : 'No dimensions on file yet — the outline above uses a placeholder aspect ratio until Mechanical & Cabling has real H × W × D.';
+  }
+
   // Mechanical block is metric in the catalog and converted for display, the
   // same deal as the inverter's — but per module rather than hardcoded.
   function applyModuleMechanicalUnits() {
     const d = MODULE_SKUS[modSku.value];
-    if (!d) return;
     const checked = document.querySelector('input[name="modUnitSystem"]:checked');
     const imperial = checked && checked.value === 'imperial';
-    const dims = d.dimensionsMm;
     const dimEl = document.getElementById('modDimensions');
     const weightEl = document.getElementById('modWeight');
-    if (!dims || !dims.length) { dimEl.value = '—'; } else {
-      dimEl.value = imperial
-        ? dims.map(mm => (mm / 25.4).toFixed(2)).join(' × ') + ' in'
-        : dims.join(' × ') + ' mm';
-    }
-    if (d.weightKg == null) { weightEl.value = '—'; } else {
-      weightEl.value = imperial ? (d.weightKg * 2.20462).toFixed(2) : d.weightKg.toFixed(1);
-    }
+    const whipEl = document.getElementById('modWhipLength');
     document.getElementById('modWeightUnit').textContent = imperial ? 'lb' : 'kg';
+    document.getElementById('modWhipLengthUnit').textContent = imperial ? 'in' : 'mm';
+    document.getElementById('modDimensionsUnit').textContent = imperial ? 'in' : 'mm';
+    if (!d) {
+      dimEl.value = ''; weightEl.value = ''; whipEl.value = '';
+      document.getElementById('modConnectorType').value = '';
+      document.getElementById('modJboxLocation').value = '';
+      return;
+    }
+    const dims = d.dimensionsMm;
+    if (!dims || !dims.length) { dimEl.value = ''; } else {
+      dimEl.value = imperial ? dims.map(mm => (mm / 25.4).toFixed(2)).join(' × ') : dims.join(' × ');
+    }
+    weightEl.value = (d.weightKg == null) ? '' : (imperial ? (d.weightKg * 2.20462).toFixed(2) : d.weightKg.toFixed(1));
+    whipEl.value = (d.whipLengthMm == null) ? '' : (imperial ? (d.whipLengthMm / 25.4).toFixed(1) : Math.round(d.whipLengthMm));
+    document.getElementById('modConnectorType').value = d.connectorType || '';
+    document.getElementById('modJboxLocation').value = d.jboxLocation || '';
   }
   document.querySelectorAll('input[name="modUnitSystem"]').forEach(el =>
     el.addEventListener('change', applyModuleMechanicalUnits));
 
   // ---- module catalog from datasheet ingest ----
-  // Every module beyond the five ReneSola SKUs comes from Document tracking's
-  // review card, not a typed form: pull whatever the extraction found,
-  // require a human to confirm or fill in the five electrical values (the
-  // ones every downstream calc reads), and Approve is what actually adds it
-  // to MODULE_SKUS. Archiving the source document (in initDocTracker's
-  // onArchive) removes the catalog entry it produced.
+  // A module can enter MODULE_SKUS two ways: reviewed and approved from a
+  // datasheet upload on Document Intake (18) -- pull whatever the extraction
+  // found, require a human to confirm or fill in the five electrical values
+  // every downstream calc reads, Approve is what actually writes the entry --
+  // or typed in directly via "+ Add module manually" below, which creates a
+  // blank entry and leaves every field on this panel editable. Either way,
+  // every field stays editable here afterwards; archiving the source document
+  // (in initDocTracker's onArchive) removes the catalog entry it produced.
   function moduleFieldsFromText(text) {
     return {
       pmax: findLabeledNumber(text, ['P\\s?max', 'Maximum Power', 'Rated Power', 'Nominal Power', 'STC Power'], { unit: 'W', min: 50, max: 1000 }),
@@ -4435,6 +4580,9 @@
       weightKg: findLabeledNumber(text, ['Weight'], { unit: 'kg', min: 5, max: 60 }),
       cellType: findLabeledText(text, ['Cell Type', 'Cell Technology']),
       dims: findLabeledDims(text, ['Dimensions?', 'Module Dimensions?', 'Dimension \\(L\\s?[x×]\\s?W\\s?[x×]\\s?H\\)']),
+      whipLengthMm: findLabeledNumber(text, ['Cable Length', 'Lead(?:s)? Length', 'Wire Length', 'Whip Length'], { unit: 'mm', min: 100, max: 3000 }),
+      connectorType: findLabeledText(text, ['Connector Type', 'Connector']),
+      jboxLocation: findLabeledText(text, ['Junction Box Location', 'Junction Box', 'J-?Box']),
     };
   }
 
@@ -4476,6 +4624,7 @@
         annualDeg: p.annualDeg != null ? p.annualDeg : 0.4,
         weightKg: p.weightKg, cellType: p.cellType,
         dims: p.dims.length === 3 ? p.dims.join(' × ') : '',
+        whipLengthMm: p.whipLengthMm, connectorType: p.connectorType, jboxLocation: p.jboxLocation,
       };
       doc.parsedElectricalCount = MODULE_ELECTRICAL_FIELDS.filter(([k]) => p[k] != null).length;
     }
@@ -4500,6 +4649,8 @@
         inputHtml('firstYearDeg', 'First-year degradation', '%') + inputHtml('annualDeg', 'Annual degradation', '%/yr') +
         inputHtml('cellType', 'Cell type', 'optional', true) + inputHtml('dims', 'Dimensions L×W×D', 'mm, optional', true) +
         inputHtml('weightKg', 'Weight', 'kg, optional') +
+        inputHtml('whipLengthMm', 'Wire whip length', 'mm, optional') + inputHtml('connectorType', 'End connector type', 'optional', true) +
+        inputHtml('jboxLocation', 'Junction box location', 'optional', true) +
       '</div>' +
       '<details><summary style="cursor:pointer; color:var(--ink-muted); font-size:12.5px;">Extracted text (' + (doc.pages || 0) + ' page' + (doc.pages === 1 ? '' : 's') + ', ' + (doc.text || '').trim().length + ' characters)</summary>' +
         '<pre class="capture" style="max-height:220px; margin-top:8px;">' + escapeText(doc.text || '(no text extracted)') + '</pre></details>' +
@@ -4523,6 +4674,9 @@
       .forEach(k => setIf(k, p[k]));
     if (p.cellType) fv.cellType = p.cellType;
     if (p.dims.length === 3) fv.dims = p.dims.join(' × ');
+    setIf('whipLengthMm', p.whipLengthMm);
+    if (p.connectorType) fv.connectorType = p.connectorType;
+    if (p.jboxLocation) fv.jboxLocation = p.jboxLocation;
     doc.parsedElectricalCount = MODULE_ELECTRICAL_FIELDS.filter(([k]) => p[k] != null).length;
   }
 
@@ -4558,6 +4712,8 @@
       annualDeg: num(fv.annualDeg) != null ? num(fv.annualDeg) : 0.4,
       cellType: (fv.cellType || '').trim(), dimensionsMm: dims.length === 3 ? dims : [],
       weightKg: num(fv.weightKg), source: doc.name, custom: true,
+      whipLengthMm: num(fv.whipLengthMm), connectorType: (fv.connectorType || '').trim(),
+      jboxLocation: (fv.jboxLocation || '').trim(),
     };
     doc.catalogKey = key;
     doc.catalogLabel = moduleLabel(key);
@@ -4574,13 +4730,13 @@
     if (!MODULE_SKUS[key]) return;
     const wasSelected = modSku.value === key;
     delete MODULE_SKUS[key];
+    refreshModuleSkuOptions();
     // Any combiner row pointing at the removed module has to be re-pointed, or
     // its fuse sizing would read off a module that no longer exists.
     if (typeof combinerRows !== 'undefined') {
-      combinerRows.forEach(r => { if (!MODULE_SKUS[r.moduleSku]) r.moduleSku = '720'; });
+      combinerRows.forEach(r => { if (!MODULE_SKUS[r.moduleSku]) r.moduleSku = modSku.value; });
     }
-    refreshModuleSkuOptions();
-    if (wasSelected) { modSku.value = '720'; applyModuleSku(); }
+    if (wasSelected) applyModuleSku();
     if (typeof renderCombinerRows === 'function') renderCombinerRows();
   }
 
@@ -5526,12 +5682,15 @@
       render();
     }
 
-    function addFile(file) {
+    // forcedType: set when the upload came from a type-specific button
+    // (e.g. "Warranty") rather than the generic dropzone, so the file's
+    // detected type is exactly what the engineer chose, not a filename guess.
+    function addFile(file, forcedType) {
       if (opts.beforeAdd && opts.beforeAdd(file, docs) === false) return;
       seq++;
       const isPdf = /\.pdf$/i.test(file.name);
       const doc = {
-        id: opts.dropzoneId + '-' + seq, name: file.name, type: classify(file.name), file: file,
+        id: opts.dropzoneId + '-' + seq, name: file.name, type: forcedType || classify(file.name), file: file,
         isPdf: isPdf, status: isPdf ? 'queued' : 'uploaded', archived: false, reviewOpen: false,
         text: '', pages: 0, fields: null, catalogKey: null, catalogLabel: '', error: '',
       };
@@ -5597,7 +5756,7 @@
     ['dragleave', 'drop'].forEach(evt => dz.addEventListener(evt, e => { e.preventDefault(); dz.classList.remove('drag'); }));
     dz.addEventListener('drop', e => { Array.from(e.dataTransfer.files).forEach(addFile); });
 
-    const api = { docs, render, docById, archive, restore, dropzoneId: opts.dropzoneId, manifestBodyId: opts.manifestBodyId };
+    const api = { docs, render, docById, archive, restore, addFile, dropzoneId: opts.dropzoneId, manifestBodyId: opts.manifestBodyId };
 
     // The rail already carries the numbered, human-facing name for whatever
     // panel this dropzone sits in — reused here rather than asking every one
@@ -5656,6 +5815,23 @@
     tracker.render();
   }
 
+  // Fixed set of trackable document types for Module Spec -- shown as a
+  // checklist (uploaded vs. not yet) above the manifest table, since the
+  // upload buttons below are typed rather than one auto-detecting dropzone.
+  const MODULE_DOC_TYPES = ['Module datasheet', 'Installation Manual', 'Warranty', 'PVSyst .PAN File', 'Quote', 'Other Uploads'];
+  function renderModuleDocChecklist() {
+    const el = document.getElementById('modDocChecklist');
+    if (!el) return;
+    el.innerHTML = MODULE_DOC_TYPES.map(type => {
+      const matches = modDocTracker.docs.filter(d => d.type === type && !d.archived);
+      const ok = matches.length > 0;
+      return '<div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-top:1px solid var(--border);">' +
+        '<span>' + escapeText(type) + '</span>' +
+        '<span class="chip ' + (ok ? 'chip-pass' : 'chip-muted') + '">' + (ok ? matches.length + (matches.length === 1 ? ' file' : ' files') : 'Not uploaded yet') + '</span>' +
+      '</div>';
+    }).join('');
+  }
+
   const modDocTracker = initDocTracker({
     dropzoneId: 'modDocDropzone', inputId: 'modDocInput', manifestBodyId: 'modDocManifestBody',
     types: [
@@ -5669,7 +5845,27 @@
     onArchive: doc => { if (doc.catalogKey) removeModuleCatalogEntry(doc.catalogKey); },
     onRestore: doc => { if (doc.catalogKey) approveModuleDoc(doc); },
     onSendToAgent: doc => sendDocToExtractionAgent(doc, 'module', modDocTracker),
+    afterRender: renderModuleDocChecklist,
   });
+  renderModuleDocChecklist();
+
+  // Typed upload buttons: each tags its file with a known type directly,
+  // rather than relying on classify()'s filename-keyword guess -- clicking
+  // "Upload warranty" always means Warranty, whatever the file is called.
+  function wireModuleDocButton(btnId, inputId, typeLabel) {
+    const btn = document.getElementById(btnId);
+    const input = document.getElementById(inputId);
+    btn.addEventListener('click', () => input.click());
+    input.addEventListener('change', () => {
+      Array.from(input.files).forEach(f => modDocTracker.addFile(f, typeLabel));
+      input.value = '';
+    });
+  }
+  wireModuleDocButton('modDocDatasheetBtn', 'modDocDatasheetInput', 'Module datasheet');
+  wireModuleDocButton('modDocManualBtn', 'modDocManualInput', 'Installation Manual');
+  wireModuleDocButton('modDocWarrantyBtn', 'modDocWarrantyInput', 'Warranty');
+  wireModuleDocButton('modDocPanBtn', 'modDocPanInput', 'PVSyst .PAN File');
+  wireModuleDocButton('modDocQuoteBtn', 'modDocQuoteInput', 'Quote');
 
   initDocTracker({
     dropzoneId: 'e911DocDropzone', inputId: 'e911DocInput', manifestBodyId: 'e911DocManifestBody',
@@ -5937,6 +6133,7 @@
 
   function computeExpectedIV() {
     const d = MODULE_SKUS[modSku.value];
+    if (!d) return { voc: 0, isc: 0, vmp: 0, imp: 0 };
     const g = parseNum(ivIrradiance.value) / 1000;
     const dt = parseNum(ivCellTemp.value) - 25;
     const n = parseNum(ivModulesPerString.value) || 1;
@@ -7504,7 +7701,7 @@
 
   function ampacityRecompute() {
     ampAmbientTemp.value = ashraeMaxTempEl.value;
-    const d = MODULE_SKUS[modSku.value];
+    const d = MODULE_SKUS[modSku.value] || { isc: 0 };
     const circuitType = ampCircuitType.value;
     const strings = parseNum(ampParallelStrings.value) || 1;
     const rating = parseInt(ampInsulationRating.value, 10);
@@ -8523,7 +8720,7 @@
       ocpdContinuousCurrent.value = combinerSelectedOutputAmpacity.toFixed(2);
     } else {
       const d = MODULE_SKUS[modSku.value];
-      ocpdContinuousCurrent.value = d.isc.toFixed(2);
+      ocpdContinuousCurrent.value = d ? d.isc.toFixed(2) : '';
     }
     ocpdRecompute();
   }
@@ -8580,7 +8777,7 @@
   }
 
   function computeCombinerRow(row) {
-    const d = MODULE_SKUS[row.moduleSku] || MODULE_SKUS[modSku.value];
+    const d = MODULE_SKUS[row.moduleSku] || MODULE_SKUS[modSku.value] || { isc: 0 };
     const inputMinFuse = d.isc * 1.25;
     const maxAllowedFuse = parseNum(modMaxFuse.value) || 9999;
     const inputFuse = Math.min(nextStandardSize(inputMinFuse), maxAllowedFuse);
@@ -8914,7 +9111,7 @@
 
   let combSpecRows = [];
   function buildCombinerSpec() {
-    const d = MODULE_SKUS[modSku.value];
+    const d = MODULE_SKUS[modSku.value] || { voc: 0 };
     const tMin = parseNum(document.getElementById('ashraeMinTemp').value);
     const vocCold = d.voc * (1 + (TEMP_COEFF_VOC / 100) * (tMin - 25));
     const lengths = {};
