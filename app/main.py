@@ -235,13 +235,16 @@ def calculate(project: ProjectInput) -> dict:
         project.raceway_runs, ambient_c=project.ashrae.max_design_temp_c
     )
 
-    voltage_drop_result = voltage_drop_calc.check_segment(
-        current_a=project.inverter.max_output_current_a,
-        length_ft=project.etap.length_ft,
-        voltage_v=project.inverter.nominal_ac_voltage_v,
-        limit_pct=project.voltage_drop_limits.inverter_to_switchboard_pct,
-        conductor=project.etap.conductor,
-    )
+    try:
+        voltage_drop_result = voltage_drop_calc.check_segment(
+            current_a=project.inverter.max_output_current_a,
+            length_ft=project.etap.length_ft,
+            voltage_v=project.inverter.nominal_ac_voltage_v,
+            limit_pct=project.voltage_drop_limits.inverter_to_switchboard_pct,
+            conductor=project.etap.conductor,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=f"Voltage drop check error: {exc}") from exc
 
     placarding_result = placarding_calc.determine_placard_requirements(num_inverters)
 

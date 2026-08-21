@@ -18,6 +18,8 @@ K_OHM_CMIL_PER_FT: dict[str, float] = {"CU": K_COPPER_OHM_CMIL_PER_FT, "AL": K_A
 
 
 def _vd_percent(conductor: str, current_a: float, length_ft: float, voltage_v: float, material: str = "CU") -> tuple[float, float]:
+    if voltage_v <= 0:
+        raise ValueError(f"voltage_v must be > 0 to compute voltage drop percent, got {voltage_v!r}")
     cm = CIRCULAR_MILS[conductor]
     k = K_OHM_CMIL_PER_FT.get(material, K_COPPER_OHM_CMIL_PER_FT)
     vd_volts = (math.sqrt(3) * k * current_a * length_ft) / cm
