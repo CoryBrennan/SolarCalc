@@ -196,7 +196,7 @@
   .computed .v { font-family: var(--font-mono); font-size: 20px; margin-top: 3px; color: var(--ink); }
   .computed .v small { font-size: 12px; color: var(--ink-muted); font-family: var(--font-body); }
 
-  /* Inverter Design: one bulk-edit group per editable column */
+  /* Array Electrical Design: one bulk-edit group per editable column */
   /* Each bulk group is a row: its inputs on the left, its buttons alongside,
      so the card grows sideways into the wide layout instead of downwards. */
   .bulk-group {
@@ -511,7 +511,7 @@
       <li><button class="rail-btn" data-target="sec-module"><span><span class="rail-num">05</span> Module Spec</span><span class="rail-dot dot-pass"></span></button></li>
       <li><button class="rail-btn" data-target="sec-inverter"><span><span class="rail-num">06</span> Inverter Spec</span><span class="rail-dot dot-pass"></span></button></li>
       <li><button class="rail-btn" data-target="sec-pv-string-design"><span><span class="rail-num">07</span> PV String Design</span><span class="rail-dot dot-pass" id="pvStringDesignDot"></span></button></li>
-      <li><button class="rail-btn" data-target="sec-inverter-design"><span><span class="rail-num">08</span> Inverter Design</span><span class="rail-dot dot-pass" id="inverterDesignDot"></span></button></li>
+      <li><button class="rail-btn" data-target="sec-inverter-design"><span><span class="rail-num">08</span> Array Electrical Design</span><span class="rail-dot dot-pass" id="inverterDesignDot"></span></button></li>
       <li id="navCombiner"><button class="rail-btn" data-target="sec-combiner"><span><span class="rail-num">09</span> DC Combiner Design</span><span class="rail-dot dot-pass" id="combinerDot"></span></button></li>
       <li><button class="rail-btn" data-target="sec-switchboard-design"><span><span class="rail-num">10</span> Switchboard Design</span><span class="rail-dot dot-pass" id="switchboardDesignDot"></span></button></li>
       <li><button class="rail-btn" data-target="sec-transformer-design"><span><span class="rail-num">11</span> Transformer Design</span><span class="rail-dot dot-pass" id="transformerDesignDot"></span></button></li>
@@ -535,6 +535,7 @@
       <li><button class="rail-btn" data-target="sec-trench"><span><span class="rail-num">29</span> Trench Thermal Design</span><span class="rail-dot dot-neutral" id="trenchDot"></span></button></li>
       <li><button class="rail-btn" data-target="sec-planreview"><span><span class="rail-num">30</span> Plan Review &amp; Markups</span><span class="rail-dot dot-neutral" id="planReviewDot"></span></button></li>
       <li><button class="rail-btn" data-target="sec-custom-devices"><span><span class="rail-num">31</span> Custom Device Builder</span><span class="rail-dot dot-neutral" id="customDeviceDot"></span></button></li>
+      <li><button class="rail-btn" data-target="sec-pvcase"><span><span class="rail-num">32</span> PVCase</span><span class="rail-dot dot-neutral" id="pvcaseDot"></span></button></li>
     </ul>
     <div class="rail-foot">
       NEC edition resolved from <b>jurisdiction_lookup.py</b><br>
@@ -564,7 +565,7 @@
             <h2>Site Config</h2>
           </div>
         </div>
-        <p class="desc">Target AC/DC capacity are the design goals — they guide (but don't force) equipment selection on Module Spec (05), Inverter Spec (06), System Architecture (07), PV String Design (08), and Inverter Design (09).</p>
+        <p class="desc">Target AC/DC capacity are the design goals — they guide (but don't force) equipment selection on Module Spec (05), Inverter Spec (06), System Architecture (07), PV String Design (08), and Array Electrical Design (09).</p>
 
         <div class="card">
           <p class="card-title">Project targets</p>
@@ -1204,7 +1205,7 @@
             <h2>PV String Design</h2>
           </div>
         </div>
-        <p class="desc">Where the string length gets decided, for every module in the catalog. Voc at the ASHRAE extreme low sets the ceiling (690.7(A)(2) and the inverter's MPPT max); Vmp at the ASHRAE average high sets the floor (the MPPT minimum). The module quantity on site is no longer entered here — it follows from the strings actually assigned on Inverter Design.</p>
+        <p class="desc">Where the string length gets decided, for every module in the catalog. Voc at the ASHRAE extreme low sets the ceiling (690.7(A)(2) and the inverter's MPPT max); Vmp at the ASHRAE average high sets the floor (the MPPT minimum). The module quantity on site is no longer entered here — it follows from the strings actually assigned on Array Electrical Design.</p>
 
         <div class="card">
           <p class="card-title">String length by module</p>
@@ -1273,7 +1274,7 @@
         <div class="panel-head">
           <div>
             <p class="eyebrow">Per-inverter string &amp; switchboard assignment</p>
-            <h2>Inverter Design</h2>
+            <h2>Array Electrical Design</h2>
           </div>
         </div>
         <p class="desc">One row per inverter on site: which model from Inverter Spec (06), its full or derated AC power, how many of the strings from PV String Design (08) land on it, and which switchboard it feeds. Set every inverter at once with the bulk controls, then tick individual rows to override just those.</p>
@@ -1282,12 +1283,20 @@
           <p class="card-title">Quantity on site</p>
           <div class="field-grid">
             <div class="field">
-              <label for="invDesignQuantity">Target inverter quantity on site</label>
-              <input type="text" id="invDesignQuantity" value="15">
+              <label for="invDesignQuantity">Inverter Quantity</label>
+              <input type="text" id="invDesignQuantity">
             </div>
             <div class="field">
-              <label for="invDesignSwitchboardCount">Number of switchboards</label>
-              <input type="text" id="invDesignSwitchboardCount" value="1">
+              <label for="invDesignSwitchboardCount">Switchboard Quantity</label>
+              <input type="text" id="invDesignSwitchboardCount">
+            </div>
+            <div class="field">
+              <label for="invDesignTransformerQuantity">Transformer Quantity</label>
+              <input type="text" id="invDesignTransformerQuantity">
+            </div>
+            <div class="field">
+              <label for="invDesignInterconnectionQuantity">Interconnection Quantity</label>
+              <input type="text" id="invDesignInterconnectionQuantity">
             </div>
           </div>
           <!-- Derived, not entered: the module and inverter counts the rest of
@@ -1295,14 +1304,6 @@
                only place inverters and strings are actually defined. -->
           <input type="hidden" id="invQuantity">
           <input type="hidden" id="modQuantity">
-          <div class="computed-row" style="margin-top:14px;">
-            <div class="computed"><div class="k">Modules in the design</div><div class="v" id="invDesignModuleCount">—<small> modules</small></div></div>
-            <div class="computed"><div class="k">Inverters in the design</div><div class="v" id="invDesignInverterCount">—</div></div>
-          </div>
-          <div class="computed-row" style="margin-top:14px;">
-            <div class="computed"><div class="k">Strings available</div><div class="v" id="invDesignStringsAvailable">—<small> strings</small></div></div>
-            <div class="computed"><div class="k">Strings assigned</div><div class="v" id="invDesignStringsAssigned">—<small> strings</small></div></div>
-          </div>
           <p class="desc" style="margin-top:12px;" id="invDesignBalanceHint">—</p>
         </div>
 
@@ -1319,6 +1320,12 @@
             <div class="computed"><div class="k">Target DC : AC</div><div class="v" id="invDesignTargetRatio">—</div></div>
           </div>
           <div id="invSummaryBreakdown" style="margin-top:16px;"></div>
+        </div>
+
+        <div class="card">
+          <p class="card-title">Simplified one-line diagram</p>
+          <p class="desc" style="margin-bottom:14px;">A block-level SLD, not a real schematic — how the site's equipment chains together, and how many of each. Interconnection and Transformer counts come from Quantity on site above; Switchboard, Inverters, and Module Strings are counted straight from the schedule below.</p>
+          <div id="sldDiagramWrap" style="display:flex; justify-content:center; overflow-x:auto;"></div>
         </div>
 
         <div class="card">
@@ -1374,7 +1381,7 @@
               <button class="btn" data-bulk-selectall type="button">Select all</button>
               <button class="btn" data-bulk-selectnone type="button">Clear selection</button>
             </div>
-            <p class="desc" style="margin-top:10px;">Conductor sizing uses Ampacity &amp; Conductors (11) for the insulation rating and ASHRAE (04) for ambient temperature; the run length is what the per-string voltage drop is measured over, against the string→combiner limit on Voltage Drop (15).</p>
+            <p class="desc" style="margin-top:10px;">Bulk-set here, but the per-string results now live on their own schedules: conductor on Ampacity &amp; Conductor Sizing (13), which uses the insulation rating there and ASHRAE (04) for ambient temperature; run length and V<sub>drop</sub> on Voltage Drop Limits (17), against the string→combiner limit set there.</p>
           </div>
 
           <div class="bulk-group">
@@ -1477,24 +1484,6 @@
         </div>
 
         <div class="card">
-          <p class="card-title">PVCase BOM import</p>
-          <p class="desc" style="margin-bottom:14px;">Drop a PVCase bill of materials to override the schedule above with the as-laid-out inverter and string counts. Upload tracking is scaffolded — parsing and override are not wired up yet.</p>
-          <div class="dropzone" id="invBomDropzone" tabindex="0" role="button" aria-label="Upload PVCase BOM">
-            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
-              <path d="M12 3v12m0-12 4 4m-4-4-4 4"/>
-              <path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/>
-            </svg>
-            <div class="cta">Drop the PVCase BOM here, or click to browse</div>
-            <div class="sub">PVCase BOM (.csv / .xlsx) · Layout export · String schedule · Other Uploads</div>
-            <input type="file" id="invBomInput" multiple style="display:none;">
-          </div>
-          <table class="manifest" style="margin-top:14px;">
-            <thead><tr><th>File</th><th>Detected type</th><th>Status</th><th></th></tr></thead>
-            <tbody id="invBomManifestBody"><tr class="empty"><td colspan="4">No BOM uploaded yet</td></tr></tbody>
-          </table>
-        </div>
-
-        <div class="card">
           <p class="card-title">PVCase planning brief</p>
           <p class="desc" style="margin-bottom:14px;">What to key into PVCase before building the site layout — modules-per-string, and the exact equipment tags PVCase should end up producing — computed from Module Spec, Inverter Spec, PV String Design, and the naming convention above, so PVCase and this app start from the same numbers instead of a second manual translation.</p>
           <div class="bulk-btns" style="margin-top:0; margin-bottom:14px;">
@@ -1517,131 +1506,6 @@
           </div>
         </div>
 
-        <div class="card">
-          <p class="card-title">PVCase validation</p>
-          <p class="desc" style="margin-bottom:14px;">Once the PVCase design is built and exported, point at the BOM export and/or CAD Release DWG — both live in Dropbox, so a local path works, no upload needed — and check them against the planning brief above. Runs against the Backend URL configured on Client Inputs; scanning a DWG drives a real local AutoCAD session and can take a couple of minutes on a large drawing.</p>
-          <div class="field-grid" style="margin-bottom:14px;">
-            <div class="field wide">
-              <label for="pvcaseBomPathInput">BOM export path (.xlsx)</label>
-              <input class="prose" type="text" id="pvcaseBomPathInput" placeholder="C:\...\Azimuth_..._BOM_Data.xlsx">
-            </div>
-            <div class="field wide">
-              <label for="pvcaseDwgPathInput">CAD Release DWG path</label>
-              <input class="prose" type="text" id="pvcaseDwgPathInput" placeholder="C:\...\Azimuth_..._CAD Release_....dwg">
-            </div>
-          </div>
-          <div class="bulk-btns" style="margin-top:0; margin-bottom:14px;">
-            <button class="btn btn-primary" id="pvcaseValidateBtn" type="button">Run validation</button>
-          </div>
-          <p class="desc" id="pvcaseValidateStatus"></p>
-          <div id="pvcaseValidateResult" style="display:none;">
-            <div style="overflow-x:auto;">
-              <table class="etap" style="margin-bottom:14px;">
-                <thead><tr><th>Equipment</th><th>Comparison</th><th style="text-align:right;">Matched</th><th>Missing (expected, not found)</th><th>Unexpected (found, not planned)</th></tr></thead>
-                <tbody id="pvcaseValidateBody"></tbody>
-              </table>
-            </div>
-            <table class="manifest" style="margin-bottom:14px;">
-              <thead><tr><th>Circuit segment (from BOM)</th><th>Count</th><th>Min ft</th><th>Avg ft</th><th>Max ft</th></tr></thead>
-              <tbody id="pvcaseLengthStatsBody"></tbody>
-            </table>
-            <ul id="pvcaseValidateWarnings" style="margin:0; padding-left:18px;"></ul>
-          </div>
-        </div>
-
-        <div class="card">
-          <p class="card-title">PVCase routing-aware ampacity</p>
-          <p class="desc" style="margin-bottom:14px;">PVCase's cable lengths are module-connector-to-endpoint only — no above-ground/free-air vs. underground-conduit breakdown, so Table 310.15(C)(1) fill derating can't be trusted off the flat length alone. Set a routing template per circuit type (an optional fixed lead-in leg, then the rest of each real segment's PVCase length in the remainder leg) and this sizes every real segment in the BOM against <a href="#sec-raceway" onclick="document.querySelector('[data-target=sec-raceway]')?.click();">real conduit trade sizes / cable-tray widths</a> (Panel 12A), reporting the governing (worst-case) segment. Requires the BOM path above; the DWG path isn't used here. "Size as tray" only matters for a "Free air / tray" leg — check it to get a real 392.22 tray-width spec instead of true free air (no raceway to size).</p>
-          <div style="overflow-x:auto; margin-bottom:14px;">
-            <table class="etap">
-              <thead><tr><th>Circuit</th><th>Leg</th><th>Method</th><th>Fixed length <span class="unit">ft, leg 1 only</span></th><th>Conductors</th><th>Conduit material</th><th>Size as tray?</th><th>Tray type</th><th>Tray width <span class="unit">in</span></th><th>Insulation</th><th>VD limit <span class="unit">%</span></th></tr></thead>
-              <tbody>
-                <tr>
-                  <td rowspan="2">AC — Transformer→Inverter</td>
-                  <td>1</td>
-                  <td><select id="pvcaseRouteAcLeg1Method"><option value="free_air_or_tray" selected>Free air / tray</option><option value="conduit_above_grade">Conduit, above grade</option><option value="conduit_below_grade">Conduit, below grade</option></select></td>
-                  <td><input type="text" id="pvcaseRouteAcLeg1Fixed" placeholder="e.g. 10"></td>
-                  <td><input type="text" id="pvcaseRouteAcLeg1ConductorCount" value="3"></td>
-                  <td><select id="pvcaseRouteAcLeg1Material"><option value="PVC_SCH40" selected>PVC Sch 40</option><option value="PVC_SCH80">PVC Sch 80</option><option value="EMT">EMT</option><option value="IMC">IMC</option><option value="RMC">RMC</option></select></td>
-                  <td style="text-align:center;"><input type="checkbox" id="pvcaseRouteAcLeg1SizeAsTray"></td>
-                  <td><select id="pvcaseRouteAcLeg1TrayType"><option value="ladder" selected>Ladder</option><option value="ventilated_trough">Ventilated trough</option><option value="solid_bottom">Solid bottom</option></select></td>
-                  <td><input type="text" id="pvcaseRouteAcLeg1TrayWidth" value="12"></td>
-                  <td rowspan="2"><select id="pvcaseRouteAcInsulation"><option value="75">75°C</option><option value="90" selected>90°C</option></select></td>
-                  <td rowspan="2"><input type="text" id="pvcaseRouteAcVdLimit" value="1.0"></td>
-                </tr>
-                <tr>
-                  <td>2 (remainder)</td>
-                  <td><select id="pvcaseRouteAcLeg2Method"><option value="free_air_or_tray">Free air / tray</option><option value="conduit_above_grade">Conduit, above grade</option><option value="conduit_below_grade" selected>Conduit, below grade</option></select></td>
-                  <td>—</td>
-                  <td><input type="text" id="pvcaseRouteAcLeg2ConductorCount" value="3"></td>
-                  <td><select id="pvcaseRouteAcLeg2Material"><option value="PVC_SCH40" selected>PVC Sch 40</option><option value="PVC_SCH80">PVC Sch 80</option><option value="EMT">EMT</option><option value="IMC">IMC</option><option value="RMC">RMC</option></select></td>
-                  <td style="text-align:center;"><input type="checkbox" id="pvcaseRouteAcLeg2SizeAsTray"></td>
-                  <td><select id="pvcaseRouteAcLeg2TrayType"><option value="ladder" selected>Ladder</option><option value="ventilated_trough">Ventilated trough</option><option value="solid_bottom">Solid bottom</option></select></td>
-                  <td><input type="text" id="pvcaseRouteAcLeg2TrayWidth" value="12"></td>
-                </tr>
-                <tr>
-                  <td rowspan="2">DC — Inverter→Combiner</td>
-                  <td>1</td>
-                  <td><select id="pvcaseRouteDc1Leg1Method"><option value="free_air_or_tray" selected>Free air / tray</option><option value="conduit_above_grade">Conduit, above grade</option><option value="conduit_below_grade">Conduit, below grade</option></select></td>
-                  <td><input type="text" id="pvcaseRouteDc1Leg1Fixed" placeholder="e.g. 15"></td>
-                  <td><input type="text" id="pvcaseRouteDc1Leg1ConductorCount" value="2"></td>
-                  <td><select id="pvcaseRouteDc1Leg1Material"><option value="PVC_SCH40" selected>PVC Sch 40</option><option value="PVC_SCH80">PVC Sch 80</option><option value="EMT">EMT</option><option value="IMC">IMC</option><option value="RMC">RMC</option></select></td>
-                  <td style="text-align:center;"><input type="checkbox" id="pvcaseRouteDc1Leg1SizeAsTray"></td>
-                  <td><select id="pvcaseRouteDc1Leg1TrayType"><option value="ladder" selected>Ladder</option><option value="ventilated_trough">Ventilated trough</option><option value="solid_bottom">Solid bottom</option></select></td>
-                  <td><input type="text" id="pvcaseRouteDc1Leg1TrayWidth" value="12"></td>
-                  <td rowspan="2"><select id="pvcaseRouteDc1Insulation"><option value="75">75°C</option><option value="90" selected>90°C</option></select></td>
-                  <td rowspan="2"><input type="text" id="pvcaseRouteDc1VdLimit" value="1.0"></td>
-                </tr>
-                <tr>
-                  <td>2 (remainder)</td>
-                  <td><select id="pvcaseRouteDc1Leg2Method"><option value="free_air_or_tray">Free air / tray</option><option value="conduit_above_grade">Conduit, above grade</option><option value="conduit_below_grade" selected>Conduit, below grade</option></select></td>
-                  <td>—</td>
-                  <td><input type="text" id="pvcaseRouteDc1Leg2ConductorCount" value="2"></td>
-                  <td><select id="pvcaseRouteDc1Leg2Material"><option value="PVC_SCH40" selected>PVC Sch 40</option><option value="PVC_SCH80">PVC Sch 80</option><option value="EMT">EMT</option><option value="IMC">IMC</option><option value="RMC">RMC</option></select></td>
-                  <td style="text-align:center;"><input type="checkbox" id="pvcaseRouteDc1Leg2SizeAsTray"></td>
-                  <td><select id="pvcaseRouteDc1Leg2TrayType"><option value="ladder" selected>Ladder</option><option value="ventilated_trough">Ventilated trough</option><option value="solid_bottom">Solid bottom</option></select></td>
-                  <td><input type="text" id="pvcaseRouteDc1Leg2TrayWidth" value="12"></td>
-                </tr>
-                <tr>
-                  <td rowspan="2">DC — Combiner→String</td>
-                  <td>1</td>
-                  <td><select id="pvcaseRouteDc2Leg1Method"><option value="free_air_or_tray" selected>Free air / tray</option><option value="conduit_above_grade">Conduit, above grade</option><option value="conduit_below_grade">Conduit, below grade</option></select></td>
-                  <td><input type="text" id="pvcaseRouteDc2Leg1Fixed" placeholder="e.g. 15"></td>
-                  <td><input type="text" id="pvcaseRouteDc2Leg1ConductorCount" value="2"></td>
-                  <td><select id="pvcaseRouteDc2Leg1Material"><option value="PVC_SCH40" selected>PVC Sch 40</option><option value="PVC_SCH80">PVC Sch 80</option><option value="EMT">EMT</option><option value="IMC">IMC</option><option value="RMC">RMC</option></select></td>
-                  <td style="text-align:center;"><input type="checkbox" id="pvcaseRouteDc2Leg1SizeAsTray" checked></td>
-                  <td><select id="pvcaseRouteDc2Leg1TrayType"><option value="ladder" selected>Ladder</option><option value="ventilated_trough">Ventilated trough</option><option value="solid_bottom">Solid bottom</option></select></td>
-                  <td><input type="text" id="pvcaseRouteDc2Leg1TrayWidth" value="12"></td>
-                  <td rowspan="2"><select id="pvcaseRouteDc2Insulation"><option value="75">75°C</option><option value="90" selected>90°C</option></select></td>
-                  <td rowspan="2"><input type="text" id="pvcaseRouteDc2VdLimit" value="2.0"></td>
-                </tr>
-                <tr>
-                  <td>2 (remainder)</td>
-                  <td><select id="pvcaseRouteDc2Leg2Method"><option value="free_air_or_tray" selected>Free air / tray</option><option value="conduit_above_grade">Conduit, above grade</option><option value="conduit_below_grade">Conduit, below grade</option></select></td>
-                  <td>—</td>
-                  <td><input type="text" id="pvcaseRouteDc2Leg2ConductorCount" value="2"></td>
-                  <td><select id="pvcaseRouteDc2Leg2Material"><option value="PVC_SCH40" selected>PVC Sch 40</option><option value="PVC_SCH80">PVC Sch 80</option><option value="EMT">EMT</option><option value="IMC">IMC</option><option value="RMC">RMC</option></select></td>
-                  <td style="text-align:center;"><input type="checkbox" id="pvcaseRouteDc2Leg2SizeAsTray" checked></td>
-                  <td><select id="pvcaseRouteDc2Leg2TrayType"><option value="ladder" selected>Ladder</option><option value="ventilated_trough">Ventilated trough</option><option value="solid_bottom">Solid bottom</option></select></td>
-                  <td><input type="text" id="pvcaseRouteDc2Leg2TrayWidth" value="12"></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <div class="bulk-btns" style="margin-top:0; margin-bottom:14px;">
-            <button class="btn btn-primary" id="pvcaseRoutingBtn" type="button">Compute routing-aware sizing</button>
-          </div>
-          <p class="desc" id="pvcaseRoutingStatus"></p>
-          <div id="pvcaseRoutingResult" style="display:none;">
-            <div style="overflow-x:auto;">
-              <table class="etap" style="margin-bottom:14px;">
-                <thead><tr><th>Circuit</th><th style="text-align:right;">Segments</th><th>Governing segment</th><th>Ampacity-only conductor</th><th>Final conductor (incl. VD)</th><th style="text-align:right;">VD %</th><th>Governing leg raceway</th></tr></thead>
-                <tbody id="pvcaseRoutingBody"></tbody>
-              </table>
-            </div>
-            <ul id="pvcaseRoutingWarnings" style="margin:0; padding-left:18px;"></ul>
-          </div>
-        </div>
       </section>
 
       <!-- 09 DC COMBINER DESIGN -->
@@ -1657,7 +1521,7 @@
 
         <div class="card" id="combinerCard">
           <p class="card-title">DC combiner schedule</p>
-          <p class="desc" style="margin-bottom:14px;">One row per combiner: what it collects, what its output circuit has to carry, and whether the conductor leaving it holds up over the run. Ampacity and voltage drop are worked the same way as the per-string rows on Inverter Design, one level up — input fuses instead of module I<sub>sc</sub>, and the combiner-to-inverter run instead of the string run.</p>
+          <p class="desc" style="margin-bottom:14px;">One row per combiner: what it collects, what its output circuit has to carry, and whether the conductor leaving it holds up over the run. Ampacity and voltage drop are worked the same way as the per-string rows on Array Electrical Design, one level up — input fuses instead of module I<sub>sc</sub>, and the combiner-to-inverter run instead of the string run.</p>
           <div class="field-grid" style="margin-bottom:14px;">
             <div class="field">
               <label for="combOutputInsulation">Insulation rating <span class="unit">°C</span></label>
@@ -1732,7 +1596,7 @@
             <div class="field wide"><label for="combManufacturer">Manufacturer <span class="unit">if already selected</span></label><input class="prose" type="text" id="combManufacturer" placeholder="e.g. Shoals Technologies"></div>
             <div class="field wide"><label for="combModel">Model <span class="unit">if already selected</span></label><input class="prose" type="text" id="combModel" placeholder="e.g. Big Lead Assembly Combiner"></div>
           </div>
-          <p class="desc" style="margin-bottom:14px;">Everything a combiner vendor needs to quote, assembled from Module Spec (05), PV String Design (08), Inverter Design (09) and this panel — nothing here is typed twice. Regenerate after changing any of those, then copy or download it to send out.</p>
+          <p class="desc" style="margin-bottom:14px;">Everything a combiner vendor needs to quote, assembled from Module Spec (05), PV String Design (08), Array Electrical Design (09) and this panel — nothing here is typed twice. Regenerate after changing any of those, then copy or download it to send out.</p>
           <div class="bulk-btns" style="margin-top:0; margin-bottom:14px;">
             <button class="btn" id="combSpecBuildBtn" type="button">Build specification →</button>
             <button class="btn btn-quiet" id="combSpecCopyBtn" type="button">Copy as text</button>
@@ -1852,7 +1716,7 @@
             <h2>Switchboard Design</h2>
           </div>
         </div>
-        <p class="desc">One row per switchboard: which inverters land on it (from Inverter Design), the bus and main it needs to carry them, and how the whole thing ties to the utility. The switchboard count is owned by Inverter Design — add or remove boards there and the schedule below follows.</p>
+        <p class="desc">One row per switchboard: which inverters land on it (from Array Electrical Design), the bus and main it needs to carry them, and how the whole thing ties to the utility. The switchboard count is owned by Array Electrical Design — add or remove boards there and the schedule below follows.</p>
 
         <div class="card">
           <p class="card-title">Interconnection</p>
@@ -1872,7 +1736,7 @@
 
         <div class="card">
           <p class="card-title">Switchboard schedule</p>
-          <p class="desc" style="margin-bottom:14px;">Inverters and connected AC power come straight from Inverter Design; bus rating, main rating and feeder are yours to set. The 120% check is <span class="mono">busbar × 1.2 &ge; main + backfed</span>, per 705.12(B)(3)(2).</p>
+          <p class="desc" style="margin-bottom:14px;">Inverters and connected AC power come straight from Array Electrical Design; bus rating, main rating and feeder are yours to set. The 120% check is <span class="mono">busbar × 1.2 &ge; main + backfed</span>, per 705.12(B)(3)(2).</p>
           <div style="overflow-x:auto;">
             <table class="etap">
               <thead>
@@ -2107,6 +1971,17 @@
           <span>ⓘ</span>
           <span><b>Correction/adjustment factors are simplified banded lookups</b>, not the full interpolated NEC tables — close enough to demonstrate the sizing flow, not a substitute for <span class="mono">ampacity_calc.py</span>'s real Table 310.15(B)(1)/(C)(1) implementation. Ambient temp is pulled live from ASHRAE Site Data's 2% design max.</span>
         </div>
+
+        <div class="card">
+          <p class="card-title">String wire-sizing schedule <span class="unit">from Array Electrical Design (08)</span></p>
+          <p class="desc" style="margin-bottom:14px;">Every string across every inverter, one row each: design current (690.8(A)(1)), the resulting OCPD (690.9, capped at the module's max series fuse), and the conductor — auto-sized off that current, or pick one explicitly. Changing a conductor here also feeds the voltage-drop schedule on Voltage Drop Limits (17), since Vdrop depends on which wire carries the current.</p>
+          <div style="overflow-x:auto;">
+            <table class="etap">
+              <thead><tr><th>String</th><th style="text-align:right;">Modules</th><th style="text-align:right;">Design current (A)</th><th style="text-align:right;">OCPD (A)</th><th>Conductor</th></tr></thead>
+              <tbody id="ampStringScheduleBody"></tbody>
+            </table>
+          </div>
+        </div>
       </section>
 
       <!-- 14 OCPD SIZING -->
@@ -2280,6 +2155,17 @@
           <span>ⓘ</span>
           <span>Uses a single-conductor 3-phase VD formula (<span class="mono">VD = √3 × K × I × L / CM</span>, K = 12.9 Ω·cmil/ft for copper) against the inverter's rated AC current, conductor, and home-run length entered in ETAP Export. Only the Inverter → Switchboard segment is modeled here — String/Combiner/Total segments aren't wired to a real conductor length yet.</span>
         </div>
+
+        <div class="card">
+          <p class="card-title">String voltage-drop schedule <span class="unit">from Array Electrical Design (08)</span></p>
+          <p class="desc" style="margin-bottom:14px;">Every string across every inverter, checked against the String → combiner limit above. Conductor is read-only here — set or auto-sized on the Ampacity &amp; Conductor Sizing (13) wire-sizing schedule; run length is this schedule's own input.</p>
+          <div style="overflow-x:auto;">
+            <table class="etap">
+              <thead><tr><th>String</th><th style="text-align:right;">Modules</th><th>Conductor</th><th style="text-align:right;">Run (ft)</th><th style="text-align:right;">V<sub>drop</sub> (V)</th><th style="text-align:right;">V<sub>drop</sub> (%)</th></tr></thead>
+              <tbody id="vdropStringScheduleBody"></tbody>
+            </table>
+          </div>
+        </div>
       </section>
 
       <!-- 18 DOCUMENT INTAKE -->
@@ -2291,7 +2177,7 @@
           </div>
           <span class="chip chip-pass" id="manifestCount">0 documents</span>
         </div>
-        <p class="desc">One ledger across the whole project — every PDF for Module Spec, Inverter Spec, DC Combiner Design, Switchboard/Transformer/MV Design, or Inverter Design's PVCase BOM shows up here too, live, because this table reads the same document objects those panels do rather than a copy. Extraction is real: PDFs go to the backend's text extractor, and review/approve happens right here for Module/Inverter datasheets, or on the panel that owns the document for everything else — use <b>Open</b> to jump there.</p>
+        <p class="desc">One ledger across the whole project — every PDF for Module Spec, Inverter Spec, DC Combiner Design, Switchboard/Transformer/MV Design, or PVCase's BOM shows up here too, live, because this table reads the same document objects those panels do rather than a copy. Extraction is real: PDFs go to the backend's text extractor, and review/approve happens right here for Module/Inverter datasheets, or on the panel that owns the document for everything else — use <b>Open</b> to jump there.</p>
 
         <div class="card">
           <p class="card-title">E911 documentation</p>
@@ -2590,7 +2476,7 @@
 
         <div class="card">
           <p class="card-title">Generate .pvapx from this design</p>
-          <p class="desc" style="margin-bottom:14px;">Builds a real Solmetric PVA project file (<span class="mono">POST /fluke/pvapx-from-design</span>) by cloning a template <span class="mono">.pvapx</span> and rewriting its module data and switchboard/inverter/combiner/string tree — derived purely from this project's own design (Module Spec, Inverter Design, naming convention), no PVCase BOM export required. Modules-per-string and strings-per-combiner are computed from the design; override strings-per-combiner below if the site doesn't distribute strings evenly.</p>
+          <p class="desc" style="margin-bottom:14px;">Builds a real Solmetric PVA project file (<span class="mono">POST /fluke/pvapx-from-design</span>) by cloning a template <span class="mono">.pvapx</span> and rewriting its module data and switchboard/inverter/combiner/string tree — derived purely from this project's own design (Module Spec, Array Electrical Design, naming convention), no PVCase BOM export required. Modules-per-string and strings-per-combiner are computed from the design; override strings-per-combiner below if the site doesn't distribute strings evenly.</p>
           <div class="field-grid">
             <div class="field"><label>Module manufacturer</label><input class="prose" type="text" id="pvapxManufacturer" value="Znshine PV-Tech"></div>
             <div class="field"><label>Model name <span class="unit">optional</span></label><input class="prose" type="text" id="pvapxModelName" placeholder="defaults to Module Spec SKU"></div>
@@ -2944,7 +2830,7 @@
 
         <div class="note">
           <span>ⓘ</span>
-          <span><b>Only accepts RTK-fixed solutions.</b> Points logged as SINGLE (autonomous GPS, meter-level) or FLOAT (RTK not yet converged, decimeter-level) are rejected outright regardless of offset — see the Rejected list. Equipment (inverter/DC combiner/transformer) design points aren't covered by this path since PVCase's BOM only carries pile coordinates; that needs a DWG scan (Panel 08's PVCase validation card) instead.</span>
+          <span><b>Only accepts RTK-fixed solutions.</b> Points logged as SINGLE (autonomous GPS, meter-level) or FLOAT (RTK not yet converged, decimeter-level) are rejected outright regardless of offset — see the Rejected list. Equipment (inverter/DC combiner/transformer) design points aren't covered by this path since PVCase's BOM only carries pile coordinates; that needs a DWG scan (the PVCase panel's PVCase validation card) instead.</span>
         </div>
       </section>
 
@@ -3627,6 +3513,161 @@
         </div>
       </section>
 
+      <!-- 32 PVCASE -->
+      <section class="panel" id="sec-pvcase">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">BOM import, as-built validation, and routing-aware ampacity against a PVCase export</p>
+            <h2>PVCase</h2>
+          </div>
+        </div>
+        <p class="desc">Everything that checks this design against an actual PVCase layout export, moved off Array Electrical Design (08) so that panel stays focused on the design itself. Modules-per-string, equipment tags, and other planning inputs PVCase needs are still generated on Array Electrical Design's PVCase planning brief card — bring that brief here once PVCase has produced a real BOM/DWG to check it against.</p>
+
+        <div class="card">
+          <p class="card-title">PVCase BOM import</p>
+          <p class="desc" style="margin-bottom:14px;">Drop a PVCase bill of materials to override the schedule on Array Electrical Design (08) with the as-laid-out inverter and string counts. Upload tracking is scaffolded — parsing and override are not wired up yet.</p>
+          <div class="dropzone" id="invBomDropzone" tabindex="0" role="button" aria-label="Upload PVCase BOM">
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
+              <path d="M12 3v12m0-12 4 4m-4-4-4 4"/>
+              <path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/>
+            </svg>
+            <div class="cta">Drop the PVCase BOM here, or click to browse</div>
+            <div class="sub">PVCase BOM (.csv / .xlsx) · Layout export · String schedule · Other Uploads</div>
+            <input type="file" id="invBomInput" multiple style="display:none;">
+          </div>
+          <table class="manifest" style="margin-top:14px;">
+            <thead><tr><th>File</th><th>Detected type</th><th>Status</th><th></th></tr></thead>
+            <tbody id="invBomManifestBody"><tr class="empty"><td colspan="4">No BOM uploaded yet</td></tr></tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <p class="card-title">PVCase validation</p>
+          <p class="desc" style="margin-bottom:14px;">Once the PVCase design is built and exported, point at the BOM export and/or CAD Release DWG — both live in Dropbox, so a local path works, no upload needed — and check them against the planning brief generated on Array Electrical Design (08). Runs against the Backend URL configured on Client Inputs; scanning a DWG drives a real local AutoCAD session and can take a couple of minutes on a large drawing.</p>
+          <div class="field-grid" style="margin-bottom:14px;">
+            <div class="field wide">
+              <label for="pvcaseBomPathInput">BOM export path (.xlsx)</label>
+              <input class="prose" type="text" id="pvcaseBomPathInput" placeholder="C:\...\Azimuth_..._BOM_Data.xlsx">
+            </div>
+            <div class="field wide">
+              <label for="pvcaseDwgPathInput">CAD Release DWG path</label>
+              <input class="prose" type="text" id="pvcaseDwgPathInput" placeholder="C:\...\Azimuth_..._CAD Release_....dwg">
+            </div>
+          </div>
+          <div class="bulk-btns" style="margin-top:0; margin-bottom:14px;">
+            <button class="btn btn-primary" id="pvcaseValidateBtn" type="button">Run validation</button>
+          </div>
+          <p class="desc" id="pvcaseValidateStatus"></p>
+          <div id="pvcaseValidateResult" style="display:none;">
+            <div style="overflow-x:auto;">
+              <table class="etap" style="margin-bottom:14px;">
+                <thead><tr><th>Equipment</th><th>Comparison</th><th style="text-align:right;">Matched</th><th>Missing (expected, not found)</th><th>Unexpected (found, not planned)</th></tr></thead>
+                <tbody id="pvcaseValidateBody"></tbody>
+              </table>
+            </div>
+            <table class="manifest" style="margin-bottom:14px;">
+              <thead><tr><th>Circuit segment (from BOM)</th><th>Count</th><th>Min ft</th><th>Avg ft</th><th>Max ft</th></tr></thead>
+              <tbody id="pvcaseLengthStatsBody"></tbody>
+            </table>
+            <ul id="pvcaseValidateWarnings" style="margin:0; padding-left:18px;"></ul>
+          </div>
+        </div>
+
+        <div class="card">
+          <p class="card-title">PVCase routing-aware ampacity</p>
+          <p class="desc" style="margin-bottom:14px;">PVCase's cable lengths are module-connector-to-endpoint only — no above-ground/free-air vs. underground-conduit breakdown, so Table 310.15(C)(1) fill derating can't be trusted off the flat length alone. Set a routing template per circuit type (an optional fixed lead-in leg, then the rest of each real segment's PVCase length in the remainder leg) and this sizes every real segment in the BOM against <a href="#sec-raceway" onclick="document.querySelector('[data-target=sec-raceway]')?.click();">real conduit trade sizes / cable-tray widths</a> (Panel 12A), reporting the governing (worst-case) segment. Requires the BOM path above; the DWG path isn't used here. "Size as tray" only matters for a "Free air / tray" leg — check it to get a real 392.22 tray-width spec instead of true free air (no raceway to size).</p>
+          <div style="overflow-x:auto; margin-bottom:14px;">
+            <table class="etap">
+              <thead><tr><th>Circuit</th><th>Leg</th><th>Method</th><th>Fixed length <span class="unit">ft, leg 1 only</span></th><th>Conductors</th><th>Conduit material</th><th>Size as tray?</th><th>Tray type</th><th>Tray width <span class="unit">in</span></th><th>Insulation</th><th>VD limit <span class="unit">%</span></th></tr></thead>
+              <tbody>
+                <tr>
+                  <td rowspan="2">AC — Transformer→Inverter</td>
+                  <td>1</td>
+                  <td><select id="pvcaseRouteAcLeg1Method"><option value="free_air_or_tray" selected>Free air / tray</option><option value="conduit_above_grade">Conduit, above grade</option><option value="conduit_below_grade">Conduit, below grade</option></select></td>
+                  <td><input type="text" id="pvcaseRouteAcLeg1Fixed" placeholder="e.g. 10"></td>
+                  <td><input type="text" id="pvcaseRouteAcLeg1ConductorCount" value="3"></td>
+                  <td><select id="pvcaseRouteAcLeg1Material"><option value="PVC_SCH40" selected>PVC Sch 40</option><option value="PVC_SCH80">PVC Sch 80</option><option value="EMT">EMT</option><option value="IMC">IMC</option><option value="RMC">RMC</option></select></td>
+                  <td style="text-align:center;"><input type="checkbox" id="pvcaseRouteAcLeg1SizeAsTray"></td>
+                  <td><select id="pvcaseRouteAcLeg1TrayType"><option value="ladder" selected>Ladder</option><option value="ventilated_trough">Ventilated trough</option><option value="solid_bottom">Solid bottom</option></select></td>
+                  <td><input type="text" id="pvcaseRouteAcLeg1TrayWidth" value="12"></td>
+                  <td rowspan="2"><select id="pvcaseRouteAcInsulation"><option value="75">75°C</option><option value="90" selected>90°C</option></select></td>
+                  <td rowspan="2"><input type="text" id="pvcaseRouteAcVdLimit" value="1.0"></td>
+                </tr>
+                <tr>
+                  <td>2 (remainder)</td>
+                  <td><select id="pvcaseRouteAcLeg2Method"><option value="free_air_or_tray">Free air / tray</option><option value="conduit_above_grade">Conduit, above grade</option><option value="conduit_below_grade" selected>Conduit, below grade</option></select></td>
+                  <td>—</td>
+                  <td><input type="text" id="pvcaseRouteAcLeg2ConductorCount" value="3"></td>
+                  <td><select id="pvcaseRouteAcLeg2Material"><option value="PVC_SCH40" selected>PVC Sch 40</option><option value="PVC_SCH80">PVC Sch 80</option><option value="EMT">EMT</option><option value="IMC">IMC</option><option value="RMC">RMC</option></select></td>
+                  <td style="text-align:center;"><input type="checkbox" id="pvcaseRouteAcLeg2SizeAsTray"></td>
+                  <td><select id="pvcaseRouteAcLeg2TrayType"><option value="ladder" selected>Ladder</option><option value="ventilated_trough">Ventilated trough</option><option value="solid_bottom">Solid bottom</option></select></td>
+                  <td><input type="text" id="pvcaseRouteAcLeg2TrayWidth" value="12"></td>
+                </tr>
+                <tr>
+                  <td rowspan="2">DC — Inverter→Combiner</td>
+                  <td>1</td>
+                  <td><select id="pvcaseRouteDc1Leg1Method"><option value="free_air_or_tray" selected>Free air / tray</option><option value="conduit_above_grade">Conduit, above grade</option><option value="conduit_below_grade">Conduit, below grade</option></select></td>
+                  <td><input type="text" id="pvcaseRouteDc1Leg1Fixed" placeholder="e.g. 15"></td>
+                  <td><input type="text" id="pvcaseRouteDc1Leg1ConductorCount" value="2"></td>
+                  <td><select id="pvcaseRouteDc1Leg1Material"><option value="PVC_SCH40" selected>PVC Sch 40</option><option value="PVC_SCH80">PVC Sch 80</option><option value="EMT">EMT</option><option value="IMC">IMC</option><option value="RMC">RMC</option></select></td>
+                  <td style="text-align:center;"><input type="checkbox" id="pvcaseRouteDc1Leg1SizeAsTray"></td>
+                  <td><select id="pvcaseRouteDc1Leg1TrayType"><option value="ladder" selected>Ladder</option><option value="ventilated_trough">Ventilated trough</option><option value="solid_bottom">Solid bottom</option></select></td>
+                  <td><input type="text" id="pvcaseRouteDc1Leg1TrayWidth" value="12"></td>
+                  <td rowspan="2"><select id="pvcaseRouteDc1Insulation"><option value="75">75°C</option><option value="90" selected>90°C</option></select></td>
+                  <td rowspan="2"><input type="text" id="pvcaseRouteDc1VdLimit" value="1.0"></td>
+                </tr>
+                <tr>
+                  <td>2 (remainder)</td>
+                  <td><select id="pvcaseRouteDc1Leg2Method"><option value="free_air_or_tray">Free air / tray</option><option value="conduit_above_grade">Conduit, above grade</option><option value="conduit_below_grade" selected>Conduit, below grade</option></select></td>
+                  <td>—</td>
+                  <td><input type="text" id="pvcaseRouteDc1Leg2ConductorCount" value="2"></td>
+                  <td><select id="pvcaseRouteDc1Leg2Material"><option value="PVC_SCH40" selected>PVC Sch 40</option><option value="PVC_SCH80">PVC Sch 80</option><option value="EMT">EMT</option><option value="IMC">IMC</option><option value="RMC">RMC</option></select></td>
+                  <td style="text-align:center;"><input type="checkbox" id="pvcaseRouteDc1Leg2SizeAsTray"></td>
+                  <td><select id="pvcaseRouteDc1Leg2TrayType"><option value="ladder" selected>Ladder</option><option value="ventilated_trough">Ventilated trough</option><option value="solid_bottom">Solid bottom</option></select></td>
+                  <td><input type="text" id="pvcaseRouteDc1Leg2TrayWidth" value="12"></td>
+                </tr>
+                <tr>
+                  <td rowspan="2">DC — Combiner→String</td>
+                  <td>1</td>
+                  <td><select id="pvcaseRouteDc2Leg1Method"><option value="free_air_or_tray" selected>Free air / tray</option><option value="conduit_above_grade">Conduit, above grade</option><option value="conduit_below_grade">Conduit, below grade</option></select></td>
+                  <td><input type="text" id="pvcaseRouteDc2Leg1Fixed" placeholder="e.g. 15"></td>
+                  <td><input type="text" id="pvcaseRouteDc2Leg1ConductorCount" value="2"></td>
+                  <td><select id="pvcaseRouteDc2Leg1Material"><option value="PVC_SCH40" selected>PVC Sch 40</option><option value="PVC_SCH80">PVC Sch 80</option><option value="EMT">EMT</option><option value="IMC">IMC</option><option value="RMC">RMC</option></select></td>
+                  <td style="text-align:center;"><input type="checkbox" id="pvcaseRouteDc2Leg1SizeAsTray" checked></td>
+                  <td><select id="pvcaseRouteDc2Leg1TrayType"><option value="ladder" selected>Ladder</option><option value="ventilated_trough">Ventilated trough</option><option value="solid_bottom">Solid bottom</option></select></td>
+                  <td><input type="text" id="pvcaseRouteDc2Leg1TrayWidth" value="12"></td>
+                  <td rowspan="2"><select id="pvcaseRouteDc2Insulation"><option value="75">75°C</option><option value="90" selected>90°C</option></select></td>
+                  <td rowspan="2"><input type="text" id="pvcaseRouteDc2VdLimit" value="2.0"></td>
+                </tr>
+                <tr>
+                  <td>2 (remainder)</td>
+                  <td><select id="pvcaseRouteDc2Leg2Method"><option value="free_air_or_tray" selected>Free air / tray</option><option value="conduit_above_grade">Conduit, above grade</option><option value="conduit_below_grade">Conduit, below grade</option></select></td>
+                  <td>—</td>
+                  <td><input type="text" id="pvcaseRouteDc2Leg2ConductorCount" value="2"></td>
+                  <td><select id="pvcaseRouteDc2Leg2Material"><option value="PVC_SCH40" selected>PVC Sch 40</option><option value="PVC_SCH80">PVC Sch 80</option><option value="EMT">EMT</option><option value="IMC">IMC</option><option value="RMC">RMC</option></select></td>
+                  <td style="text-align:center;"><input type="checkbox" id="pvcaseRouteDc2Leg2SizeAsTray" checked></td>
+                  <td><select id="pvcaseRouteDc2Leg2TrayType"><option value="ladder" selected>Ladder</option><option value="ventilated_trough">Ventilated trough</option><option value="solid_bottom">Solid bottom</option></select></td>
+                  <td><input type="text" id="pvcaseRouteDc2Leg2TrayWidth" value="12"></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="bulk-btns" style="margin-top:0; margin-bottom:14px;">
+            <button class="btn btn-primary" id="pvcaseRoutingBtn" type="button">Compute routing-aware sizing</button>
+          </div>
+          <p class="desc" id="pvcaseRoutingStatus"></p>
+          <div id="pvcaseRoutingResult" style="display:none;">
+            <div style="overflow-x:auto;">
+              <table class="etap" style="margin-bottom:14px;">
+                <thead><tr><th>Circuit</th><th style="text-align:right;">Segments</th><th>Governing segment</th><th>Ampacity-only conductor</th><th>Final conductor (incl. VD)</th><th style="text-align:right;">VD %</th><th>Governing leg raceway</th></tr></thead>
+                <tbody id="pvcaseRoutingBody"></tbody>
+              </table>
+            </div>
+            <ul id="pvcaseRoutingWarnings" style="margin:0; padding-left:18px;"></ul>
+          </div>
+        </div>
+      </section>
+
     </div>
   </div>
 </div>
@@ -3637,7 +3678,7 @@
     'sec-site', 'sec-directory', 'sec-inverter-design',
     'sec-combiner', 'sec-switchboard-design', 'sec-mv-design', 'sec-backend', 'sec-catalog-review', 'sec-raceway',
     'sec-skyvisor', 'sec-gps-validate', 'sec-value-engineering', 'sec-commissioning', 'sec-trench',
-    'sec-planreview', 'sec-custom-devices',
+    'sec-planreview', 'sec-custom-devices', 'sec-pvcase',
   ];
   const railBtns = document.querySelectorAll('.rail-btn');
   railBtns.forEach(btn => {
@@ -4954,7 +4995,7 @@
     return d.manufacturer + ' ' + d.model + ' — ' + Math.round(d.acRatingW / 1000) + ' kW';
   }
   const invModel = document.getElementById('invModel');
-  // Inverter Design renders its own model dropdown per row, so it has to be
+  // Array Electrical Design renders its own model dropdown per row, so it has to be
   // rebuilt whenever the catalog changes.
   var inverterCascadeReady = false;
 
@@ -5635,7 +5676,7 @@
     const wasSelected = invModel.value === key;
     delete INVERTER_MODELS[key];
     refreshInverterModelOptions();
-    // Inverter Design rows pointing at the removed model would compute an AC
+    // Array Electrical Design rows pointing at the removed model would compute an AC
     // rating of zero, so they fall back to the current selection.
     if (typeof inverterDesignRows !== 'undefined') {
       inverterDesignRows.forEach(r => { if (!INVERTER_MODELS[r.model]) r.model = invModel.value; });
@@ -5737,7 +5778,7 @@
   });
 
   // ---- Switchboard Design: one row per switchboard ----
-  // The boards themselves are owned by Inverter Design (that is where inverters
+  // The boards themselves are owned by Array Electrical Design (that is where inverters
   // get assigned to them), so this schedule is keyed off those tags and only
   // stores the electrical decisions that belong to the board itself.
   var switchboardDesignReady = false;
@@ -5773,7 +5814,7 @@
 
   function recomputeSwitchboardDesign() {
     const tags = switchboardTags();
-    // Drop rows for boards that no longer exist on Inverter Design.
+    // Drop rows for boards that no longer exist on Array Electrical Design.
     Object.keys(switchboardRows).forEach(t => { if (!tags.includes(t)) delete switchboardRows[t]; });
 
     const acVoltage = parseNum(document.getElementById('sysArchAcVoltage').value);
@@ -5824,7 +5865,7 @@
     const dot = document.getElementById('switchboardDesignDot');
     if (unassigned) {
       hint.textContent = unassigned + ' switchboard' + (unassigned === 1 ? ' has' : 's have') +
-        ' no inverters assigned — assign them on Inverter Design, or reduce the switchboard count there.';
+        ' no inverters assigned — assign them on Array Electrical Design, or reduce the switchboard count there.';
       dot.className = 'rail-dot dot-warn';
     } else if (anyFail) {
       hint.textContent = 'At least one board fails the 120% allowance — increase the busbar, reduce the main, or split the inverters across more boards.';
@@ -6012,19 +6053,19 @@
   function refreshMvHints() {
     // Cross-check the planning numbers against what the design actually has,
     // so a stale plan is visible rather than quietly contradicted. switchboardTags()
-    // reads an Inverter Design binding declared further down, so this half waits
+    // reads an Array Electrical Design binding declared further down, so this half waits
     // until that block exists; the ratings check below never needed it.
     const boards = switchboardDesignReady ? switchboardTags().length : 0;
     const planned = parseNum(document.getElementById('mvExpectedSwitchboards').value);
     const plannedXfmr = parseNum(document.getElementById('mvExpectedTransformers').value);
     const actualXfmr = transformerRows.length;
     const notes = [];
-    if (planned && planned !== boards) notes.push('plan says ' + planned + ' switchboard(s), Inverter Design has ' + boards);
+    if (planned && planned !== boards) notes.push('plan says ' + planned + ' switchboard(s), Array Electrical Design has ' + boards);
     if (plannedXfmr && plannedXfmr !== actualXfmr) notes.push('plan says ' + plannedXfmr + ' transformer(s), Transformer Design has ' + actualXfmr);
     const hint = document.getElementById('mvPlanningHint');
     hint.textContent = notes.length
       ? 'Planning numbers disagree with the design: ' + notes.join('; ') + '.'
-      : 'Planning numbers agree with Inverter Design and Transformer Design.';
+      : 'Planning numbers agree with Array Electrical Design and Transformer Design.';
     hint.style.color = notes.length ? 'var(--warn)' : 'var(--ink-muted)';
 
     const kv = parseNum(document.getElementById('mvNominalVoltage').value);
@@ -6823,7 +6864,7 @@
   }
   // The module count is no longer typed in anywhere — the planning figure is
   // what Site Config's Target DC capacity buys at the chosen string length.
-  // What is actually built is the sum of the strings on Inverter Design.
+  // What is actually built is the sum of the strings on Array Electrical Design.
   function totalStringsOnSite() {
     const len = primaryStringLength();
     if (!len || len <= 0 || !MODULE_W) return 0;
@@ -6838,7 +6879,7 @@
     document.getElementById('stringTotalCount').innerHTML = total
       ? total + '<small> strings</small>' : '—<small> strings</small>';
     // `var` so this is hoisted-undefined rather than in the temporal dead zone:
-    // this runs once during init, before the Inverter Design block below has
+    // this runs once during init, before the Array Electrical Design block below has
     // initialized its own state.
     if (inverterDesignReady) {
       // Ticking a new "used" length on this panel has to reach the Inverter
@@ -6996,7 +7037,7 @@
     .forEach(el => el.addEventListener('input', recomputeStringLength));
   recomputeStringLength();
 
-  // ---- Inverter Design: per-inverter model / power / strings / switchboard ----
+  // ---- Array Electrical Design: per-inverter model / power / strings / switchboard ----
   // One row per inverter on site. A row owns its strings as an explicit list of
   // module counts (stringModules), so the string count is just its length and a
   // single string can be re-sized without disturbing its neighbours. Rows are
@@ -7235,30 +7276,25 @@
         '<option value="' + k + '"' + (selected === k ? ' selected' : '') + '>' + k + '</option>').join('');
   }
 
+  // Wire sizing (Conductor/OCPD/Design current) and voltage drop (Run/Vdrop)
+  // used to be columns here too -- they now live on their own flat, all-strings
+  // schedules on Ampacity & Conductor Sizing (13) and Voltage Drop Limits (17)
+  // respectively (see renderAmpacityStringSchedule/renderVdropStringSchedule),
+  // reading the same inverterDesignRows/stringElectrical this table does. This
+  // table stays focused on what it actually owns: how many modules are in
+  // each string.
   function stringTableHtml(row, i, invName) {
     if (!row.stringModules.length) return '<span class="desc">No strings assigned to this inverter yet.</span>';
     normalizeStringArrays(row);
     const rows = row.stringModules.map((n, s) => {
       const e = stringElectrical(n, row.stringWires[s], row.stringLengths[s]);
-      const ocpdCell = !e ? '—'
-        : e.ocpd + (e.fuseCapped ? ' <span class="vd-fail">(capped at module max ' + e.maxSeriesFuse + ' A)</span>' : '');
       const vocCold = e ? e.vocStringCold : null;
-      const wireCell = '<select data-inv-row="' + i + '" data-inv-wire="' + s + '">' +
-        conductorOptionsHtml(row.stringWires[s]) + '</select>' +
-        (e && !row.stringWires[s] ? ' <span class="auto">' + (e.autoWire || 'over 750 kcmil') + '</span>' : '');
       return '<tr>' +
         '<td>' + invName + '-STR-' + (s + 1) + '</td>' +
         '<td style="text-align:right;"><input type="text" data-inv-row="' + i + '" data-inv-string="' + s + '" value="' + n + '"></td>' +
         '<td style="text-align:right;" class="' + (e && e.vocOverCeiling ? 'vd-fail' : '') + '">' +
           (vocCold === null ? '—' : vocCold.toFixed(1)) + '</td>' +
         '<td style="text-align:right;">' + (e ? e.vmpString.toFixed(1) : '—') + '</td>' +
-        '<td style="text-align:right;">' + (e ? e.designCurrent.toFixed(2) : '—') + '</td>' +
-        '<td style="text-align:right;">' + ocpdCell + '</td>' +
-        '<td>' + wireCell + '</td>' +
-        '<td style="text-align:right;"><input type="text" data-inv-row="' + i + '" data-inv-run="' + s + '" value="' + escapeAttr(row.stringLengths[s]) + '"></td>' +
-        '<td style="text-align:right;">' + (e ? e.vdVolts.toFixed(2) : '—') + '</td>' +
-        '<td style="text-align:right;" class="' + (e && e.limit ? (e.vdPass ? 'vd-pass' : 'vd-fail') : '') + '">' +
-          (e ? e.vdPct.toFixed(2) + ' %' : '—') + '</td>' +
       '</tr>';
     }).join('');
     return '<table class="strings" data-strings-for="' + i + '"><thead><tr>' +
@@ -7266,13 +7302,91 @@
       '<th style="text-align:right;">Modules</th>' +
       '<th style="text-align:right;">V<sub>oc</sub> @ extreme low (V)</th>' +
       '<th style="text-align:right;">V<sub>mp</sub> @ avg high (V)</th>' +
-      '<th style="text-align:right;">Design current (A)</th>' +
-      '<th style="text-align:right;">OCPD (A)</th>' +
-      '<th>Conductor</th>' +
-      '<th style="text-align:right;">Run (ft)</th>' +
-      '<th style="text-align:right;">V<sub>drop</sub> (V)</th>' +
-      '<th style="text-align:right;">V<sub>drop</sub> (%)</th>' +
       '</tr></thead><tbody>' + rows + '</tbody></table>';
+  }
+
+  // Every string across every inverter, flattened in schedule order -- the
+  // shared iteration order for the Ampacity and Voltage Drop schedules below.
+  function allStringRefs() {
+    const names = effectiveInverterNames();
+    const refs = [];
+    inverterDesignRows.forEach((row, i) => {
+      row.stringModules.forEach((n, s) => refs.push({ i: i, s: s, label: names[i] + '-STR-' + (s + 1) }));
+    });
+    return refs;
+  }
+
+  // ---- Ampacity & Conductor Sizing (13): flat wire-sizing schedule, one row
+  // per string across the whole site, moved off Array Electrical Design (08).
+  function renderAmpacityStringSchedule() {
+    const body = document.getElementById('ampStringScheduleBody');
+    if (!body) return;
+    const refs = allStringRefs();
+    if (!refs.length) {
+      body.innerHTML = '<tr class="empty"><td colspan="5">No strings assigned yet — build the schedule on Array Electrical Design (08) first.</td></tr>';
+      return;
+    }
+    body.innerHTML = refs.map(function (ref) {
+      const row = inverterDesignRows[ref.i];
+      const n = row.stringModules[ref.s];
+      const e = stringElectrical(n, row.stringWires[ref.s], row.stringLengths[ref.s]);
+      const ocpdCell = !e ? '—'
+        : e.ocpd + (e.fuseCapped ? ' <span class="vd-fail">(capped at module max ' + e.maxSeriesFuse + ' A)</span>' : '');
+      const wireCell = '<select data-inv-row="' + ref.i + '" data-inv-wire="' + ref.s + '">' +
+        conductorOptionsHtml(row.stringWires[ref.s]) + '</select>' +
+        (e && !row.stringWires[ref.s] ? ' <span class="auto">' + (e.autoWire || 'over 750 kcmil') + '</span>' : '');
+      return '<tr>' +
+        '<td>' + escapeText(ref.label) + '</td>' +
+        '<td style="text-align:right;">' + n + '</td>' +
+        '<td style="text-align:right;">' + (e ? e.designCurrent.toFixed(2) : '—') + '</td>' +
+        '<td style="text-align:right;">' + ocpdCell + '</td>' +
+        '<td>' + wireCell + '</td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  // ---- Voltage Drop Limits (17): flat per-string voltage-drop schedule,
+  // moved off Array Electrical Design (08). Conductor is read-only here --
+  // it's set on the Ampacity schedule above, this just uses whatever that
+  // chose (or auto-sized) for the same string.
+  function renderVdropStringSchedule() {
+    const body = document.getElementById('vdropStringScheduleBody');
+    if (!body) return;
+    const refs = allStringRefs();
+    if (!refs.length) {
+      body.innerHTML = '<tr class="empty"><td colspan="6">No strings assigned yet — build the schedule on Array Electrical Design (08) first.</td></tr>';
+      return;
+    }
+    body.innerHTML = refs.map(function (ref) {
+      const row = inverterDesignRows[ref.i];
+      const n = row.stringModules[ref.s];
+      const e = stringElectrical(n, row.stringWires[ref.s], row.stringLengths[ref.s]);
+      const conductorCell = !e ? '—' : (row.stringWires[ref.s] || ((e.autoWire || 'over 750 kcmil') + ' (auto)'));
+      return '<tr data-row-key="' + ref.i + '-' + ref.s + '">' +
+        '<td>' + escapeText(ref.label) + '</td>' +
+        '<td style="text-align:right;">' + n + '</td>' +
+        '<td>' + escapeText(conductorCell) + '</td>' +
+        '<td style="text-align:right;"><input type="text" data-inv-row="' + ref.i + '" data-inv-run="' + ref.s + '" value="' + escapeAttr(row.stringLengths[ref.s]) + '"></td>' +
+        '<td style="text-align:right;">' + (e ? e.vdVolts.toFixed(2) : '—') + '</td>' +
+        '<td style="text-align:right;" class="' + (e && e.limit ? (e.vdPass ? 'vd-pass' : 'vd-fail') : '') + '">' +
+          (e ? e.vdPct.toFixed(2) + ' %' : '—') + '</td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  // Typing into a run-length box must not rebuild the schedule it lives in
+  // (would steal focus mid-digit), so only that one row's Vdrop cells refresh.
+  function refreshVdropScheduleRow(i, s) {
+    const body = document.getElementById('vdropStringScheduleBody');
+    if (!body) return;
+    const tr = body.querySelector('[data-row-key="' + i + '-' + s + '"]');
+    if (!tr) return;
+    const row = inverterDesignRows[i];
+    const e = stringElectrical(row.stringModules[s], row.stringWires[s], row.stringLengths[s]);
+    if (!e) return;
+    tr.cells[4].textContent = e.vdVolts.toFixed(2);
+    tr.cells[5].textContent = e.vdPct.toFixed(2) + ' %';
+    tr.cells[5].className = e.limit ? (e.vdPass ? 'vd-pass' : 'vd-fail') : '';
   }
 
   // "100 strings - 90 of 26 modules, 10 of 24 modules" style rollups.
@@ -7285,12 +7399,14 @@
     });
     const byLength = {};
     let strings = 0;
-    rows.forEach(r => r.stringModules.forEach(n => { byLength[n] = (byLength[n] || 0) + 1; strings++; }));
+    let modules = 0;
+    rows.forEach(r => r.stringModules.forEach(n => { byLength[n] = (byLength[n] || 0) + 1; strings++; modules += Number(n) || 0; }));
     return {
       inverters: rows.length,
       byModel,
       strings,
       byLength,
+      modules,
       acKw: rows.reduce((s, r) => s + inverterRowAcKw(r), 0),
       dcKw: rows.reduce((s, r) => s + inverterRowDcKw(r), 0),
     };
@@ -7303,6 +7419,12 @@
     const head = title + ' — ' + s.inverters + ' inverter' + (s.inverters === 1 ? '' : 's') +
       ', ' + fmt(s.acKw) + ' kW AC / ' + fmt(s.dcKw) + ' kW DC';
     let items = modelKeys.map(k => '<li>' + s.byModel[k] + ' &times; ' + k + '</li>').join('');
+    // The design is built around a single module (Module Spec), so the count
+    // just needs its own name/wattage, not a per-model breakdown like above.
+    const md = MODULE_SKUS[modSku.value];
+    items += '<li>' + (md
+      ? '(' + fmt(s.modules) + ') ' + escapeText(md.manufacturer) + ' ' + md.pmax + 'W Modules'
+      : fmt(s.modules) + ' modules') + '</li>';
     items += '<li>' + s.strings + ' string' + (s.strings === 1 ? '' : 's') +
       (lengthKeys.length ? '<ul>' + lengthKeys.map(n =>
         '<li>' + s.byLength[n] + ' string' + (s.byLength[n] === 1 ? '' : 's') + ' of ' + n + ' modules</li>').join('') + '</ul>' : '') +
@@ -7324,11 +7446,57 @@
     document.getElementById('invSummaryBreakdown').innerHTML = html;
   }
 
+  // ---- simplified one-line diagram: a linear block chain, not a real
+  // schematic -- Interconnection -> Transformer -> Switchboard -> Inverters
+  // -> Module Strings, each box showing how many of that thing the current
+  // design has. Quantities either come straight from the Quantity on site
+  // fields (Interconnection, Transformer -- nothing else derives them) or
+  // are counted from the schedule itself (Switchboard, Inverters, Strings),
+  // same source those numbers use everywhere else on this panel.
+  function sldBoxSvg(x, y, w, h, title, countLabel) {
+    return (
+      '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="8" fill="var(--surface-2)" stroke="var(--ink)" stroke-width="2"/>' +
+      '<text x="' + (x + w / 2) + '" y="' + (y + h / 2 - 6) + '" text-anchor="middle" font-size="13" font-weight="600" fill="var(--ink)">' + escapeText(title) + '</text>' +
+      '<text x="' + (x + w / 2) + '" y="' + (y + h / 2 + 14) + '" text-anchor="middle" font-size="12" fill="var(--ink-muted)">' + escapeText(countLabel) + '</text>'
+    );
+  }
+  function sldArrowSvg(x1, x2, y) {
+    return (
+      '<line x1="' + x1 + '" y1="' + y + '" x2="' + (x2 - 9) + '" y2="' + y + '" stroke="var(--ink-muted)" stroke-width="2"/>' +
+      '<polygon points="' + (x2 - 9) + ',' + (y - 5) + ' ' + x2 + ',' + y + ' ' + (x2 - 9) + ',' + (y + 5) + '" fill="var(--ink-muted)"/>'
+    );
+  }
+  function renderSldDiagram() {
+    const wrap = document.getElementById('sldDiagramWrap');
+    if (!wrap) return;
+    const interconnectQty = document.getElementById('invDesignInterconnectionQuantity').value.trim();
+    const xfmrQty = document.getElementById('invDesignTransformerQuantity').value.trim();
+    const swbdQty = switchboardTags().length;
+    const invCount = inverterDesignRows.length;
+    const stringCount = summarizeRows(inverterDesignRows).strings;
+    const stages = [
+      { title: 'Interconnection', count: interconnectQty || '—' },
+      { title: 'Transformer', count: xfmrQty || '—' },
+      { title: 'Switchboard', count: swbdQty || '—' },
+      { title: 'Inverters', count: invCount || '—' },
+      { title: 'Module Strings', count: stringCount || '—' },
+    ];
+    const boxW = 128, boxH = 62, gap = 42, y = 18;
+    const svgW = stages.length * boxW + (stages.length - 1) * gap + 20;
+    const svgH = y * 2 + boxH;
+    let svg = '';
+    stages.forEach((stage, i) => {
+      const x = 10 + i * (boxW + gap);
+      const label = (stage.count === '—' ? '—' : '×' + stage.count);
+      svg += sldBoxSvg(x, y, boxW, boxH, stage.title, label);
+      if (i < stages.length - 1) svg += sldArrowSvg(x + boxW, x + boxW + gap, y + boxH / 2);
+    });
+    wrap.innerHTML = '<svg viewBox="0 0 ' + svgW + ' ' + svgH + '" width="100%" style="max-width:760px;" xmlns="http://www.w3.org/2000/svg">' + svg + '</svg>';
+  }
+
   // Editing one string's module count must not re-render the grid the user is
   // typing in, so refresh only the derived numbers around it.
   function recomputeInverterDesignTotalsOnly() {
-    const available = totalStringsOnSite();
-    const assigned = inverterDesignRows.reduce((sum, r) => sum + r.stringModules.length, 0);
     const acKw = inverterDesignRows.reduce((sum, r) => sum + inverterRowAcKw(r), 0);
     const dcKw = inverterDesignRows.reduce((sum, r) => sum + inverterRowDcKw(r), 0);
     document.getElementById('invDesignActualRatio').textContent = acKw > 0 ? (dcKw / acKw).toFixed(2) : '—';
@@ -7336,9 +7504,6 @@
     inverterDesignRows.forEach((r, i) => {
       if (mainRows[i]) mainRows[i].children[7].textContent = inverterRowDcKw(r).toFixed(0);
     });
-    const assignedEl = document.getElementById('invDesignStringsAssigned');
-    assignedEl.innerHTML = assigned + '<small> strings</small>';
-    assignedEl.style.color = assigned === available ? 'var(--pass)' : 'var(--warn)';
   }
 
   function recomputeInverterDesign() {
@@ -7353,13 +7518,12 @@
     const acKw = inverterDesignRows.reduce((sum, r) => sum + inverterRowAcKw(r), 0);
     const dcKw = inverterDesignRows.reduce((sum, r) => sum + inverterRowDcKw(r), 0);
 
-    document.getElementById('invDesignStringsAvailable').innerHTML = available + '<small> strings</small>';
     document.getElementById('invDesignTargetRatio').textContent = targetDcAcRatio().toFixed(2);
     document.getElementById('invDesignActualRatio').textContent = acKw > 0 ? (dcKw / acKw).toFixed(2) : '—';
 
-    const assignedEl = document.getElementById('invDesignStringsAssigned');
-    assignedEl.innerHTML = assigned + '<small> strings</small>';
-    assignedEl.style.color = assigned === available ? 'var(--pass)' : 'var(--warn)';
+    renderAmpacityStringSchedule();
+    renderVdropStringSchedule();
+    renderSldDiagram();
     publishInverterDesignQuantities();
 
     const hint = document.getElementById('invDesignBalanceHint');
@@ -7387,9 +7551,6 @@
       (sum, r) => sum + r.stringModules.reduce((a, n) => a + (Number(n) || 0), 0), 0);
     document.getElementById('modQuantity').value = String(modules);
     document.getElementById('invQuantity').value = String(inverterDesignRows.length);
-    document.getElementById('invDesignModuleCount').innerHTML = modules
-      ? fmt(modules) + '<small> modules</small>' : '—<small> modules</small>';
-    document.getElementById('invDesignInverterCount').textContent = inverterDesignRows.length || '—';
     if (moduleCascadeReady) recompute();
     if (switchboardDesignReady) recomputeSwitchboardDesign();
   }
@@ -7434,14 +7595,13 @@
     if (strIdx !== undefined) {
       row.stringModules[Number(strIdx)] = parseInt(parseNum(e.target.value), 10) || 0;
       refreshStringRowCells(Number(idx), Number(strIdx));
+      // Module count feeds design current/OCPD/Vdrop too, but those tables
+      // live on other panels now -- safe to fully rebuild them since focus
+      // is in this table, not theirs.
+      renderAmpacityStringSchedule();
+      renderVdropStringSchedule();
       renderInverterSummary();
       recomputeInverterDesignTotalsOnly();
-      return;
-    }
-    const runIdx = e.target.dataset.invRun;
-    if (runIdx !== undefined) {
-      row.stringLengths[Number(runIdx)] = e.target.value;
-      refreshStringRowCells(Number(idx), Number(runIdx));
       return;
     }
     const field = e.target.dataset.invField;
@@ -7461,25 +7621,9 @@
     recomputeInverterDesign();
   });
 
-  // Picking an explicit conductor removes the "auto" annotation next to it, so
-  // that one table gets rebuilt — safe here because the trigger is a select,
-  // not a text field someone is mid-word in.
-  invDesignBody.addEventListener('change', e => {
-    const idx = e.target.dataset.invRow;
-    const wireIdx = e.target.dataset.invWire;
-    if (idx === undefined || wireIdx === undefined) return;
-    inverterDesignRows[Number(idx)].stringWires[Number(wireIdx)] = e.target.value;
-    rerenderStringTable(Number(idx));
-  });
-
-  function rerenderStringTable(i) {
-    const table = invDesignBody.querySelector('[data-strings-for="' + i + '"]');
-    if (!table) return;
-    table.parentElement.innerHTML = stringTableHtml(inverterDesignRows[i], i, effectiveInverterNames()[i]);
-  }
-
-  // Typing a module count or a run length must not rebuild the input being
-  // typed into, so only the derived cells beside it are rewritten.
+  // Typing a module count must not rebuild the input being typed into, so
+  // only the derived cells beside it (Voc/Vmp, the only two this table still
+  // owns) are rewritten.
   function refreshStringRowCells(i, s) {
     const table = invDesignBody.querySelector('[data-strings-for="' + i + '"]');
     if (!table) return;
@@ -7491,14 +7635,33 @@
     tr.cells[2].textContent = e.vocStringCold.toFixed(1);
     tr.cells[2].className = e.vocOverCeiling ? 'vd-fail' : '';
     tr.cells[3].textContent = e.vmpString.toFixed(1);
-    tr.cells[4].textContent = e.designCurrent.toFixed(2);
-    tr.cells[5].innerHTML = e.ocpd + (e.fuseCapped ? ' <span class="vd-fail">(capped at module max ' + e.maxSeriesFuse + ' A)</span>' : '');
-    const autoSpan = tr.cells[6].querySelector('.auto');
-    if (autoSpan) autoSpan.textContent = e.autoWire || 'over 750 kcmil';
-    tr.cells[8].textContent = e.vdVolts.toFixed(2);
-    tr.cells[9].textContent = e.vdPct.toFixed(2) + ' %';
-    tr.cells[9].className = e.limit ? (e.vdPass ? 'vd-pass' : 'vd-fail') : '';
   }
+
+  // ---- wire-sizing schedule (Ampacity & Conductor Sizing, 13): conductor
+  // picks live here now, not on Array Electrical Design. A select isn't
+  // something anyone is mid-word in, so a full rebuild is fine -- it also
+  // needs to refresh the Vdrop schedule, since the conductor just changed.
+  document.getElementById('ampStringScheduleBody').addEventListener('change', e => {
+    const idx = e.target.dataset.invRow;
+    const wireIdx = e.target.dataset.invWire;
+    if (idx === undefined || wireIdx === undefined) return;
+    inverterDesignRows[Number(idx)].stringWires[Number(wireIdx)] = e.target.value;
+    renderAmpacityStringSchedule();
+    renderVdropStringSchedule();
+  });
+
+  // ---- voltage-drop schedule (Voltage Drop Limits, 17): run length lives
+  // here now. Typing in it must not rebuild the schedule it's inside of, so
+  // only that row's Vdrop cells refresh (refreshVdropScheduleRow, declared
+  // next to the schedule's own render function above). Run length doesn't
+  // feed conductor selection, so the Ampacity schedule is untouched.
+  document.getElementById('vdropStringScheduleBody').addEventListener('input', e => {
+    const idx = e.target.dataset.invRow;
+    const runIdx = e.target.dataset.invRun;
+    if (idx === undefined || runIdx === undefined) return;
+    inverterDesignRows[Number(idx)].stringLengths[Number(runIdx)] = e.target.value;
+    refreshVdropScheduleRow(Number(idx), Number(runIdx));
+  });
 
   function refreshNameDupeState() {
     const names = effectiveInverterNames();
@@ -7659,6 +7822,10 @@
     refreshInverterBulkOptions();
     recomputeInverterDesign();
   });
+  // Transformer/Interconnection quantity feed only the SLD box counts today --
+  // nothing else on this panel derives from them.
+  document.getElementById('invDesignTransformerQuantity').addEventListener('input', renderSldDiagram);
+  document.getElementById('invDesignInterconnectionQuantity').addEventListener('input', renderSldDiagram);
   invNamingConventionEl.addEventListener('change', () => { updateNamePreview(); renderInverterDesign(); });
   document.getElementById('modQuantity').addEventListener('input', recomputeInverterDesign);
 
@@ -9691,7 +9858,7 @@
 
   // ---- vendor specification ----
   // Reads the design rather than asking for it again: whatever is on Module
-  // Spec, PV String Design, Inverter Design and this panel right now.
+  // Spec, PV String Design, Array Electrical Design and this panel right now.
   function distinctStringConductors() {
     const counts = {};
     inverterDesignRows.forEach(row => {
@@ -9712,7 +9879,7 @@
   }
 
   // The combiner schedule sizes its input fuse off 690.8(A)(1) alone (Isc ×
-  // 1.25) while the per-string calc on Inverter Design also applies the
+  // 1.25) while the per-string calc on Array Electrical Design also applies the
   // 690.9(B) continuous factor (× 1.25 again). Those land on different standard
   // sizes for most modules. Rather than silently picking one for the vendor,
   // the spec reports both and says they disagree — a combiner ordered with the
@@ -9760,11 +9927,11 @@
       ['Strings on site', totalStrings + (Object.keys(lengths).length
         ? ' (' + Object.keys(lengths).map(Number).sort((a, b) => b - a)
             .map(n => lengths[n] + ' × ' + n + ' modules').join(', ') + ')' : ''),
-        'Inverter Design (08)'],
+        'Array Electrical Design (08)'],
       ['Combiners', combinerRows.length + ' — inputs per combiner: ' + (combInputs.join(', ') || '—'), 'DC Combiner Design (09)'],
       ['String inputs required (largest combiner)', maxInputs || '—', 'DC Combiner Design (09)'],
-      ['String input OCPD (fuse)', stringOcpdSpecValue(sampleString), 'Inverter Design (08) + DC Combiner Design (09)'],
-      ['String conductor', describeCounts(distinctStringConductors()), 'Inverter Design (08)'],
+      ['String input OCPD (fuse)', stringOcpdSpecValue(sampleString), 'Array Electrical Design (08) + DC Combiner Design (09)'],
+      ['String conductor', describeCounts(distinctStringConductors()), 'Array Electrical Design (08)'],
       ['Combiner output ampacity', combinerOutputAmpacity.toFixed(2) + ' A', 'DC Combiner Design (09)'],
       ['Output conductor', combOutputSelectedConductor || '—', 'DC Combiner Design (09)'],
       ['Output conductor basis', combOutputInsulation.value + ' °C insulation, ' +
@@ -9886,7 +10053,7 @@
   [etapConductor, etapLength].forEach(el => el.addEventListener('input', vdropRecompute));
   vdropRecompute();
 
-  // ---- bring the Inverter Design per-string calc online ----
+  // ---- bring the Array Electrical Design per-string calc online ----
   // stringElectrical() leans on the NEC tables and panel settings declared
   // above it in this file, so it stays inert until they all exist. Now they do.
   const vdStringCombinerEl = document.getElementById('vdStringCombiner');
@@ -9935,8 +10102,9 @@
     'ashraeDsStdP', 'ashraeDsTz', 'ashraeDsPeriod', 'ashraeDsDistance',
     'ashraeDsHeatDb996', 'ashraeDsHeatDb99', 'ashraeDsExtremeMin', 'ashraeDsCoolDb04',
     'ashraeDsCoolDb1', 'ashraeDsCoolDb2', 'ashraeDsExtremeMax', 'ashraeDsAvgHigh',
-    'modFirstYearDegradation', 'modAnnualDegradation',
-    'invDesignQuantity', 'invDesignSwitchboardCount', 'invNamingConvention',
+    'modFirstYearDegradation', 'modAnnualDegradation', 'stringPredesignVdrop',
+    'invDesignQuantity', 'invDesignSwitchboardCount', 'invDesignTransformerQuantity',
+    'invDesignInterconnectionQuantity', 'invNamingConvention',
     'invNamePrefix', 'invNameSeparator', 'invNameStart', 'invNamePad',
     'ampCircuitType', 'ampParallelStrings', 'ampInsulationRating', 'ampConductorCount',
     'ocpdCircuit', 'ocpdContinuousCurrent',
