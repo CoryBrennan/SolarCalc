@@ -13,7 +13,9 @@ from app.models import CombinerRow, ModuleSpec
 
 
 def compute_combiner_row(
-    row: CombinerRow, max_series_fuse_rating_a: float, module_fallback: ModuleSpec | None = None
+    row: CombinerRow,
+    max_series_fuse_rating_a: float,
+    module_fallback: ModuleSpec | dict[str, ModuleSpec] | None = None,
 ) -> dict:
     module = module_catalog.resolve_module_spec(row.module_sku, module_fallback)
     input_min_fuse_a = module.isc * 1.25
@@ -36,7 +38,9 @@ def compute_combiner_row(
 
 
 def size_combiners(
-    rows: list[CombinerRow], max_series_fuse_rating_a: float, module_fallback: ModuleSpec | None = None
+    rows: list[CombinerRow],
+    max_series_fuse_rating_a: float,
+    module_fallback: ModuleSpec | dict[str, ModuleSpec] | None = None,
 ) -> dict:
     computed_rows = [compute_combiner_row(row, max_series_fuse_rating_a, module_fallback) for row in rows]
     total_strings = sum(row.inputs for row in rows)

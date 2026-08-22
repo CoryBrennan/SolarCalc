@@ -76,7 +76,7 @@ def validate_readings(
     tolerance_pct: float = 5.0,
     module_sku: str | None = None,
     modules_per_string: int | None = None,
-    module_fallback: ModuleSpec | None = None,
+    module_fallback: ModuleSpec | dict[str, ModuleSpec] | None = None,
 ) -> list[IVValidationResult]:
     """`module_sku`/`modules_per_string` are only needed as a fallback for
     parameters with no vendor Modeled value -- if every reading carries
@@ -92,7 +92,7 @@ def _validate_one(
     tolerance_pct: float,
     module_sku: str | None,
     modules_per_string: int | None,
-    module_fallback: ModuleSpec | None = None,
+    module_fallback: ModuleSpec | dict[str, ModuleSpec] | None = None,
 ) -> list[IVValidationResult]:
     checks = [
         ("isc_a", reading.isc_measured_a, reading.isc_modeled_a, reading.isc_deviation_vs_modeled_pct),
@@ -148,7 +148,7 @@ def check_design_intent_divergence(
     modules_per_string: int,
     current_tolerance_pct: float = 3.0,
     voltage_tolerance_pct: float = 8.0,
-    module_fallback: ModuleSpec | None = None,
+    module_fallback: ModuleSpec | dict[str, ModuleSpec] | None = None,
 ) -> list[DesignIntentDivergence]:
     try:
         module_catalog.resolve_module_spec(module_sku, module_fallback)
@@ -224,7 +224,7 @@ def build_validation_report(
     module_sku: str | None = None,
     modules_per_string: int | None = None,
     bom: PvcaseBomData | None = None,
-    module_fallback: ModuleSpec | None = None,
+    module_fallback: ModuleSpec | dict[str, ModuleSpec] | None = None,
 ) -> FlukeValidationReport:
     warnings: list[str] = []
     if not readings:

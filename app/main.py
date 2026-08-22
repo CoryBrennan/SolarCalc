@@ -226,7 +226,7 @@ def calculate(project: ProjectInput) -> dict:
         inverter=project.inverter,
         ashrae=project.ashrae,
         ampacity_input=project.ampacity,
-        module_fallback=project.module,
+        module_fallback=module_catalog.project_module_lookup(project),
     )
 
     bonding_result = bonding_calc.size_bonding_and_grounding(project.transformer)
@@ -259,7 +259,7 @@ def calculate(project: ProjectInput) -> dict:
         irradiance_w_m2=project.iv_curve_conditions.irradiance_w_m2,
         cell_temp_c=project.iv_curve_conditions.cell_temp_c,
         modules_per_string=project.iv_curve_conditions.modules_per_string,
-        module_fallback=project.module,
+        module_fallback=module_catalog.project_module_lookup(project),
     )
     iv_validation = iv_curve_calc.validate_reading(
         expected=iv_expected,
@@ -456,7 +456,7 @@ def fluke_validate_export(request: FlukeValidateRequest) -> dict:
         module_sku=request.project.module.sku,
         modules_per_string=request.project.iv_curve_conditions.modules_per_string,
         bom=bom,
-        module_fallback=request.project.module,
+        module_fallback=module_catalog.project_module_lookup(request.project),
     )
     return {"all_pass": report.all_pass(), "coverage_complete": report.coverage_complete(), **dataclasses.asdict(report)}
 

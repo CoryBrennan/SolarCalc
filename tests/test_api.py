@@ -240,6 +240,31 @@ def test_calculate_rejects_combiner_row_referencing_a_different_unknown_sku():
     assert response.status_code == 422
 
 
+def test_calculate_resolves_a_combiner_row_on_a_second_custom_module_via_custom_modules():
+    """A combiner row can now reference a genuinely different non-catalog
+    module than the project's main one, as long as its full electricals are
+    supplied under custom_modules -- the HMI's Array schedule allows a
+    different module per inverter, so a combiner fed by that inverter's
+    strings needs to resolve its own module, not just the main one."""
+    response = client.post(
+        "/calculate",
+        json={
+            "module": {
+                "sku": "doc-42", "pmax": 500, "voc": 45.0, "vmp": 38.0, "isc": 14.0, "imp": 13.2,
+            },
+            "custom_modules": {
+                "doc-99": {"sku": "doc-99", "pmax": 600, "voc": 48.0, "vmp": 40.0, "isc": 15.0, "imp": 14.1},
+            },
+            "combiner_rows": [{"inputs": 2, "bus_rating_a": 200, "module_sku": "doc-99"}],
+        },
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["combiners"]["rows"][0]["module_sku"] == "doc-99"
+    # Isc 15 x 1.25 = 18.75 -> next standard fuse size above that.
+    assert body["combiners"]["rows"][0]["input_min_fuse_a"] == 15.0 * 1.25
+
+
 def test_calculate_switchboard_passes_when_topology_is_direct():
     """When the inverter takes PV source circuits directly (no combiner), the
     combiner-derived backfed load shouldn't apply — this project's switchboard

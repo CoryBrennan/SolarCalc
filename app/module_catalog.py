@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel
 
-from app.models import ModuleSpec
+from app.models import ModuleSpec, ProjectInput
 
 TEMP_COEFF_VOC_PCT_PER_C = -0.24
 TEMP_COEFF_ISC_PCT_PER_C = 0.04
@@ -53,32 +53,53 @@ MODULE_SKUS: dict[str, ModuleElectricalSpec] = {
 }
 
 
-def resolve_module_spec(module_sku: str, fallback: ModuleSpec | None = None) -> ModuleElectricalSpec:
+def resolve_module_spec(
+    module_sku: str, fallback: ModuleSpec | dict[str, ModuleSpec] | None = None
+) -> ModuleElectricalSpec:
     """Static catalog first. Falls back to the request's own inline
     electricals (ModuleSpec.pmax/voc/vmp/isc/imp/...) for a SKU that was
     never added to this file's small hardcoded set -- the common case now
     that the HMI's Module Spec panel has no default parts list of its own
     and every module is either manually entered or datasheet-approved.
-    Only trusts the fallback when its own sku matches the one being
-    resolved (so a combiner row referencing a genuinely different, unknown
-    SKU still fails loudly instead of silently borrowing the main module's
-    electricals) and it actually carries real data (pmax/voc/isc > 0).
-    Raises KeyError, same as the plain dict lookup this replaces, when
-    neither source has the SKU.
+
+    `fallback` can be a single ModuleSpec (the original, still-supported
+    shape -- every existing caller passes the project's one main module) or
+    a dict[sku, ModuleSpec] for a project with more than one non-catalog
+    module in play (e.g. different inverters/combiners on different custom
+    modules) -- see project_module_lookup() below, which is how callers
+    build one. Only trusts a candidate when its own sku matches the one
+    being resolved (so a combiner row referencing a genuinely different,
+    unknown SKU still fails loudly instead of silently borrowing another
+    module's electricals) and it actually carries real data (pmax/voc/isc >
+    0). Raises KeyError, same as the plain dict lookup this replaces, when
+    no source has the SKU.
     """
     if module_sku in MODULE_SKUS:
         return MODULE_SKUS[module_sku]
+    candidate = fallback.get(module_sku) if isinstance(fallback, dict) else fallback
     if (
-        fallback is not None
-        and fallback.sku == module_sku
-        and fallback.pmax > 0
-        and fallback.voc > 0
-        and fallback.isc > 0
+        candidate is not None
+        and candidate.sku == module_sku
+        and candidate.pmax > 0
+        and candidate.voc > 0
+        and candidate.isc > 0
     ):
         return ModuleElectricalSpec(
-            pmax=fallback.pmax, voc=fallback.voc, vmp=fallback.vmp,
-            isc=fallback.isc, imp=fallback.imp, bifacial_pmax=fallback.bifacial_pmax,
-            temp_coeff_voc_pct_per_c=fallback.temp_coeff_voc_pct_per_c,
-            temp_coeff_isc_pct_per_c=fallback.temp_coeff_isc_pct_per_c,
+            pmax=candidate.pmax, voc=candidate.voc, vmp=candidate.vmp,
+            isc=candidate.isc, imp=candidate.imp, bifacial_pmax=candidate.bifacial_pmax,
+            temp_coeff_voc_pct_per_c=candidate.temp_coeff_voc_pct_per_c,
+            temp_coeff_isc_pct_per_c=candidate.temp_coeff_isc_pct_per_c,
         )
     raise KeyError(module_sku)
+
+
+def project_module_lookup(project: ProjectInput) -> dict[str, ModuleSpec]:
+    """Every module a project might reference by SKU, keyed for
+    resolve_module_spec's dict-fallback form: the main module plus whatever
+    other non-catalog modules the project's custom_modules carries (a
+    per-inverter/per-combiner module different from the main one). The main
+    module is applied last so it's always authoritative for its own sku,
+    even if custom_modules also happens to carry an entry under that key."""
+    lookup: dict[str, ModuleSpec] = dict(project.custom_modules)
+    lookup[project.module.sku] = project.module
+    return lookup

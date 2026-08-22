@@ -17,7 +17,7 @@ def expected_iv_point(
     irradiance_w_m2: float,
     cell_temp_c: float,
     modules_per_string: int,
-    module_fallback: ModuleSpec | None = None,
+    module_fallback: ModuleSpec | dict[str, ModuleSpec] | None = None,
 ) -> dict:
     module = module_catalog.resolve_module_spec(module_sku, module_fallback)
     g = irradiance_w_m2 / 1000

@@ -50,7 +50,7 @@ def size_conductor(
     inverter: InverterSpec,
     ashrae: ASHRAESiteData,
     ampacity_input: AmpacityInput,
-    module_fallback: ModuleSpec | None = None,
+    module_fallback: ModuleSpec | dict[str, ModuleSpec] | None = None,
 ) -> dict:
     if ampacity_input.circuit_type == "dc_source":
         base_current = module_catalog.resolve_module_spec(module_sku, module_fallback).isc * 1.25

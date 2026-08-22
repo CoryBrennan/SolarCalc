@@ -86,10 +86,12 @@ def _circuit_current_voltage(circuit: str, project: ProjectInput) -> tuple[float
     if circuit == "inverter_to_combiner":
         if project.inverter.dc_topology != "combiner":
             return None
-        combiner_result = size_combiners(project.combiner_rows, project.module.max_series_fuse_rating_a, project.module)
+        combiner_result = size_combiners(
+            project.combiner_rows, project.module.max_series_fuse_rating_a, module_catalog.project_module_lookup(project)
+        )
         return combiner_result["max_output_ampacity_a"], project.inverter.max_dc_voltage_v
     if circuit == "combiner_to_string":
-        module = module_catalog.resolve_module_spec(project.module.sku, project.module)
+        module = module_catalog.resolve_module_spec(project.module.sku, module_catalog.project_module_lookup(project))
         return module.isc * 1.25, project.inverter.max_dc_voltage_v
     raise ValueError(f"Unknown circuit type: {circuit!r}")
 

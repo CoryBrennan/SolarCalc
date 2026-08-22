@@ -406,6 +406,13 @@ class ProjectInput(BaseModel):
 
     site: SiteConfig = Field(default_factory=SiteConfig)
     module: ModuleSpec = Field(default_factory=ModuleSpec)
+    # Non-catalog modules beyond the one main `module` above, keyed by their
+    # own sku -- lets a project with more than one custom module in play
+    # (e.g. per-inverter module assignment on the HMI's Array schedule)
+    # resolve every one of them instead of only the main module's sku. See
+    # module_catalog.resolve_module_spec()'s dict-fallback form and
+    # project_module_lookup().
+    custom_modules: dict[str, ModuleSpec] = Field(default_factory=dict)
     inverter: InverterSpec = Field(default_factory=InverterSpec)
     combiner_rows: list[CombinerRow] = Field(
         default_factory=lambda: [

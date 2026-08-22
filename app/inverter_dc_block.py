@@ -23,12 +23,14 @@ def _string_conductor(project: ProjectInput, module_sku: str) -> str | None:
         insulation_rating=project.ampacity.insulation_rating,
         conductor_count=project.ampacity.conductor_count,
     )
-    result = size_conductor(module_sku, project.inverter, project.ashrae, ampacity_input, project.module)
+    result = size_conductor(
+        module_sku, project.inverter, project.ashrae, ampacity_input, module_catalog.project_module_lookup(project)
+    )
     return result["selected_conductor"]
 
 
 def build_inverter_dc_mppt_config(project: ProjectInput) -> dict:
-    module = module_catalog.resolve_module_spec(project.module.sku, project.module)
+    module = module_catalog.resolve_module_spec(project.module.sku, module_catalog.project_module_lookup(project))
     strings_per_mppt = project.inverter.strings_per_mppt_direct
     per_string_ocpd = ocpd_calc.size_ocpd(continuous_current_a=module.isc, circuit="pv_source")["standard_size_a"]
     conductor = _string_conductor(project, project.module.sku)
@@ -62,7 +64,9 @@ def build_inverter_dc_mppt_config(project: ProjectInput) -> dict:
 def build_inverter_dc_combiner_configs(project: ProjectInput) -> list[dict]:
     configs = []
     for i, row in enumerate(project.combiner_rows, start=1):
-        computed = combiner_calc.compute_combiner_row(row, project.module.max_series_fuse_rating_a, project.module)
+        computed = combiner_calc.compute_combiner_row(
+            row, project.module.max_series_fuse_rating_a, module_catalog.project_module_lookup(project)
+        )
         conductor = _string_conductor(project, row.module_sku)
         input_fuse = computed["input_fuse_a"]
         disconnect_rating = next_standard_size(computed["output_ampacity_a"])

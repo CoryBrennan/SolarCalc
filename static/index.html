@@ -1508,13 +1508,13 @@
             <p class="eyebrow">combiner_calc.py → size_combiner()</p>
             <h2>DC Combiner Design</h2>
           </div>
-          <span class="chip chip-pass" id="combinerApplicabilityChip">Active — this inverter requires a DC combiner</span>
+          <span class="chip chip-pass" id="combinerApplicabilityChip">Active — at least one inverter on the Array schedule requires a DC combiner</span>
         </div>
-        <p class="desc">Only shown when Inverter Spec's DC input topology is set to "requires external DC combiner" — this panel (and its nav entry) hides entirely otherwise. This inverter's MPPTs can be fed by any number of combiners, and real field layouts rarely give every combiner the same string count — or even the same module.</p>
+        <p class="desc">Only shown when at least one inverter on Array Electrical Design's (08) Array schedule needs an external DC combiner — this panel (and its nav entry) hides entirely otherwise. One row per real combiner on site (Interconnection ▸ Transformer ▸ Switchboard ▸ Inverter ▸ DC Combiner on the Array schedule), so a mixed fleet with different string counts, or even different modules, per combiner is exactly what shows up here.</p>
 
         <div class="card" id="combinerCard">
           <p class="card-title">DC combiner schedule</p>
-          <p class="desc" style="margin-bottom:14px;">One row per combiner: what it collects, what its output circuit has to carry, and whether the conductor leaving it holds up over the run. Ampacity and voltage drop are worked the same way as the per-string rows on Array Electrical Design, one level up — input fuses instead of module I<sub>sc</sub>, and the combiner-to-inverter run instead of the string run.</p>
+          <p class="desc" style="margin-bottom:14px;">Combiner and Module come straight from the Array schedule (08) — add, remove, or reassign combiners there, not here. Everything else is this panel's own: what the output circuit has to carry, and whether the conductor leaving it holds up over the run. Ampacity and voltage drop are worked the same way as the per-string rows on Array Electrical Design, one level up — input fuses instead of module I<sub>sc</sub>, and the combiner-to-inverter run instead of the string run.</p>
           <div class="field-grid" style="margin-bottom:14px;">
             <div class="field">
               <label for="combOutputInsulation">Insulation rating <span class="unit">°C</span></label>
@@ -1557,13 +1557,12 @@
                   <th style="text-align:right;">Required ampacity (A)</th>
                   <th>Conductor</th><th style="text-align:right;">Run (ft)</th>
                   <th style="text-align:right;">V<sub>drop</sub> (V)</th><th style="text-align:right;">V<sub>drop</sub> (%)</th>
-                  <th style="text-align:right;">Busbar (A)</th><th>Busbar</th><th></th>
+                  <th style="text-align:right;">Busbar (A)</th><th>Busbar</th>
                 </tr>
               </thead>
               <tbody id="combinerBody"></tbody>
             </table>
           </div>
-          <button class="btn" id="addCombinerBtn" style="margin-top:14px;">+ Add combiner</button>
           <div class="computed-row" style="margin-top:16px;">
             <div class="computed"><div class="k">Temp correction</div><div class="v" id="combOutputTempFactor">—</div></div>
             <div class="computed"><div class="k">Fill adjustment</div><div class="v" id="combOutputFillFactor">—</div></div>
@@ -5119,6 +5118,10 @@
     document.getElementById('invDcTopology').value = topology;
     document.getElementById('invDcTopology').dispatchEvent(new Event('input', { bubbles: true }));
     if (combOutputReady) refreshCombinerSummary();
+    // This model may be used by several Array schedule rows, so flipping its
+    // topology here can change site-wide combiner applicability — recompute
+    // now that combinerApplicabilityRefresh() no longer triggers this itself.
+    if (typeof inverterDesignReady !== 'undefined' && inverterDesignReady) recomputeInverterDesign();
   });
 
   function applyInverterMechanicalUnits() {
@@ -7818,6 +7821,13 @@
     renderAmpacityStringSchedule();
     renderVdropStringSchedule();
     renderSldDiagram();
+    // Guarded the same way every other cross-reference into the DC Combiner
+    // block is -- combOutputReady only flips true once that section's own
+    // init has finished, which happens after this function is first defined.
+    if (typeof combOutputReady !== 'undefined' && combOutputReady) {
+      combinerApplicabilityRefresh();
+      syncCombinerRowsFromArraySchedule();
+    }
     publishInverterDesignQuantities();
 
     const hint = document.getElementById('invDesignBalanceHint');
@@ -9867,7 +9877,11 @@
   function defaultCombinerRow(inputs) {
     return { inputs: inputs, busRating: 200, moduleSku: modSku.value, conductor: '', runFt: DEFAULT_COMBINER_RUN_FT };
   }
-  let combinerRows = [defaultCombinerRow(2), defaultCombinerRow(3)];
+  // Rows with a sourceKey are derived from the Array schedule's DC Combiner
+  // level (see syncCombinerRowsFromArraySchedule below) -- starts empty and
+  // gets built on the first recompute, rather than the two generic example
+  // rows this used to seed with.
+  let combinerRows = [];
 
   function moduleSkuOptionsHtml(selected) {
     return Object.keys(MODULE_SKUS).map(sku =>
@@ -9875,18 +9889,63 @@
       escapeText(moduleLabel(sku)) + '</option>').join('');
   }
 
+  // ---- absorbed from Array Electrical Design (08): one combiner row per
+  // real (inverter, DC-combiner-tag) pair that actually has strings on it,
+  // for every inverter whose model needs an external combiner. Reconciled
+  // by sourceKey rather than rebuilt from scratch each time, so a row's own
+  // edited fields (conductor, runFt, busRating, and everything on the
+  // surge/disconnect card below) survive a resync -- only inputs/moduleSku/
+  // label are ever overwritten, since those three are what the schedule
+  // itself owns.
+  function syncCombinerRowsFromArraySchedule() {
+    const names = effectiveInverterNames();
+    const wanted = [];
+    inverterDesignRows.forEach((row, i) => {
+      if (!inverterRowHasCombiner(row)) return;
+      const seen = new Set();
+      (row.stringCombiner || []).forEach(combo => {
+        if (seen.has(combo)) return;
+        seen.add(combo);
+        const inputs = row.stringCombiner.filter(c => c === combo).length;
+        if (!inputs) return;
+        wanted.push({ sourceKey: i + ' ' + combo, label: names[i] + '-' + combo, inputs: inputs, moduleSku: row.moduleSku });
+      });
+    });
+    const existingByKey = {};
+    combinerRows.forEach(r => { if (r.sourceKey) existingByKey[r.sourceKey] = r; });
+    combinerRows = wanted.map(w => {
+      const existing = existingByKey[w.sourceKey];
+      if (existing) {
+        existing.inputs = w.inputs;
+        existing.moduleSku = w.moduleSku;
+        existing.label = w.label;
+        return existing;
+      }
+      return { sourceKey: w.sourceKey, label: w.label, inputs: w.inputs, moduleSku: w.moduleSku,
+               busRating: 200, conductor: '', runFt: DEFAULT_COMBINER_RUN_FT };
+    });
+    renderCombinerRows();
+  }
+
+  // Active whenever ANY inverter actually on the Array schedule needs a
+  // combiner (a mixed fleet can have some rows that do and some that don't),
+  // not just whichever model happens to be selected on Inverter Spec right
+  // now. Falls back to the single-model check before the Array schedule has
+  // any rows yet (or hasn't finished its own init), so this stays correct
+  // during the page's very first render pass too.
   function combinerApplicabilityRefresh() {
-    const active = invDcTopology.value === 'combiner';
+    const active = (typeof inverterDesignRows !== 'undefined' && inverterDesignReady && inverterDesignRows.length)
+      ? inverterDesignRows.some(r => inverterRowHasCombiner(r))
+      : invDcTopology.value === 'combiner';
     const chip = document.getElementById('combinerApplicabilityChip');
-    chip.textContent = active ? 'Active — this inverter requires a DC combiner' : 'Not applicable — accepts PV source circuits directly';
+    chip.textContent = active ? 'Active — at least one inverter on the Array schedule requires a DC combiner' : 'Not applicable — no inverter on the Array schedule needs one';
     chip.className = 'chip ' + (active ? 'chip-pass' : 'chip-muted');
     document.getElementById('combinerCard').style.opacity = active ? '1' : '0.5';
-    if (inverterDesignReady) recomputeInverterDesign();
     document.getElementById('combinerDot').className = 'rail-dot ' + (active ? 'dot-pass' : 'dot-neutral');
 
-    // Whole panel + nav entry only exist when this inverter actually needs a
-    // DC combiner — not just dimmed, fully hidden (and navigate away if the
-    // user was on it when topology flips to "direct").
+    // Whole panel + nav entry only exist when at least one real inverter
+    // needs a DC combiner — not just dimmed, fully hidden (and navigate away
+    // if the user was on it when the last combiner-needing row goes away).
     const panel = document.getElementById('sec-combiner');
     const nav = document.getElementById('navCombiner');
     panel.style.display = active ? '' : 'none';
@@ -9900,7 +9959,10 @@
   function computeCombinerRow(row) {
     const d = MODULE_SKUS[row.moduleSku] || MODULE_SKUS[modSku.value] || { isc: 0 };
     const inputMinFuse = d.isc * 1.25;
-    const maxAllowedFuse = parseNum(modMaxFuse.value) || 9999;
+    // This row's own module's max series fuse, not the display field on
+    // Module Spec — that only mirrors whichever module is selected there,
+    // and this combiner's module may be a different inverter's choice.
+    const maxAllowedFuse = d.maxFuse || 9999;
     const inputFuse = Math.min(nextStandardSize(inputMinFuse), maxAllowedFuse);
     // The output circuit carries the sum of the input fuse ratings, not raw
     // Isc x 1.25 x inputs — that is how a combiner output is conventionally
@@ -9938,7 +10000,7 @@
 
   function populateCombinerSelect() {
     const current = ocpdCombinerSelect.value;
-    ocpdCombinerSelect.innerHTML = combinerRows.map((_, i) => '<option value="' + i + '">Combiner ' + (i + 1) + '</option>').join('');
+    ocpdCombinerSelect.innerHTML = combinerRows.map((r, i) => '<option value="' + i + '">' + escapeText(r.label || ('Combiner ' + (i + 1))) + '</option>').join('');
     if (current !== '' && Number(current) < combinerRows.length) ocpdCombinerSelect.value = current;
   }
 
@@ -9988,6 +10050,11 @@
     if (combOutputReady) { combOutputRecompute(); updateCombDisconnectVisibility(); }
   }
 
+  // Combiner and Module are read-only display now -- both are owned by the
+  // Array schedule (which physical combiner this is, and which inverter's
+  // module feeds it), not editable here. Everything else on the row
+  // (conductor, run, bus rating, and the surge/disconnect card) stays this
+  // panel's own.
   function renderCombinerRows() {
     combinerBody.innerHTML = '';
     combinerRows.forEach((row, i) => {
@@ -9995,9 +10062,9 @@
       const tr = document.createElement('tr');
       tr.dataset.idx = i;
       tr.innerHTML =
-        '<td>Combiner ' + (i + 1) + '</td>' +
-        '<td><select data-idx="' + i + '" data-field="moduleSku">' + moduleSkuOptionsHtml(row.moduleSku) + '</select></td>' +
-        '<td style="text-align:right;"><input type="text" data-idx="' + i + '" data-field="inputs" value="' + row.inputs + '"></td>' +
+        '<td>' + escapeText(row.label || ('Combiner ' + (i + 1))) + '</td>' +
+        '<td>' + escapeText(moduleLabel(row.moduleSku)) + '</td>' +
+        '<td style="text-align:right;">' + row.inputs + '</td>' +
         '<td style="text-align:right;" data-cell="fuse">' + c.inputFuse + '</td>' +
         '<td style="text-align:right;" data-cell="output">' + c.outputAmpacity.toFixed(2) + '</td>' +
         '<td style="text-align:right;" data-cell="required">' + c.requiredAmpacity.toFixed(2) + '</td>' +
@@ -10007,10 +10074,12 @@
         '<td style="text-align:right;" data-cell="vdv">' + c.vdVolts.toFixed(2) + '</td>' +
         '<td style="text-align:right;" data-cell="vdpct" class="' + (c.vdLimit ? (c.vdPass ? 'vd-pass' : 'vd-fail') : '') + '">' + c.vdPct.toFixed(2) + ' %</td>' +
         '<td style="text-align:right;"><input type="text" data-idx="' + i + '" data-field="busRating" value="' + row.busRating + '"></td>' +
-        '<td data-cell="buscheck"><span class="status-chip ' + (c.busPass ? 'status-extracted' : 'status-fail') + '"><span class="p"></span>' + (c.busPass ? 'Pass' : 'Fail') + '</span></td>' +
-        '<td>' + (combinerRows.length > 1 ? '<button type="button" class="contact-remove" data-remove="' + i + '">Remove</button>' : '') + '</td>';
+        '<td data-cell="buscheck"><span class="status-chip ' + (c.busPass ? 'status-extracted' : 'status-fail') + '"><span class="p"></span>' + (c.busPass ? 'Pass' : 'Fail') + '</span></td>';
       combinerBody.appendChild(tr);
     });
+    if (!combinerRows.length) {
+      combinerBody.innerHTML = '<tr class="empty"><td colspan="12">No inverter on the Array schedule (08) needs a DC combiner yet.</td></tr>';
+    }
     refreshCombinerSummary();
   }
 
@@ -10023,7 +10092,7 @@
     const idx = e.target.dataset.idx;
     const field = e.target.dataset.field;
     if (idx === undefined) return;
-    const textFields = ['moduleSku', 'conductor', 'runFt'];
+    const textFields = ['conductor', 'runFt'];
     combinerRows[idx][field] = textFields.includes(field) ? e.target.value : (parseNum(e.target.value) || 0);
     // Switching a conductor away from Auto drops the annotation beside it, so
     // that needs a full re-render; typed fields refresh in place.
@@ -10032,16 +10101,6 @@
   }
   combinerBody.addEventListener('input', handleCombinerFieldChange);
   combinerBody.addEventListener('change', handleCombinerFieldChange);
-  combinerBody.addEventListener('click', (e) => {
-    const btn = e.target.closest('[data-remove]');
-    if (!btn) return;
-    combinerRows.splice(parseInt(btn.dataset.remove, 10), 1);
-    renderCombinerRows();
-  });
-  document.getElementById('addCombinerBtn').addEventListener('click', () => {
-    combinerRows.push(defaultCombinerRow(2));
-    renderCombinerRows();
-  });
 
   // Bulk conductor / run, so a site with twenty combiners isn't set one at a time.
   (function initCombinerBulk() {
@@ -10329,7 +10388,8 @@
   combOutputReady = true;
   updateCombDisconnectVisibility();
   updateCombSurgeSuppressionVisibility();
-  renderCombinerRows();
+  combinerApplicabilityRefresh();
+  syncCombinerRowsFromArraySchedule();
 
   // ---- voltage drop computed segment (mirrors voltage_drop_calc.check_segment) ----
   const vdInverterSwitchboard = document.getElementById('vdInverterSwitchboard');
@@ -10485,7 +10545,10 @@
       email: block.querySelector('[data-field="email"]').value,
       phone: block.querySelector('[data-field="phone"]').value,
     }));
-    const combinerRowsOut = combinerRows.map(r => ({ inputs: r.inputs, busRating: r.busRating, moduleSku: r.moduleSku, conductor: r.conductor || '', runFt: r.runFt }));
+    const combinerRowsOut = combinerRows.map(r => ({
+      inputs: r.inputs, busRating: r.busRating, moduleSku: r.moduleSku, conductor: r.conductor || '', runFt: r.runFt,
+      sourceKey: r.sourceKey || '', label: r.label || '',
+    }));
     const directoryContactsOut = {};
     DIRECTORY_CATEGORIES.forEach(cat => {
       directoryContactsOut[cat.key] = directoryContacts[cat.key].map(c => ({
@@ -10713,10 +10776,19 @@
     }
 
     if (Array.isArray(project.combinerRows) && project.combinerRows.length) {
+      // sourceKey/label are what let the next Array-schedule recompute
+      // re-match a restored row to its real (inverter, DC-combiner) pair and
+      // keep this saved conductor/run/bus rating instead of generating a
+      // fresh default for it — without them, the first recompute after
+      // restore would silently orphan every customization here.
       combinerRows = project.combinerRows.map(r => ({
         inputs: parseNum(r.inputs) || 1,
         busRating: parseNum(r.busRating) || 0,
         moduleSku: (r.moduleSku && MODULE_SKUS[r.moduleSku]) ? r.moduleSku : modSku.value,
+        conductor: r.conductor || '',
+        runFt: r.runFt || DEFAULT_COMBINER_RUN_FT,
+        sourceKey: r.sourceKey || '',
+        label: r.label || '',
       }));
       renderCombinerRows();
     }
@@ -10841,6 +10913,35 @@
         temp_coeff_voc_pct_per_c: parseNum(document.getElementById('modTempCoeffVoc').value),
         temp_coeff_isc_pct_per_c: parseNum(document.getElementById('modTempCoeffIsc').value),
       },
+      // Every module besides the main one above that's actually assigned to
+      // some inverter on the Array schedule -- lets the backend resolve a
+      // combiner row (or anything else keyed off that inverter's module)
+      // that isn't on the main module, via module_catalog.resolve_module_spec's
+      // dict-fallback form. Keyed by sku; the main module's own sku is never
+      // duplicated in here, it's covered by the `module` field itself.
+      custom_modules: (() => {
+        const out = {};
+        const seen = new Set([modSku.value]);
+        inverterDesignRows.forEach(row => {
+          if (seen.has(row.moduleSku)) return;
+          seen.add(row.moduleSku);
+          const d = MODULE_SKUS[row.moduleSku];
+          if (!d) return;
+          out[row.moduleSku] = {
+            sku: row.moduleSku,
+            manufacturer: d.manufacturer || '',
+            max_series_fuse_rating_a: d.maxFuse,
+            max_system_voltage_v: d.maxSystemV,
+            first_year_degradation_pct: d.firstYearDeg,
+            annual_degradation_pct: d.annualDeg,
+            pmax: d.pmax, voc: d.voc, vmp: d.vmp, isc: d.isc, imp: d.imp,
+            bifacial_pmax: d.bifacial,
+            temp_coeff_voc_pct_per_c: d.tempCoeffVoc,
+            temp_coeff_isc_pct_per_c: d.tempCoeffIsc,
+          };
+        });
+        return out;
+      })(),
       inverter: {
         model: document.getElementById('invModel').value,
         ac_rating_w: parseNum(invAcRating.value),
