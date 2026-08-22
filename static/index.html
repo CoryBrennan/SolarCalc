@@ -592,7 +592,7 @@
             </div>
 
             <div class="field wide">
-              <label>Target capacity units</label>
+              <label>Target units <span class="unit">applies to every target box below, including Storage and Other generation</span></label>
               <div class="radio-row" style="margin-bottom:0;">
                 <label><input type="radio" name="targetCapacityUnit" value="w" checked> W</label>
                 <label><input type="radio" name="targetCapacityUnit" value="kw"> kW</label>
@@ -626,14 +626,6 @@
             </div>
 
             <div id="storageTargetGroup" style="display:none;">
-              <div class="field wide" id="storageTargetUnitRow">
-                <label>Storage target units</label>
-                <div class="radio-row" style="margin-bottom:0;">
-                  <label><input type="radio" name="storageTargetUnit" value="wh" checked> Wh</label>
-                  <label><input type="radio" name="storageTargetUnit" value="kwh"> kWh</label>
-                  <label><input type="radio" name="storageTargetUnit" value="mwh"> MWh</label>
-                </div>
-              </div>
               <div class="field" id="storageTargetFieldGroup">
                 <label for="storageTargetDisplay">Storage target <span class="unit" id="storageTargetUnitLabel">Wh</span></label>
                 <input class="prose" type="text" id="storageTargetDisplay" placeholder="e.g. 2,000,000">
@@ -642,8 +634,9 @@
             </div>
 
             <div class="field" id="otherGenFieldGroup" style="display:none;">
-              <label for="otherGenTarget">Other generation target <span class="unit">W</span></label>
-              <input class="prose" type="text" id="otherGenTarget" placeholder="e.g. 500,000">
+              <label for="otherGenTargetDisplay">Other generation target <span class="unit" id="otherGenUnitLabel">W</span></label>
+              <input class="prose" type="text" id="otherGenTargetDisplay" placeholder="e.g. 500,000">
+              <input type="hidden" id="otherGenTarget">
             </div>
           </div>
         </div>
@@ -4272,10 +4265,37 @@
     mapResultsEl.style.display = 'none';
     mapResultsEl.innerHTML = '';
   }
-  async function runMapSearch() {
+  // Pans/zooms the map without touching the site's actual pin — used for the
+  // "narrow it down to the right city, then place the pin by hand" fallback
+  // below, where centring ON THE SITE (centreMapOnSite) would be wrong since
+  // no real site coordinate was found.
+  function panMapTo(lat, lng, zoom) {
+    mapCentre = { lat: lat, lng: lng };
+    if (zoom) mapZoom = zoom;
+    renderMap();
+  }
+  function applyMapSearchResult(r) {
+    setSiteCoords(Number(r.lat), Number(r.lon));
+    renderGpsEditors();
+    const filled = applyNominatimAddress(r.address);
+    centreMapOnSite(16);
+    clearMapResults();
+    mapStatusEl.textContent = 'Pin set at ' + Number(r.lat).toFixed(6) + ', ' + Number(r.lon).toFixed(6) +
+      (filled.length ? ' — filled ' + filled.join(', ') + '.' : ' — no street address in that result; fill it in by hand.');
+  }
+  // opts.silent suppresses the "Searching..." status flicker for the
+  // auto-triggered-while-typing case below; opts.keepList forces the result
+  // list even for a single match (used by the explicit Search button/Enter,
+  // so a deliberate search always shows what it found rather than silently
+  // committing to one guess).
+  async function runMapSearch(opts) {
+    opts = opts || {};
     const q = document.getElementById('siteMapSearch').value.trim();
     clearMapResults();
-    if (!q) { mapStatusEl.textContent = 'Type an address or a coordinate pair to search.'; return; }
+    if (!q) {
+      if (!opts.silent) mapStatusEl.textContent = 'Type an address or a coordinate pair to search.';
+      return;
+    }
     // A coordinate pair needs no geocoder — jump straight there.
     const coords = parseCoordinateText(q);
     if (coords) {
@@ -4283,7 +4303,7 @@
       centreMapOnSite(16);
       return;
     }
-    mapStatusEl.textContent = 'Searching “' + q + '”…';
+    if (!opts.silent) mapStatusEl.textContent = 'Searching “' + q + '”…';
     let results;
     try {
       results = await nominatim('/search?format=jsonv2&addressdetails=1&limit=6&q=' + encodeURIComponent(q));
@@ -4292,7 +4312,34 @@
       return;
     }
     if (!results.length) {
-      mapStatusEl.textContent = 'No match for “' + q + '”. Try a broader search, or pan and click the map.';
+      // The exact street/house number is often missing from OSM's data even
+      // when the surrounding area is well mapped — a common gap on smaller
+      // or industrial roads, not something a different query phrasing fixes
+      // (already the case before this only ever tried the one full-address
+      // query). Falling back to city/state/ZIP alone at least centers the
+      // map on the right area instead of a dead end, so pin placement is a
+      // short pan-and-click instead of a search from nothing.
+      const city = document.getElementById('siteCity').value.trim();
+      const state = document.getElementById('siteState').value.trim();
+      const zip = document.getElementById('siteZip').value.trim();
+      const broader = [city, [state, zip].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+      if (broader && broader !== q) {
+        let broaderResults = [];
+        try {
+          broaderResults = await nominatim('/search?format=jsonv2&addressdetails=1&limit=1&q=' + encodeURIComponent(broader));
+        } catch (err) { /* fall through to the no-match message below */ }
+        if (broaderResults.length) {
+          panMapTo(Number(broaderResults[0].lat), Number(broaderResults[0].lon), 13);
+          mapStatusEl.textContent = 'No exact match for the street address (a common gap in the map data on smaller roads) — centered on ' +
+            broader + ' instead. Pan and click the map to place the pin precisely.';
+          return;
+        }
+      }
+      mapStatusEl.textContent = 'No match for “' + q + '”, even for just the city/state/ZIP. Pan and click the map, or paste coordinates into the insert box above.';
+      return;
+    }
+    if (results.length === 1 && !opts.keepList) {
+      applyMapSearchResult(results[0]);
       return;
     }
     mapStatusEl.textContent = results.length + ' match' + (results.length === 1 ? '' : 'es') + ' — pick one to drop the pin.';
@@ -4300,33 +4347,31 @@
       '<button type="button" data-map-result="' + i + '">' + escapeText(r.display_name) + '</button>').join('');
     mapResultsEl.style.display = 'block';
     mapResultsEl.querySelectorAll('[data-map-result]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const r = results[Number(btn.dataset.mapResult)];
-        setSiteCoords(Number(r.lat), Number(r.lon));
-        renderGpsEditors();
-        const filled = applyNominatimAddress(r.address);
-        centreMapOnSite(16);
-        clearMapResults();
-        mapStatusEl.textContent = 'Pin set at ' + Number(r.lat).toFixed(6) + ', ' + Number(r.lon).toFixed(6) +
-          (filled.length ? ' — filled ' + filled.join(', ') + '.' : ' — no street address in that result; fill it in by hand.');
-      });
+      btn.addEventListener('click', () => applyMapSearchResult(results[Number(btn.dataset.mapResult)]));
     });
   }
-  document.getElementById('siteMapSearchBtn').addEventListener('click', runMapSearch);
+  document.getElementById('siteMapSearchBtn').addEventListener('click', () => runMapSearch({ keepList: true }));
   document.getElementById('siteMapSearch').addEventListener('keydown', e => {
-    if (e.key === 'Enter') { e.preventDefault(); runMapSearch(); }
+    if (e.key === 'Enter') { e.preventDefault(); runMapSearch({ keepList: true }); }
   });
 
   // Prep the search bar with the address as it's typed, so hitting Search
   // doesn't require retyping it — but a direct edit to the search box (a
   // pasted coordinate pair, a different query) wins from then on, same
   // override-beats-derived pattern used for AHJ/utility name elsewhere.
+  // Also fires the search itself (debounced) once there's enough of an
+  // address typed to be worth geocoding — typing the address is the whole
+  // interaction now, no separate click-Search-then-pick-a-result required
+  // for the common case of a single confident match.
   let siteMapSearchTouchedByUser = false;
   document.getElementById('siteMapSearch').addEventListener('input', () => { siteMapSearchTouchedByUser = true; });
+  const debouncedAutoMapSearch = debounce(() => runMapSearch({ silent: true }), 900);
   function syncMapSearchFromAddress() {
     if (siteMapSearchTouchedByUser) return;
     const full = formatFullSiteAddress();
-    if (full) document.getElementById('siteMapSearch').value = full;
+    if (!full) return;
+    document.getElementById('siteMapSearch').value = full;
+    if (document.getElementById('siteStreet').value.trim()) debouncedAutoMapSearch();
   }
   ['siteStreet', 'siteCity', 'siteState', 'siteZip'].forEach(id =>
     document.getElementById(id).addEventListener('input', syncMapSearchFromAddress));
@@ -4402,32 +4447,37 @@
   }
   function renderAllUnitDisplayFields() { UNIT_DISPLAY_RENDERERS.forEach(fn => fn()); }
 
+  // One shared radio group now drives every target box on this panel --
+  // Target AC/DC, Storage, and Other generation -- so a single click
+  // rescales all of them together instead of Storage (previously its own
+  // Wh/kWh/MWh toggle) and Other generation (previously not adjustable at
+  // all, hardcoded to W) drifting out of sync with AC/DC. Storage/Other
+  // generation still label themselves Wh/kWh/MWh and W/kW/MW respectively
+  // (energy vs. power), but the underlying scale (1 / 1e3 / 1e6) is
+  // identical, so the same multiplier table and radio group serve both.
   const TARGET_CAPACITY_UNIT_MULTIPLIERS = { w: 1, kw: 1e3, mw: 1e6 };
   const targetAcDisplay = document.getElementById('targetAcDisplay');
   const targetDcDisplay = document.getElementById('targetDcDisplay');
+  const storageTarget = document.getElementById('storageTarget');
+  const storageTargetDisplay = document.getElementById('storageTargetDisplay');
+  const otherGenTarget = document.getElementById('otherGenTarget');
+  const otherGenTargetDisplay = document.getElementById('otherGenTargetDisplay');
   wireUnitDisplayField(targetAc, targetAcDisplay, 'targetCapacityUnit', TARGET_CAPACITY_UNIT_MULTIPLIERS, 'w');
   wireUnitDisplayField(targetDc, targetDcDisplay, 'targetCapacityUnit', TARGET_CAPACITY_UNIT_MULTIPLIERS, 'w');
+  wireUnitDisplayField(storageTarget, storageTargetDisplay, 'targetCapacityUnit', TARGET_CAPACITY_UNIT_MULTIPLIERS, 'w');
+  wireUnitDisplayField(otherGenTarget, otherGenTargetDisplay, 'targetCapacityUnit', TARGET_CAPACITY_UNIT_MULTIPLIERS, 'w');
   function updateTargetCapacityUnitLabels() {
     const checked = document.querySelector('input[name="targetCapacityUnit"]:checked');
     const unit = checked ? checked.value : 'w';
     const label = unit === 'w' ? 'W' : (unit === 'kw' ? 'kW' : 'MW');
+    const energyLabel = unit === 'w' ? 'Wh' : (unit === 'kw' ? 'kWh' : 'MWh');
     document.getElementById('targetAcUnitLabel').textContent = label;
     document.getElementById('targetDcUnitLabel').textContent = label;
+    document.getElementById('storageTargetUnitLabel').textContent = energyLabel;
+    document.getElementById('otherGenUnitLabel').textContent = label;
   }
   document.querySelectorAll('input[name="targetCapacityUnit"]').forEach(el => el.addEventListener('change', updateTargetCapacityUnitLabels));
   updateTargetCapacityUnitLabels();
-
-  const STORAGE_TARGET_UNIT_MULTIPLIERS = { wh: 1, kwh: 1e3, mwh: 1e6 };
-  const storageTarget = document.getElementById('storageTarget');
-  const storageTargetDisplay = document.getElementById('storageTargetDisplay');
-  wireUnitDisplayField(storageTarget, storageTargetDisplay, 'storageTargetUnit', STORAGE_TARGET_UNIT_MULTIPLIERS, 'wh');
-  function updateStorageTargetUnitLabel() {
-    const checked = document.querySelector('input[name="storageTargetUnit"]:checked');
-    const unit = checked ? checked.value : 'wh';
-    document.getElementById('storageTargetUnitLabel').textContent = unit === 'wh' ? 'Wh' : (unit === 'kwh' ? 'kWh' : 'MWh');
-  }
-  document.querySelectorAll('input[name="storageTargetUnit"]').forEach(el => el.addEventListener('change', updateStorageTargetUnitLabel));
-  updateStorageTargetUnitLabel();
 
   // ---- Target DC vs AC:DC ratio: whichever isn't the priority is computed ----
   const targetRatio = document.getElementById('targetRatio');
@@ -10522,7 +10572,7 @@
   const CHECKBOX_FIELD_IDS = ['siteIsE911Address'];
   const RADIO_GROUP_NAMES = [
     'modUnitSystem', 'invUnitSystem', 'gpsFormat',
-    'targetCapacityUnit', 'targetDcPriority', 'storageTargetUnit',
+    'targetCapacityUnit', 'targetDcPriority',
   ];
 
   function serializeProject() {
