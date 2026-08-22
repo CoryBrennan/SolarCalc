@@ -858,7 +858,7 @@
           </div>
           <span class="chip chip-warn" id="ashraeStatusChip">No station data set loaded</span>
         </div>
-        <p class="desc">Design dry-bulb temperatures for the site. Min drives max system voltage per 690.7(A)(2); max (2% design) drives ampacity temperature correction per 310.15(B)(1) and, as the only "hot" value this data set reliably supplies, the string MPPT-window floor as well. <span class="mono">ashrae-meteo.info</span> has no published API, but does expose the same live lookup its own map uses — <b>Find nearby stations</b> below calls it directly, using the site's coordinates from Site Config (01), and clicking a station applies its values immediately. That's a live pull from a third-party, undocumented endpoint, not official published data, so check it against the map before trusting it. The manual entry card further down still works on its own if the automated lookup is ever unavailable — typing a value there commits it right away too. Every temperature the engine uses comes from the station data set at the bottom; there is no second place to type one in.</p>
+        <p class="desc">Design dry-bulb temperatures for the site. Min drives max system voltage per 690.7(A)(2); max (2% design) drives ampacity temperature correction per 310.15(B)(1) and, as the only "hot" value this data set reliably supplies, the string MPPT-window floor as well. <span class="mono">ashrae-meteo.info</span> has no published API, but does expose the same live lookup its own map uses — <b>Find nearby stations</b> below calls it directly, using the site's coordinates from Site Config (01), and clicking a station applies its values immediately. That's a live pull from a third-party, undocumented endpoint, not official published data, so check it against the map (link below) before trusting it. Every temperature the engine uses comes from that lookup; there is no manual entry path.</p>
 
         <div class="card">
           <p class="card-title">Find nearby stations</p>
@@ -887,6 +887,20 @@
             <div class="computed"><div class="k">Max design dry-bulb, 2%</div><div class="v" id="ashraeInUseMax">—<small> °C</small></div></div>
           </div>
           <p class="desc" id="ashraeInUse" style="margin-top:12px;">Source: <b>manual entry</b> — no station selected. These two feed max system voltage per 690.7(A)(2), ampacity temperature correction per 310.15(B)(1), and — max design dry-bulb doing double duty as the hottest value this data set reliably supplies — the string MPPT-window floor. Nothing else reads a temperature.</p>
+
+          <p class="card-title" style="margin-top:22px;">Station header</p>
+          <div class="field-grid">
+            <div class="field wide"><label for="ashraeDsName">Station name</label><input class="prose" type="text" id="ashraeDsName" placeholder="ST LOUIS REGIONAL AP, IL, USA"></div>
+            <div class="field"><label for="ashraeDsWmo">WMO</label><input type="text" id="ashraeDsWmo" placeholder="724395"></div>
+            <div class="field"><label for="ashraeDsEdition">ASHRAE edition</label><input type="text" id="ashraeDsEdition" placeholder="2025"></div>
+            <div class="field"><label for="ashraeDsLat">Latitude <span class="unit">°</span></label><input type="text" id="ashraeDsLat" placeholder="38.883"></div>
+            <div class="field"><label for="ashraeDsLon">Longitude <span class="unit">°</span></label><input type="text" id="ashraeDsLon" placeholder="-90.050"></div>
+            <div class="field"><label for="ashraeDsElev">Elevation <span class="unit">m</span></label><input type="text" id="ashraeDsElev" placeholder="166"></div>
+            <div class="field"><label for="ashraeDsStdP">Standard pressure <span class="unit">kPa</span></label><input type="text" id="ashraeDsStdP" placeholder="99.35"></div>
+            <div class="field"><label for="ashraeDsTz">Time zone <span class="unit">h from UTC</span></label><input type="text" id="ashraeDsTz" placeholder="-6.00"></div>
+            <div class="field"><label for="ashraeDsPeriod">Period of record</label><input class="prose" type="text" id="ashraeDsPeriod" placeholder="2005-2023"></div>
+            <div class="field"><label for="ashraeDsDistance">Distance from site <span class="unit">mi</span></label><input type="text" id="ashraeDsDistance" readonly placeholder="—"></div>
+          </div>
         </div>
 
         <div class="card">
@@ -915,49 +929,6 @@
         <input type="hidden" id="ashraeMinTemp" value="-10.0">
         <input type="hidden" id="ashraeMaxTemp" value="35.0">
         <input type="hidden" id="ashraeAvgHighTemp" value="35.0">
-
-        <div class="card">
-          <p class="card-title">Selected station — full ASHRAE data set</p>
-          <p class="desc" style="margin-bottom:14px;">Select the station's data table on the map page, copy it, and paste it here. The labelled header values and the annual heating row parse out reliably; everything else is kept verbatim below so nothing is lost in translation. <b>Check every parsed value against the page before using it.</b> Extreme annual min and Cooling DB 2% commit to the design temperatures above the moment you type or edit them — there is no separate confirm step.</p>
-          <div class="field" style="margin-bottom:12px;">
-            <label for="ashraeDataPaste">Paste the station's data table <span class="unit">from ashrae-meteo.info</span></label>
-            <textarea id="ashraeDataPaste" rows="6" placeholder="2025 ASHRAE Handbook - Foundamentals (SI)&#10;ST LOUIS REGIONAL AP, IL, USA (WMO: 724395)&#10;Lat: 38.883N   Lon: 90.05W   Elev: 166   StdP: 99.35   Time zone: -6.00 (NAC)   Period: 2005-2023&#10;Annual Heating, Humidification, and Ventilation Design Conditions&#10;1  -14.6  -11.5  -20.5  0.6  -12.0  -17.6  0.8  -10.8  11.8  1.3  10.5  3.7  3.3  340  0.495"></textarea>
-          </div>
-          <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:16px;">
-            <button class="btn" id="ashraeParseDataBtn" type="button">Parse pasted data →</button>
-            <button class="btn btn-quiet" id="ashraeClearDataBtn" type="button">Clear</button>
-          </div>
-          <p class="desc" id="ashraeDataStatus" style="margin:0 0 16px;">Nothing parsed yet.</p>
-
-          <p class="card-title" style="margin-top:22px;">Station header</p>
-          <div class="field-grid">
-            <div class="field wide"><label for="ashraeDsName">Station name</label><input class="prose" type="text" id="ashraeDsName" placeholder="ST LOUIS REGIONAL AP, IL, USA"></div>
-            <div class="field"><label for="ashraeDsWmo">WMO</label><input type="text" id="ashraeDsWmo" placeholder="724395"></div>
-            <div class="field"><label for="ashraeDsEdition">ASHRAE edition</label><input type="text" id="ashraeDsEdition" placeholder="2025"></div>
-            <div class="field"><label for="ashraeDsLat">Latitude <span class="unit">°</span></label><input type="text" id="ashraeDsLat" placeholder="38.883"></div>
-            <div class="field"><label for="ashraeDsLon">Longitude <span class="unit">°</span></label><input type="text" id="ashraeDsLon" placeholder="-90.050"></div>
-            <div class="field"><label for="ashraeDsElev">Elevation <span class="unit">m</span></label><input type="text" id="ashraeDsElev" placeholder="166"></div>
-            <div class="field"><label for="ashraeDsStdP">Standard pressure <span class="unit">kPa</span></label><input type="text" id="ashraeDsStdP" placeholder="99.35"></div>
-            <div class="field"><label for="ashraeDsTz">Time zone <span class="unit">h from UTC</span></label><input type="text" id="ashraeDsTz" placeholder="-6.00"></div>
-            <div class="field"><label for="ashraeDsPeriod">Period of record</label><input class="prose" type="text" id="ashraeDsPeriod" placeholder="2005-2023"></div>
-            <div class="field"><label for="ashraeDsDistance">Distance from site <span class="unit">mi</span></label><input type="text" id="ashraeDsDistance" readonly placeholder="—"></div>
-          </div>
-
-          <p class="card-title" style="margin-top:22px;">Design-critical values <span class="unit">°C</span></p>
-          <div class="field-grid">
-            <div class="field"><label for="ashraeDsHeatDb996">Heating DB 99.6%</label><input type="text" id="ashraeDsHeatDb996" placeholder="-14.6"></div>
-            <div class="field"><label for="ashraeDsHeatDb99">Heating DB 99%</label><input type="text" id="ashraeDsHeatDb99" placeholder="-11.5"></div>
-            <div class="field"><label for="ashraeDsExtremeMin">Extreme annual min DB</label><input type="text" id="ashraeDsExtremeMin" placeholder="-20.5"></div>
-            <div class="field"><label for="ashraeDsCoolDb04">Cooling DB 0.4%</label><input type="text" id="ashraeDsCoolDb04" placeholder="35.5"></div>
-            <div class="field"><label for="ashraeDsCoolDb1">Cooling DB 1%</label><input type="text" id="ashraeDsCoolDb1" placeholder="34.0"></div>
-            <div class="field"><label for="ashraeDsCoolDb2">Cooling DB 2%</label><input type="text" id="ashraeDsCoolDb2" placeholder="32.6"></div>
-            <div class="field"><label for="ashraeDsExtremeMax">Extreme annual max DB</label><input type="text" id="ashraeDsExtremeMax" placeholder="38.4"></div>
-          </div>
-          <p class="desc" style="margin-top:10px;">Extreme annual min → min design dry-bulb, and cooling DB 2% → max design dry-bulb (which also stands in for average high — see the note on the hidden field above), commit automatically as soon as either is typed or edited.</p>
-
-          <p class="card-title" style="margin-top:22px;">Captured data set <span class="unit">verbatim</span></p>
-          <pre class="capture" id="ashraeDsRaw">Nothing captured yet — paste the station's data table above and click Parse.</pre>
-        </div>
       </section>
 
       <!-- 05 MODULE SPEC -->
@@ -9426,7 +9397,7 @@
       data = await res.json();
       if (!res.ok || !data.resolved) throw new Error((data.warnings || []).join('; ') || ('HTTP ' + res.status));
     } catch (err) {
-      statusEl.textContent = 'Lookup unavailable (' + err.message + ') — use the manual entry below instead.';
+      statusEl.textContent = 'Lookup unavailable (' + err.message + ') — try again shortly, or verify the station against the map link below.';
       resultsEl.style.display = 'none';
       return;
     }
@@ -9468,14 +9439,16 @@
       data = await res.json();
       if (!res.ok || !data.resolved) throw new Error((data.warnings || []).join('; ') || ('HTTP ' + res.status));
     } catch (err) {
-      statusEl.textContent = 'Could not fetch that station (' + err.message + ') — use the manual entry below instead.';
+      statusEl.textContent = 'Could not fetch that station (' + err.message + ') — try again, or pick a different one from the list.';
       return;
     }
     applyFetchedAshraeStation(data);
-    commitAshraeDesignTemps();
-    statusEl.textContent = 'Applied ' + data.name + ' — min and max design dry-bulb are set below. Check the Design-critical values against the map before relying on them.';
+    commitAshraeDesignTemps(data);
+    statusEl.textContent = 'Applied ' + data.name + ' — min and max design dry-bulb are set below. Check them against the map before relying on them.';
   }
 
+  // Station header is display metadata only now -- the paste-a-data-table
+  // fallback is gone, so this is the only thing that ever populates it.
   function applyFetchedAshraeStation(data) {
     const setVal = (id, v) => { document.getElementById(id).value = (v === null || v === undefined) ? '' : String(v); };
     setVal('ashraeDsName', data.name);
@@ -9491,17 +9464,6 @@
     document.getElementById('ashraeDsDistance').value =
       (data.lat != null && data.lon != null && site.lat !== null && site.lng !== null)
         ? haversineMiles(site.lat, site.lng, data.lat, data.lon).toFixed(1) : '';
-    setVal('ashraeDsHeatDb996', data.heat_db_996);
-    setVal('ashraeDsHeatDb99', data.heat_db_99);
-    setVal('ashraeDsCoolDb04', data.cool_db_04);
-    setVal('ashraeDsCoolDb1', data.cool_db_1);
-    setVal('ashraeDsCoolDb2', data.cool_db_2);
-    setVal('ashraeDsExtremeMin', data.extreme_min);
-    setVal('ashraeDsExtremeMax', data.extreme_max);
-    document.getElementById('ashraeDsRaw').textContent =
-      'Fetched live from ashrae-meteo.info (WMO ' + data.wmo + ', ' + data.edition + ') — not a pasted table, so there is nothing verbatim to show here.';
-    document.getElementById('ashraeDataStatus').innerHTML =
-      'Fetched from ashrae-meteo.info and applied to the design temperatures. <b>Check every value against the map before relying on it</b> — this is a live lookup against an undocumented endpoint, not official published data.';
   }
 
   document.getElementById('ashraeFindStationsBtn').addEventListener('click', findNearbyAshraeStations);
@@ -9546,132 +9508,31 @@
     chip.textContent = isSampleDefault ? 'No station data set loaded' : 'Station data set loaded';
     chip.className = 'chip ' + (isSampleDefault ? 'chip-warn' : 'chip-pass');
   }
-  // Commits extreme annual min / cooling DB 2% into the real design
-  // temperatures the calc engine reads, and stamps provenance from whatever
-  // is currently in the station header fields. Called immediately on a
-  // nearby-station click and on every edit to the two source fields below --
-  // there is no separate confirm step any more.
-  function commitAshraeDesignTemps() {
+  // Commits extreme annual min / cooling DB 2% straight from the fetched
+  // station data into the real design temperatures the calc engine reads,
+  // and stamps provenance from the station header fields (already set by
+  // applyFetchedAshraeStation by the time this runs). There is no manual
+  // entry path any more, so this only ever runs from selectAshraeStation.
+  function commitAshraeDesignTemps(data) {
     const pushed = [];
-    function apply(fromId, toId, label) {
-      const v = document.getElementById(fromId).value.trim();
-      if (v === '') return;
+    function apply(v, toId, label) {
+      if (v === null || v === undefined || v === '') return;
       const el = document.getElementById(toId);
-      el.value = v;
+      el.value = String(v);
       el.dispatchEvent(new Event('input', { bubbles: true }));
       pushed.push(label);
     }
-    apply('ashraeDsExtremeMin', 'ashraeMinTemp', 'min design DB');
-    apply('ashraeDsCoolDb2', 'ashraeMaxTemp', 'max design DB (2%)');
+    apply(data.extreme_min, 'ashraeMinTemp', 'min design DB');
+    apply(data.cool_db_2, 'ashraeMaxTemp', 'max design DB (2%)');
     refreshAshraeInUse();
     if (!pushed.length) return;
-    const name = document.getElementById('ashraeDsName').value.trim();
-    const wmo = document.getElementById('ashraeDsWmo').value.trim();
     const dist = document.getElementById('ashraeDsDistance').value.trim();
     setAshraeProvenance(
-      'Source: <b>' + escapeText(name || 'entered ASHRAE data set') + '</b>' + (wmo ? ' (WMO ' + escapeText(wmo) + ')' : '') +
+      'Source: <b>' + escapeText(data.name || 'fetched ASHRAE station') + '</b>' + (data.wmo ? ' (WMO ' + escapeText(String(data.wmo)) + ')' : '') +
       (dist ? ' — ' + escapeText(dist) + ' mi from site, grade ' + stationGrade(Number(dist)).letter : '') +
       '. Applied: ' + pushed.join(', ') + '.'
     );
   }
-  ['ashraeDsExtremeMin', 'ashraeDsCoolDb2'].forEach(id => {
-    document.getElementById(id).addEventListener('input', commitAshraeDesignTemps);
-  });
-
-  // ---- full data set pasted from the map page ----
-  // The labelled header values and the annual heating row have a layout this
-  // panel can verify against the source page, so those are parsed. The cooling
-  // and extreme-annual tables are captured verbatim instead of guessed at —
-  // their column order isn't something this panel can confirm, and a silently
-  // mis-assigned design temperature is worse than a blank one.
-  const ASHRAE_HEATING_ORDER = [
-    'coldestMonth', 'heatDb996', 'heatDb99', 'humidDp996', 'humidHr996', 'humidMcdb996',
-    'humidDp99', 'humidHr99', 'humidMcdb99', 'ws04', 'mcdb04', 'ws1', 'mcdb1',
-    'mcws', 'pcwd', 'wsf',
-  ];
-
-  function ashraeSectionText(raw, startRe, stopRes) {
-    const m = raw.match(startRe);
-    if (!m) return '';
-    const rest = raw.slice(m.index + m[0].length);
-    let cut = rest.length;
-    stopRes.forEach(re => {
-      const at = rest.search(re);
-      if (at >= 0 && at < cut) cut = at;
-    });
-    return rest.slice(0, cut);
-  }
-
-  document.getElementById('ashraeParseDataBtn').addEventListener('click', () => {
-    const raw = document.getElementById('ashraeDataPaste').value;
-    const status = document.getElementById('ashraeDataStatus');
-    if (!raw.trim()) { status.textContent = 'Nothing pasted yet.'; return; }
-    document.getElementById('ashraeDsRaw').textContent = raw.trim();
-
-    const found = [];
-    function grab(id, re, transform) {
-      const m = raw.match(re);
-      if (!m) return false;
-      const v = transform ? transform(m) : m[1].trim();
-      if (v === '' || v === null) return false;
-      document.getElementById(id).value = v;
-      found.push(id);
-      return true;
-    }
-
-    grab('ashraeDsName', /([^\n]*?)\s*\(\s*WMO\s*:?\s*\d+\s*\)/i);
-    grab('ashraeDsWmo', /WMO\s*:?\s*(\d+)/i);
-    grab('ashraeDsEdition', /(\d{4})\s+ASHRAE\s+Handbook/i);
-    grab('ashraeDsElev', /Elev\s*:?\s*(-?\d+(?:\.\d+)?)/i);
-    grab('ashraeDsStdP', /StdP\s*:?\s*(-?\d+(?:\.\d+)?)/i);
-    grab('ashraeDsTz', /Time\s*zone\s*:?\s*(-?\d+(?:\.\d+)?)/i);
-    grab('ashraeDsPeriod', /Period\s*:?\s*(\d{4}\s*-\s*\d{4})/i);
-    // The map writes hemispheres as a trailing letter (38.883N / 90.05W)
-    // rather than a sign, so convert to the signed decimals used everywhere else.
-    grab('ashraeDsLat', /Lat\s*:?\s*(-?\d+(?:\.\d+)?)\s*([NS])?/i,
-      m => String(Math.abs(Number(m[1])) * ((m[2] && m[2].toUpperCase() === 'S') || Number(m[1]) < 0 ? -1 : 1)));
-    grab('ashraeDsLon', /Lon\s*:?\s*(-?\d+(?:\.\d+)?)\s*([EW])?/i,
-      m => String(Math.abs(Number(m[1])) * ((m[2] && m[2].toUpperCase() === 'W') || Number(m[1]) < 0 ? -1 : 1)));
-
-    // The distance box belongs to whatever station this data set is for, not
-    // to whatever was selected last — recompute it from the parsed coordinates.
-    const dsLat = parseFloat(document.getElementById('ashraeDsLat').value);
-    const dsLon = parseFloat(document.getElementById('ashraeDsLon').value);
-    const site = siteCoords();
-    document.getElementById('ashraeDsDistance').value =
-      (Number.isFinite(dsLat) && Number.isFinite(dsLon) && site.lat !== null && site.lng !== null)
-        ? haversineMiles(site.lat, site.lng, dsLat, dsLon).toFixed(1) : '';
-
-    // Percentile labels ("99.6%", "0.4%") sit in the header rows and would
-    // otherwise be read as data, so strip them before pulling the numbers.
-    const heatingText = ashraeSectionText(
-      raw,
-      /Annual\s+Heating[^\n]*\n/i,
-      [/Annual\s+Cooling/i, /Extreme\s+Annual/i, /Dehumidification/i]
-    ).replace(/\d+(?:\.\d+)?\s*%/g, ' ');
-    const heatNums = (heatingText.match(/-?\d+(?:\.\d+)?/g) || []).map(Number);
-    let heatingNote = 'annual heating row not found';
-    if (heatNums.length >= ASHRAE_HEATING_ORDER.length) {
-      const row = {};
-      ASHRAE_HEATING_ORDER.forEach((k, i) => { row[k] = heatNums[i]; });
-      document.getElementById('ashraeDsHeatDb996').value = String(row.heatDb996);
-      document.getElementById('ashraeDsHeatDb99').value = String(row.heatDb99);
-      found.push('ashraeDsHeatDb996', 'ashraeDsHeatDb99');
-      heatingNote = 'annual heating row read (' + ASHRAE_HEATING_ORDER.length + ' values)';
-    } else if (heatNums.length) {
-      heatingNote = 'annual heating row found but only ' + heatNums.length + ' of ' +
-        ASHRAE_HEATING_ORDER.length + ' values — left blank rather than mis-assigned';
-    }
-
-    status.innerHTML = 'Parsed ' + found.length + ' field' + (found.length === 1 ? '' : 's') +
-      ' from the paste; ' + heatingNote + '. <b>Cooling and extreme-annual values are not parsed</b> — this panel can\'t verify those column orders against the source page, so type them in from the captured block below. Extreme annual min and cooling DB 2% apply to the design temperatures automatically as soon as you do.';
-  });
-
-  document.getElementById('ashraeClearDataBtn').addEventListener('click', () => {
-    document.getElementById('ashraeDataPaste').value = '';
-    document.getElementById('ashraeDsRaw').textContent = 'Nothing captured yet — paste the station\'s data table above and click Parse.';
-    document.getElementById('ashraeDataStatus').textContent = 'Cleared.';
-  });
 
   updateAshraeCoordMirror();
   refreshAshraeInUse();
@@ -10382,11 +10243,8 @@
     'combOutputInsulation', 'combOutputConductorCount',
     'xfmrKva', 'xfmrPrimaryV', 'xfmrSecondaryV', 'xfmrPrimaryWinding', 'xfmrSecondaryWinding',
     'ashraeStationId', 'ashraeMinTemp', 'ashraeMaxTemp', 'ashraeAvgHighTemp', 'modMaxSystemVoltage',
-    'ashraeDataPaste',
     'ashraeDsName', 'ashraeDsWmo', 'ashraeDsEdition', 'ashraeDsLat', 'ashraeDsLon', 'ashraeDsElev',
     'ashraeDsStdP', 'ashraeDsTz', 'ashraeDsPeriod', 'ashraeDsDistance',
-    'ashraeDsHeatDb996', 'ashraeDsHeatDb99', 'ashraeDsExtremeMin', 'ashraeDsCoolDb04',
-    'ashraeDsCoolDb1', 'ashraeDsCoolDb2', 'ashraeDsExtremeMax',
     'modFirstYearDegradation', 'modAnnualDegradation', 'stringPredesignVdrop',
     'invDesignInterconnectionsPerSite', 'invDesignTransformersPerInterconnection',
     'invDesignSwitchboardsPerTransformer', 'invDesignInvertersPerSwitchboard',
@@ -10543,8 +10401,6 @@
     // address on Site Config -- doesn't touch ashraeMaxTemp/etc, just
     // re-populates the nearby-station picker for review.
     if (siteCoords().lat !== null) findNearbyAshraeStations();
-    const savedPaste = (project.fields || {}).ashraeDataPaste;
-    if (savedPaste) document.getElementById('ashraeDsRaw').textContent = savedPaste.trim();
     updateAshraeCoordMirror();
     refreshAshraeInUse();
     if (typeof updateCombDisconnectVisibility === 'function') updateCombDisconnectVisibility();
