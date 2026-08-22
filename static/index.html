@@ -4274,22 +4274,44 @@
     if (zoom) mapZoom = zoom;
     renderMap();
   }
-  function applyMapSearchResult(r) {
+  // fillAddressFields defaults true (an explicit result pick from the list
+  // is a deliberate "yes, use this" — filling in whatever the user hadn't
+  // typed yet, e.g. city/state/ZIP after just a street name, is exactly
+  // what should happen). The silent auto-match path below passes false:
+  // Nominatim's free-text search is fuzzy enough to return a plausible
+  // single result even against a *wrong* field value (confirmed live — a
+  // deliberately incorrect ZIP still matched a real nearby address), so
+  // auto-applying it while the user is still mid-typing must never
+  // overwrite City/State/ZIP out from under them. Only the coordinate is a
+  // safe thing to set automatically; the address fields stay exactly what
+  // the user typed until they explicitly pick a result.
+  function applyMapSearchResult(r, opts) {
+    opts = opts || {};
+    const fillAddressFields = opts.fillAddressFields !== false;
     setSiteCoords(Number(r.lat), Number(r.lon));
     renderGpsEditors();
-    const filled = applyNominatimAddress(r.address);
+    const filled = fillAddressFields ? applyNominatimAddress(r.address) : [];
     centreMapOnSite(16);
     clearMapResults();
     mapStatusEl.textContent = 'Pin set at ' + Number(r.lat).toFixed(6) + ', ' + Number(r.lon).toFixed(6) +
-      (filled.length ? ' — filled ' + filled.join(', ') + '.' : ' — no street address in that result; fill it in by hand.');
+      (filled.length ? ' — filled ' + filled.join(', ') + '.'
+        : fillAddressFields ? ' — no street address in that result; fill it in by hand.'
+        : ' — matched the address as typed.');
   }
   // opts.silent suppresses the "Searching..." status flicker for the
   // auto-triggered-while-typing case below; opts.keepList forces the result
   // list even for a single match (used by the explicit Search button/Enter,
   // so a deliberate search always shows what it found rather than silently
   // committing to one guess).
+  //
+  // mapSearchGeneration guards against a slower, earlier search (e.g. an
+  // auto-search fired against an address the user was still mid-typing)
+  // resolving *after* a faster, later one and clobbering its result --
+  // every await checks it's still the newest call before touching the DOM.
+  let mapSearchGeneration = 0;
   async function runMapSearch(opts) {
     opts = opts || {};
+    const myGen = ++mapSearchGeneration;
     const q = document.getElementById('siteMapSearch').value.trim();
     clearMapResults();
     if (!q) {
@@ -4300,6 +4322,7 @@
     const coords = parseCoordinateText(q);
     if (coords) {
       await setSiteFromMapPoint(coords);
+      if (myGen !== mapSearchGeneration) return;
       centreMapOnSite(16);
       return;
     }
@@ -4308,9 +4331,12 @@
     try {
       results = await nominatim('/search?format=jsonv2&addressdetails=1&limit=6&q=' + encodeURIComponent(q));
     } catch (err) {
-      mapStatusEl.textContent = 'Address search unavailable (' + err.message + '). Pan and click the map, or paste coordinates into the insert box above.';
+      if (myGen === mapSearchGeneration) {
+        mapStatusEl.textContent = 'Address search unavailable (' + err.message + '). Pan and click the map, or paste coordinates into the insert box above.';
+      }
       return;
     }
+    if (myGen !== mapSearchGeneration) return;
     if (!results.length) {
       // The exact street/house number is often missing from OSM's data even
       // when the surrounding area is well mapped — a common gap on smaller
@@ -4328,6 +4354,7 @@
         try {
           broaderResults = await nominatim('/search?format=jsonv2&addressdetails=1&limit=1&q=' + encodeURIComponent(broader));
         } catch (err) { /* fall through to the no-match message below */ }
+        if (myGen !== mapSearchGeneration) return;
         if (broaderResults.length) {
           panMapTo(Number(broaderResults[0].lat), Number(broaderResults[0].lon), 13);
           mapStatusEl.textContent = 'No exact match for the street address (a common gap in the map data on smaller roads) — centered on ' +
@@ -4339,7 +4366,9 @@
       return;
     }
     if (results.length === 1 && !opts.keepList) {
-      applyMapSearchResult(results[0]);
+      // Silent/auto path only (see runMapSearch's callers below) -- never
+      // overwrite the address fields the user is still typing.
+      applyMapSearchResult(results[0], { fillAddressFields: false });
       return;
     }
     mapStatusEl.textContent = results.length + ' match' + (results.length === 1 ? '' : 'es') + ' — pick one to drop the pin.';
@@ -4347,7 +4376,9 @@
       '<button type="button" data-map-result="' + i + '">' + escapeText(r.display_name) + '</button>').join('');
     mapResultsEl.style.display = 'block';
     mapResultsEl.querySelectorAll('[data-map-result]').forEach(btn => {
-      btn.addEventListener('click', () => applyMapSearchResult(results[Number(btn.dataset.mapResult)]));
+      // An explicit pick IS a deliberate "yes, use this" -- fine to fill in
+      // whatever the user hadn't typed yet.
+      btn.addEventListener('click', () => applyMapSearchResult(results[Number(btn.dataset.mapResult)], { fillAddressFields: true }));
     });
   }
   document.getElementById('siteMapSearchBtn').addEventListener('click', () => runMapSearch({ keepList: true }));
